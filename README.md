@@ -60,16 +60,18 @@ Secara bawaan server hanya bisa diakses dari komputer itu sendiri. Untuk dijalan
    - `HOST=0.0.0.0`
    - `PORT` sesuai port yang diberikan platform
    - `PUBLIC_URL=https://alamat-anda` (alamat https yang dibuka browser)
-   - `PANEL_PASSWORD=password-anda` (wajib, server menolak jalan tanpa ini)
-2. Di dashboard Spotify, tambahkan redirect `https://alamat-anda/api/spotify/callback`.
-3. Buka `https://alamat-anda`, masukkan password, lalu isi Client ID Spotify di kartu Spotify.
-4. Di OBS, pakai link overlay dari panel. Link itu sudah membawa kunci overlay, jadi tidak perlu login.
+2. Di dashboard Spotify, tambahkan redirect `https://alamat-anda/api/spotify/callback` untuk setiap aplikasi Spotify yang dipakai.
+3. Buka `https://alamat-anda/login`, lalu daftar akun. Setiap orang membuat akunnya sendiri.
+4. Masuk, isi Client ID Spotify (kalau dipakai), dan hubungkan akun TikTok masing-masing.
+5. Di OBS, pakai link overlay dari panel. Link itu sudah membawa kunci overlay milik akun itu, jadi tidak perlu login.
 
 Catatan:
-- Mengubah `PANEL_PASSWORD` akan mengeluarkan semua sesi yang sedang masuk.
-- Tombol **Keluar** hanya menghapus sesi di browser itu. Untuk mencabut sesi di semua perangkat, ganti `PANEL_PASSWORD`.
+- Setiap akun punya koneksi TikTok, pengaturan, Spotify, dan kunci overlay sendiri. Perubahan di satu akun tidak mengubah akun lain.
+- Pendaftaran terbuka untuk siapa pun. Setiap orang hanya boleh menyambungkan akun TikTok yang ia kelola atau yang sudah memberi izin.
+- Tombol **Keluar** mencabut sesi di server, jadi sesi itu tidak bisa dipakai lagi dari perangkat mana pun.
+- Pengaturan dan token setiap akun disimpan di folder `data/`. Folder itu tidak ikut di-commit.
 - Extension YouTube Music mengirim ke `127.0.0.1` dan tidak membawa kunci overlay, jadi sumber YouTube Music hanya bekerja kalau server dijalankan di komputer Anda.
-- Hanya satu instance yang boleh terhubung ke akun TikTok yang sama. Jangan jalankan di komputer dan di server bersamaan.
+- Satu akun TikTok hanya boleh terhubung di satu server pada satu waktu. Jangan jalankan di komputer dan di server bersamaan untuk akun yang sama.
 
 ## Struktur
 

@@ -21,6 +21,8 @@
       p { color: #c3c7d4; }
       label { color: #f2f3f7; }
       input { background: #111218; color: #f2f3f7; border-color: #3a3e4d; }
+      .switch { color: #c3c7d4; }
+      .switch button { color: #b9a8ff; }
     }
     .card {
       width: min(360px, calc(100vw - 32px));
@@ -32,7 +34,7 @@
     }
     h1 { margin: 0 0 6px; font-size: 20px; }
     p { margin: 0 0 18px; color: #3f4352; font-size: 15px; line-height: 1.5; }
-    label { display: block; font-size: 14px; margin-bottom: 6px; }
+    label { display: block; font-size: 14px; margin: 14px 0 6px; }
     input {
       width: 100%;
       box-sizing: border-box;
@@ -43,9 +45,9 @@
       background: #fff;
       color: inherit;
     }
-    button {
+    button.submit {
       width: 100%;
-      margin-top: 14px;
+      margin-top: 18px;
       padding: 11px 12px;
       font: inherit;
       font-weight: 700;
@@ -55,33 +57,85 @@
       border-radius: 10px;
       cursor: pointer;
     }
-    button:disabled { opacity: 0.6; cursor: default; }
+    button.submit:disabled { opacity: 0.6; cursor: default; }
+    .switch { margin: 16px 0 0; font-size: 14px; color: #3f4352; text-align: center; }
+    .switch button {
+      background: none;
+      border: 0;
+      padding: 0;
+      font: inherit;
+      color: #6d4aff;
+      text-decoration: underline;
+      cursor: pointer;
+    }
     #error { min-height: 20px; margin: 12px 0 0; color: #d92d20; font-size: 14px; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
-  <form class="card" id="loginForm" autocomplete="off">
-    <h1>Masuk ke Streamover</h1>
-    <p>Masukkan password panel yang sudah diisi di server.</p>
+  <form class="card" id="authForm" autocomplete="off">
+    <h1 id="title">Masuk ke Streamover</h1>
+    <p id="subtitle">Masukkan username dan password akun kamu.</p>
+
+    <label for="username">Username</label>
+    <input id="username" name="username" autocapitalize="off" required>
+
     <label for="password">Password</label>
-    <input id="password" name="password" type="password" required autofocus>
-    <button id="submit" type="submit">Masuk</button>
+    <input id="password" name="password" type="password" required>
+
+    <div id="confirmField" class="hidden">
+      <label for="confirm">Ulangi password</label>
+      <input id="confirm" name="confirm" type="password">
+    </div>
+
+    <button class="submit" id="submit" type="submit">Masuk</button>
     <p id="error" role="alert"></p>
+
+    <p class="switch">
+      <span id="switchText">Belum punya akun?</span>
+      <button id="switchMode" type="button">Daftar</button>
+    </p>
   </form>
+
   <script>
-    const form = document.getElementById('loginForm');
+    const form = document.getElementById('authForm');
     const error = document.getElementById('error');
     const submit = document.getElementById('submit');
+    let mode = 'login';
+
+    function setMode(next) {
+      mode = next;
+      const registering = mode === 'register';
+      document.getElementById('title').textContent = registering ? 'Buat akun Streamover' : 'Masuk ke Streamover';
+      document.getElementById('subtitle').textContent = registering
+        ? 'Username 3–20 karakter (huruf kecil, angka, atau _). Password minimal 8 karakter.'
+        : 'Masukkan username dan password akun kamu.';
+      document.getElementById('confirmField').classList.toggle('hidden', !registering);
+      document.getElementById('confirm').required = registering;
+      document.getElementById('password').autocomplete = registering ? 'new-password' : 'current-password';
+      submit.textContent = registering ? 'Daftar' : 'Masuk';
+      document.getElementById('switchText').textContent = registering ? 'Sudah punya akun?' : 'Belum punya akun?';
+      document.getElementById('switchMode').textContent = registering ? 'Masuk' : 'Daftar';
+      error.textContent = '';
+    }
+
+    document.getElementById('switchMode').addEventListener('click', () => setMode(mode === 'login' ? 'register' : 'login'));
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       error.textContent = '';
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      if (mode === 'register' && password !== document.getElementById('confirm').value) {
+        error.textContent = 'Password dan ulangi password tidak sama';
+        return;
+      }
       submit.disabled = true;
       try {
-        const res = await fetch('/api/login', {
+        const res = await fetch(mode === 'register' ? '/api/register' : '/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: document.getElementById('password').value }),
+          body: JSON.stringify({ username, password }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);

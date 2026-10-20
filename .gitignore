@@ -4,3 +4,4 @@ node_modules/
 .music.json
 panel-settings.json
 panel-settings.json.tmp
+data/
