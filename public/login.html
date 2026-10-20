@@ -15,15 +15,6 @@
       color: #17181c;
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     }
-    @media (prefers-color-scheme: dark) {
-      body { background: #111218; color: #f2f3f7; }
-      .card { background: #1b1d26; border-color: #2c2f3b; }
-      p { color: #c3c7d4; }
-      label { color: #f2f3f7; }
-      input { background: #111218; color: #f2f3f7; border-color: #3a3e4d; }
-      .switch { color: #c3c7d4; }
-      .switch button { color: #b9a8ff; }
-    }
     .card {
       width: min(360px, calc(100vw - 32px));
       padding: 28px;
@@ -70,6 +61,17 @@
     }
     #error { min-height: 20px; margin: 12px 0 0; color: #d92d20; font-size: 14px; }
     .hidden { display: none; }
+
+    /* Keep this block last: it has to override the light colors above. */
+    @media (prefers-color-scheme: dark) {
+      body { background: #111218; color: #f2f3f7; }
+      .card { background: #1b1d26; border-color: #2c2f3b; }
+      p { color: #c3c7d4; }
+      label { color: #f2f3f7; }
+      input { background: #111218; color: #f2f3f7; border-color: #3a3e4d; }
+      .switch { color: #c3c7d4; }
+      .switch button { color: #b9a8ff; }
+    }
   </style>
 </head>
 <body>
