@@ -12,8 +12,12 @@ import { YouTubeMusicBridge } from './src/ytmusic.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3000;
-// Only this computer can reach the server. OBS runs on the same machine.
-const HOST = '127.0.0.1';
+// Where the server listens. The default is only this computer, which is enough for OBS on the same machine.
+// On a server that should be reachable from outside, set HOST=0.0.0.0 (only after the panel has a login).
+const HOST = process.env.HOST || '127.0.0.1';
+// The address a browser uses to reach the server. Spotify's redirect goes here,
+// so it must be the public https address when the server is not on this computer.
+const PUBLIC_URL = (process.env.PUBLIC_URL || `http://127.0.0.1:${PORT}`).replace(/\/$/, '');
 
 const app = express();
 app.use(express.json());
@@ -29,7 +33,7 @@ const live = new LiveSession({
 const hub = createHub(server, { snapshot: () => live.status() });
 
 const spotify = new SpotifySession({
-  redirectUri: `http://${HOST}:${PORT}/api/spotify/callback`,
+  redirectUri: `${PUBLIC_URL}/api/spotify/callback`,
   tokenFile: path.join(here, '.spotify.json'),
   onChange: (message) => {
     hub.broadcast(message);
@@ -185,9 +189,10 @@ app.post('/api/test/:kind', (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`Panel kontrol : http://${HOST}:${PORT}`);
-  console.log(`Overlay chat  : http://${HOST}:${PORT}/overlay/chat.html`);
-  console.log(`Overlay alert : http://${HOST}:${PORT}/overlay/alerts.html`);
+  console.log(`Listening     : ${HOST}:${PORT}`);
+  console.log(`Panel kontrol : ${PUBLIC_URL}`);
+  console.log(`Overlay chat  : ${PUBLIC_URL}/overlay/chat.html`);
+  console.log(`Overlay alert : ${PUBLIC_URL}/overlay/alerts.html`);
 });
 
 async function shutdown() {
