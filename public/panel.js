@@ -198,9 +198,28 @@ function overlayUrl(key) {
   params.set('rx', persp.rx);
   params.set('ry', persp.ry);
   params.set('pd', persp.depth);
+  // Only set when the server has a password, so OBS can open the overlay without logging in.
+  if (overlayKey) params.set('key', overlayKey);
   const query = params.toString();
   return `${location.origin}/overlay/${OVERLAYS[key].file}${query ? `?${query}` : ''}`;
 }
+
+// Whether the server asks for a password, and the key OBS overlays need when it does.
+let overlayKey = '';
+async function loadSession() {
+  try {
+    const session = await api('/api/session');
+    overlayKey = session.overlayKey || '';
+    $('logout').hidden = !session.authEnabled;
+  } catch {
+    // The panel still works without this; the overlay links just won't carry a key.
+  }
+}
+
+$('logout').addEventListener('click', async () => {
+  await api('/api/logout', {}).catch(() => {});
+  location.href = '/login';
+});
 
 // ---- Routing: beranda dan satu halaman per kustomisasi ----
 
@@ -853,6 +872,8 @@ connectHub((msg) => {
 
 // Load the saved settings before anything is drawn, so every control shows the saved values.
 await loadSettings();
+// The overlay key has to be known before the overlay links are drawn.
+await loadSession();
 
 bindSetting('size', 'size', 'sizeOut');
 bindSetting('max', 'max', 'maxOut');

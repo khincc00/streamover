@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Masuk - Streamover</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #f4f5f9;
+      color: #17181c;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      body { background: #111218; color: #f2f3f7; }
+      .card { background: #1b1d26; border-color: #2c2f3b; }
+      input { background: #111218; color: #f2f3f7; border-color: #2c2f3b; }
+    }
+    .card {
+      width: min(360px, calc(100vw - 32px));
+      padding: 28px;
+      background: #fff;
+      border: 1px solid #e2e4ec;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+    h1 { margin: 0 0 6px; font-size: 20px; }
+    p { margin: 0 0 18px; color: #6b6f7d; font-size: 14px; line-height: 1.5; }
+    label { display: block; font-size: 14px; margin-bottom: 6px; }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 11px 12px;
+      font: inherit;
+      border: 1px solid #d6d9e3;
+      border-radius: 10px;
+      background: #fff;
+      color: inherit;
+    }
+    button {
+      width: 100%;
+      margin-top: 14px;
+      padding: 11px 12px;
+      font: inherit;
+      font-weight: 700;
+      color: #fff;
+      background: #6d4aff;
+      border: 0;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.6; cursor: default; }
+    #error { min-height: 20px; margin: 12px 0 0; color: #d92d20; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <form class="card" id="loginForm" autocomplete="off">
+    <h1>Masuk ke Streamover</h1>
+    <p>Masukkan password panel yang sudah diisi di server.</p>
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" required autofocus>
+    <button id="submit" type="submit">Masuk</button>
+    <p id="error" role="alert"></p>
+  </form>
+  <script>
+    const form = document.getElementById('loginForm');
+    const error = document.getElementById('error');
+    const submit = document.getElementById('submit');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      error.textContent = '';
+      submit.disabled = true;
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: document.getElementById('password').value }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        location.href = '/';
+      } catch (err) {
+        error.textContent = err.message;
+        submit.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

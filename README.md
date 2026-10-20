@@ -52,6 +52,25 @@ Extension mengirim ke `http://127.0.0.1:3000`. Kalau `PORT` diubah, ubah juga `S
 
 Link juga bisa disalin langsung dari panel kontrol.
 
+## Menjalankan di server (Botkeep atau host lain)
+
+Secara bawaan server hanya bisa diakses dari komputer itu sendiri. Untuk dijalankan di server dan dibuka dari luar:
+
+1. Isi environment berikut di server:
+   - `HOST=0.0.0.0`
+   - `PORT` sesuai port yang diberikan platform
+   - `PUBLIC_URL=https://alamat-anda` (alamat https yang dibuka browser)
+   - `PANEL_PASSWORD=password-anda` (wajib, server menolak jalan tanpa ini)
+2. Di dashboard Spotify, tambahkan redirect `https://alamat-anda/api/spotify/callback`.
+3. Buka `https://alamat-anda`, masukkan password, lalu isi Client ID Spotify di kartu Spotify.
+4. Di OBS, pakai link overlay dari panel. Link itu sudah membawa kunci overlay, jadi tidak perlu login.
+
+Catatan:
+- Mengubah `PANEL_PASSWORD` akan mengeluarkan semua sesi yang sedang masuk.
+- Tombol **Keluar** hanya menghapus sesi di browser itu. Untuk mencabut sesi di semua perangkat, ganti `PANEL_PASSWORD`.
+- Extension YouTube Music mengirim ke `127.0.0.1` dan tidak membawa kunci overlay, jadi sumber YouTube Music hanya bekerja kalau server dijalankan di komputer Anda.
+- Hanya satu instance yang boleh terhubung ke akun TikTok yang sama. Jangan jalankan di komputer dan di server bersamaan.
+
 ## Struktur
 
 ```

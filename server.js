@@ -9,6 +9,7 @@ import { createHub } from './src/hub.js';
 import { SAMPLES } from './src/samples.js';
 import { SpotifySession } from './src/spotify.js';
 import { YouTubeMusicBridge } from './src/ytmusic.js';
+import { authEnabled, checkPassword, isOverlayRequest, isPanelRequest, OVERLAY_KEY, SESSION_COOKIE, SESSION_TOKEN, tooManyAttempts } from './src/auth.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3000;
@@ -19,9 +20,62 @@ const HOST = process.env.HOST || '127.0.0.1';
 // so it must be the public https address when the server is not on this computer.
 const PUBLIC_URL = (process.env.PUBLIC_URL || `http://127.0.0.1:${PORT}`).replace(/\/$/, '');
 
+// Refuse to open the panel to other computers without a password.
+if (HOST !== '127.0.0.1' && !authEnabled) {
+  console.error('HOST bukan 127.0.0.1 tapi PANEL_PASSWORD belum diisi. Isi PANEL_PASSWORD dulu supaya panel tidak terbuka untuk semua orang.');
+  process.exit(1);
+}
+
 const app = express();
 app.use(express.json());
+
+// The login page, and the panel itself, need a session. Overlay files are public, but they only
+// receive data over the WebSocket, which checks the overlay key.
+app.get('/login', (req, res) => {
+  if (!authEnabled || isPanelRequest(req)) return res.redirect('/');
+  res.sendFile(path.join(here, 'public', 'login.html'));
+});
+app.get(['/', '/index.html'], (req, res, next) => (isPanelRequest(req) ? next() : res.redirect('/login')));
 app.use(express.static(path.join(here, 'public')));
+
+// Everything under /api needs the panel session, except the routes listed here.
+const OPEN_API = new Set(['/api/session', '/api/login', '/api/logout', '/api/spotify/callback']);
+app.use('/api', (req, res, next) => {
+  const pathname = req.originalUrl.split('?')[0];
+  if (OPEN_API.has(pathname)) return next();
+  // The Chrome extension sends YouTube Music reports with the overlay key.
+  if (pathname === '/api/ytmusic/report') {
+    return isOverlayRequest(req) ? next() : res.status(401).json({ error: 'Perlu login' });
+  }
+  if (isPanelRequest(req)) return next();
+  res.status(401).json({ error: 'Perlu login' });
+});
+
+app.get('/api/session', (req, res) => {
+  const panel = isPanelRequest(req);
+  res.json({ authEnabled, panel, overlayKey: panel ? OVERLAY_KEY : '' });
+});
+
+app.post('/api/login', (req, res) => {
+  if (!authEnabled) return res.json({ ok: true });
+  if (tooManyAttempts(req.ip)) {
+    return res.status(429).json({ error: 'Terlalu banyak percobaan. Coba lagi beberapa menit.' });
+  }
+  if (!checkPassword(req.body?.password)) return res.status(401).json({ error: 'Password salah' });
+  res.cookie(SESSION_COOKIE, SESSION_TOKEN, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: PUBLIC_URL.startsWith('https://'),
+    path: '/',
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
+  res.json({ ok: true });
+});
+
+app.post('/api/logout', (req, res) => {
+  res.clearCookie(SESSION_COOKIE, { path: '/' });
+  res.json({ ok: true });
+});
 
 const server = http.createServer(app);
 
@@ -30,7 +84,7 @@ const live = new LiveSession({
   onStatus: (status) => hub.broadcast({ type: 'status', ...status }),
 });
 
-const hub = createHub(server, { snapshot: () => live.status() });
+const hub = createHub(server, { snapshot: () => live.status(), allow: isOverlayRequest });
 
 const spotify = new SpotifySession({
   redirectUri: `${PUBLIC_URL}/api/spotify/callback`,
@@ -193,6 +247,7 @@ server.listen(PORT, HOST, () => {
   console.log(`Panel kontrol : ${PUBLIC_URL}`);
   console.log(`Overlay chat  : ${PUBLIC_URL}/overlay/chat.html`);
   console.log(`Overlay alert : ${PUBLIC_URL}/overlay/alerts.html`);
+  console.log(`Login panel   : ${authEnabled ? 'aktif (PANEL_PASSWORD)' : 'nonaktif, panel terbuka'}`);
 });
 
 async function shutdown() {
