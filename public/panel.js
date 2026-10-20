@@ -836,7 +836,13 @@ for (const chip of document.querySelectorAll('#musicSource .chip')) {
   chip.addEventListener('click', () => chooseMusicSource(chip.dataset.source));
 }
 
-$('clearFeed').addEventListener('click', () => {
+$('clearFeed').addEventListener('click', async () => {
+  try {
+    await api('/api/feed/clear', {});
+  } catch (err) {
+    toast(err.message);
+    return;
+  }
   $('feed').replaceChildren();
   const empty = document.createElement('li');
   empty.className = 'empty';
@@ -915,5 +921,13 @@ api('/api/music/status')
     musicSource = status.source;
     renderMusicSource();
     renderYouTube(status.youtube);
+  })
+  .catch(() => {});
+
+// Recent activity from earlier visits. The server returns newest first; the list shows the
+// newest at the top, so the oldest one is added first.
+api('/api/feed?limit=60')
+  .then((events) => {
+    for (const event of events.reverse()) addFeed(event);
   })
   .catch(() => {});

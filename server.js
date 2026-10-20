@@ -10,6 +10,7 @@ import { SAMPLES } from './src/samples.js';
 import { SpotifySession } from './src/spotify.js';
 import { YouTubeMusicBridge } from './src/ytmusic.js';
 import { UserStore } from './src/users.js';
+import { FeedBuffer } from './src/feed.js';
 import { SESSION_COOKIE, sessionTokenFrom, tooManyAttempts } from './src/auth.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -23,6 +24,9 @@ const PANEL_SETTING_KEYS = [
   'size', 'max', 'duration', 'template', 'spotifyTemplate', 'anim', 'dur',
   'custom', 'accent', 'text', 'bg', 'persp', 'username',
 ];
+
+// The events kept in each account's activity history.
+const FEED_TYPES = new Set(['chat', 'gift', 'follow', 'share']);
 
 const store = new UserStore(path.join(here, 'data'));
 const contexts = new Map(); // account id -> that account's live connection, Spotify, and music state
@@ -133,9 +137,13 @@ function contextFor(userId) {
     settingsFile: path.join(dir, 'settings.json'),
     musicFile: path.join(dir, 'music.json'),
     musicSource: readMusicSource(path.join(dir, 'music.json')),
+    feed: new FeedBuffer(path.join(dir, 'feed.json')),
   };
   ctx.live = new LiveSession({
-    onEvent: send,
+    onEvent: (event) => {
+      if (FEED_TYPES.has(event.type)) ctx.feed.add(event);
+      send(event);
+    },
     onStatus: (status) => send({ type: 'status', ...status }),
   });
   ctx.spotify = new SpotifySession({
@@ -209,7 +217,19 @@ app.post('/api/disconnect', async (req, res) => {
 app.post('/api/test/:kind', (req, res) => {
   const make = SAMPLES[req.params.kind];
   if (!make) return res.status(404).json({ error: 'Jenis tes tidak dikenal' });
-  hub.broadcast(req.user.id, make());
+  const sample = make();
+  if (FEED_TYPES.has(sample.type)) req.ctx.feed.add(sample);
+  hub.broadcast(req.user.id, sample);
+  res.json({ ok: true });
+});
+
+// Recent activity for this account. The panel asks for at most 60 at a time.
+app.get('/api/feed', (req, res) => {
+  res.json(req.ctx.feed.recent(req.query.limit));
+});
+
+app.post('/api/feed/clear', (req, res) => {
+  req.ctx.feed.clear();
   res.json({ ok: true });
 });
 
@@ -324,6 +344,7 @@ async function shutdown() {
   for (const ctx of contexts.values()) {
     ctx.spotify.stop();
     ctx.youtube.stop();
+    ctx.feed.flush();
     await ctx.live.stop();
   }
   server.close(() => process.exit(0));
