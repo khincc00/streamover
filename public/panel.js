@@ -211,6 +211,8 @@ async function loadSession() {
     const session = await api('/api/session');
     overlayKey = session.overlayKey || '';
     $('logout').hidden = !session.authEnabled;
+    // Show the redirect exactly as the server sends it, so it can be copied into Spotify's dashboard.
+    if (session.publicUrl) $('spotifyRedirect').textContent = `${session.publicUrl}/api/spotify/callback`;
   } catch {
     // The panel still works without this; the overlay links just won't carry a key.
   }

@@ -73,8 +73,9 @@ function adoptLegacyFiles(user) {
 
 app.get('/api/session', (req, res) => {
   const user = store.userForSession(sessionTokenFrom(req));
-  if (!user) return res.json({ authEnabled: true, panel: false, username: null, overlayKey: '' });
-  res.json({ authEnabled: true, panel: true, username: user.username, overlayKey: user.overlayKey });
+  // publicUrl is the address Spotify sends people back to, so the panel can show it exactly.
+  if (!user) return res.json({ authEnabled: true, panel: false, username: null, overlayKey: '', publicUrl: PUBLIC_URL });
+  res.json({ authEnabled: true, panel: true, username: user.username, overlayKey: user.overlayKey, publicUrl: PUBLIC_URL });
 });
 
 app.post('/api/register', (req, res) => {
