@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Overlay Lagu Spotify</title>
+  <link rel="stylesheet" href="/overlay/nowplaying-templates.css">
+  <style>
+    html, body {
+      margin: 0;
+      background: transparent;
+      overflow: hidden;
+    }
+    [hidden] { display: none !important; }
+    #box {
+      position: absolute;
+      left: 40px;
+      bottom: 40px;
+      display: none;
+      width: max-content;
+      max-width: 560px;
+    }
+    #box.show { display: flex; }
+  </style>
+</head>
+<body>
+  <div id="box" class="np np-classic">
+    <img id="art" class="art" alt="" hidden>
+    <div class="info">
+      <div id="state" class="state"></div>
+      <div id="title" class="title"></div>
+      <div id="artist" class="artist"></div>
+    </div>
+  </div>
+  <script type="module">
+    import { connectHub } from '/shared/ws.js';
+    import { DEFAULT_NOWPLAYING_TEMPLATE, isNowPlayingTemplate } from '/shared/nowplayingTemplates.js';
+    import { applyPerspective, perspectiveFromParams } from '/shared/perspective.js';
+
+    const params = new URLSearchParams(location.search);
+    const template = isNowPlayingTemplate(params.get('template')) ? params.get('template') : DEFAULT_NOWPLAYING_TEMPLATE;
+
+    const box = document.getElementById('box');
+    const art = document.getElementById('art');
+    const state = document.getElementById('state');
+    const title = document.getElementById('title');
+    const artist = document.getElementById('artist');
+
+    box.className = `np np-${template}`;
+    applyPerspective(box, perspectiveFromParams(params));
+
+    function render(track) {
+      if (!track) {
+        box.classList.remove('show');
+        return;
+      }
+      state.textContent = track.playing ? '♪ Sedang diputar' : '❚❚ Dijeda';
+      state.classList.toggle('paused', !track.playing);
+      box.classList.toggle('playing', Boolean(track.playing));
+      // textContent (not innerHTML) so track names can't inject markup.
+      title.textContent = track.title;
+      artist.textContent = track.artist;
+      // Only set the image when it changes, so the cover doesn't reload every poll.
+      if (track.image && art.dataset.src !== track.image) {
+        art.dataset.src = track.image;
+        art.src = track.image;
+      }
+      art.hidden = !track.image;
+      box.classList.add('show');
+    }
+
+    connectHub((msg) => {
+      if (msg.type !== 'nowplaying') return;
+      render(msg.nowPlaying);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+/* Template overlay Spotify. Dipakai overlay OBS dan pratinjau di panel.
+   Ukuran memakai em, jadi bisa diperkecil untuk kartu contoh di panel (lihat .tpl-thumb .np di panel.css). */
+
+.np {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 0.9em 1.4em 0.9em 0.9em;
+  border-radius: 1.1em;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+.np .art {
+  flex: none;
+  display: block;
+  width: 5em;
+  height: 5em;
+  border-radius: 0.75em;
+  object-fit: cover;
+  background: rgba(127, 127, 127, 0.25);
+}
+.np .info { min-width: 0; }
+.np .state { font-size: 0.875em; font-weight: 700; margin-bottom: 0.25em; }
+.np .state.paused { opacity: 0.6; }
+.np .title {
+  font-size: 1.6em;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.np .artist {
+  font-size: 1.25em;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 1. Klasik: kartu gelap, sampul kotak */
+.np-classic {
+  background: rgba(18, 18, 18, 0.85);
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+.np-classic .state { color: #1ed760; }
+
+/* 2. Retro: kaset krem dengan bayangan tegas dan huruf mesin tik */
+.np-retro {
+  background: #f3e3c3;
+  color: #3b2a1a;
+  border: 3px solid #3b2a1a;
+  border-radius: 6px;
+  box-shadow: 6px 6px 0 #3b2a1a;
+  font-family: "Courier New", Menlo, Consolas, monospace;
+}
+.np-retro .art { width: 4.75em; height: 4.75em; border: 3px solid #3b2a1a; border-radius: 4px; }
+.np-retro .state { color: #c2410c; font-size: 0.8em; letter-spacing: 0.12em; text-transform: uppercase; }
+.np-retro .title { font-weight: 700; text-transform: uppercase; }
+.np-retro .artist { font-size: 1.1em; }
+
+/* 3. Modern: kaca terang, gaya Apple Music */
+.np-modern {
+  background: rgba(255, 255, 255, 0.82);
+  color: #1d1d1f;
+  border-radius: 1.25em;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18), inset 0 0 0 0.5px rgba(255, 255, 255, 0.6);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+}
+.np-modern .art { width: 5.25em; height: 5.25em; border-radius: 0.8em; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
+.np-modern .state { color: #fa2d55; font-size: 0.75em; letter-spacing: 0.06em; text-transform: uppercase; }
+.np-modern .artist { color: #6e6e73; }
+
+/* 4. Neon: garis dan teks bercahaya di latar gelap */
+.np-neon {
+  background: #06060b;
+  color: #e0f7ff;
+  border: 1px solid #22d3ee;
+  border-radius: 0.9em;
+  box-shadow: 0 0 18px rgba(34, 211, 238, 0.45), inset 0 0 18px rgba(236, 72, 153, 0.15);
+}
+.np-neon .art { border: 1px solid #f472b6; box-shadow: 0 0 14px rgba(244, 114, 182, 0.7); }
+.np-neon .state { color: #f472b6; font-size: 0.8em; letter-spacing: 0.14em; text-transform: uppercase; text-shadow: 0 0 8px rgba(244, 114, 182, 0.9); }
+.np-neon .title { color: #fff; text-shadow: 0 0 10px rgba(34, 211, 238, 0.9); }
+.np-neon .artist { color: #67e8f9; }
+
+/* 5. Vinyl: sampul bulat yang berputar selama lagu diputar */
+.np-vinyl {
+  background: linear-gradient(135deg, #1c1917, #0c0a09);
+  color: #fafaf9;
+  border-radius: 999px;
+  padding: 0.7em 1.8em 0.7em 0.7em;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.np-vinyl .art {
+  width: 5.5em;
+  height: 5.5em;
+  border-radius: 50%;
+  border: 0.4em solid #0a0a0a;
+  box-shadow: 0 0 0 1px #3f3f46, inset 0 0 0 2px rgba(255, 255, 255, 0.1);
+  animation: np-spin 6s linear infinite;
+  animation-play-state: paused;
+}
+.np-vinyl.playing .art { animation-play-state: running; }
+.np-vinyl .state { color: #fbbf24; }
+
+@keyframes np-spin {
+  to { transform: rotate(360deg); }
+}

@@ -1,0 +1,190 @@
+/* Gaya chat untuk overlay OBS dan pratinjau di panel.
+   Ukuran, animasi, dan warna datang dari variabel --size, --chat-anim, --chat-dur, dan --chat-* (lihat shared/chatStyle.js).
+   Kalau variabel warna tidak diisi, template memakai warnanya sendiri. */
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: var(--size, 22px);
+}
+.chat .msg {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  max-width: 100%;
+  line-height: 1.3;
+  padding: 0.3em 0.6em;
+  overflow-wrap: anywhere;
+  animation-name: var(--chat-anim, chat-up);
+  animation-duration: var(--chat-dur, 250ms);
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+.chat .text { min-width: 0; }
+.chat .name { font-weight: 700; margin-right: 0.35em; }
+.chat .avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.6em;
+  height: 1.6em;
+  border-radius: 50%;
+  object-fit: cover;
+  overflow: hidden;
+  font-size: 0.7em;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(127, 127, 127, 0.5);
+}
+
+/* 1. Klasik: baris gelap seperti tampilan awal */
+.tpl-classic .msg {
+  background: var(--chat-bg, rgba(0, 0, 0, 0.55));
+  color: var(--chat-text, #fff);
+  border-radius: 10px;
+  padding: 6px 12px;
+}
+.tpl-classic .name { color: var(--chat-accent, #6ee7ff); }
+.tpl-classic .avatar { display: none; }
+
+/* 2. Kaca: panel buram dengan tepi tipis */
+.tpl-glass .msg {
+  background: var(--chat-bg, rgba(15, 18, 30, 0.45));
+  color: var(--chat-text, #f8fafc);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  padding: 0.4em 0.75em;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.tpl-glass .name { color: var(--chat-accent, #a5b4fc); }
+.tpl-glass .avatar { width: 1.5em; height: 1.5em; }
+
+/* 3. Minimal Modern: satu pesan per blok, nama kecil di atas, garis aksen tipis */
+.tpl-modern .msg {
+  align-items: flex-start;
+  color: var(--chat-text, #f5f5f7);
+  padding: 0.35em 0.4em 0.35em 0.8em;
+  border-left: 2px solid var(--chat-accent, #0a84ff);
+  border-radius: 2px;
+  background: var(--chat-bg, linear-gradient(90deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0)));
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.tpl-modern .text { display: flex; flex-direction: column; }
+.tpl-modern .name {
+  display: block;
+  margin: 0 0 0.1em;
+  font-size: 0.62em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--chat-accent, #64d2ff);
+}
+.tpl-modern .avatar { display: none; }
+
+/* 4. Vision: kaca tebal dengan cahaya tepi, gaya visionOS */
+.tpl-vision .msg {
+  background: var(--chat-bg, rgba(255, 255, 255, 0.14));
+  color: var(--chat-text, #fff);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 22px;
+  padding: 0.45em 0.9em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 8px 24px rgba(0, 0, 0, 0.2);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+}
+.tpl-vision .name { font-weight: 600; color: var(--chat-accent, #fff); }
+.tpl-vision .avatar { width: 1.5em; height: 1.5em; border: 1px solid rgba(255, 255, 255, 0.5); }
+
+/* 5. Kapsul: bentuk pil dengan avatar gradien */
+.tpl-pill .msg {
+  background: var(--chat-bg, rgba(0, 0, 0, 0.45));
+  color: var(--chat-text, #fff);
+  border-radius: 999px;
+  padding: 0.25em 0.95em 0.25em 0.25em;
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(160%);
+}
+.tpl-pill .name { color: var(--chat-accent, #64d2ff); font-weight: 600; }
+.tpl-pill .avatar {
+  width: 1.8em;
+  height: 1.8em;
+  background: linear-gradient(135deg, #0a84ff, #bf5af2);
+  color: #fff;
+}
+
+/* 6. Terang: kartu putih lembut dengan bayangan halus, untuk latar gelap */
+.tpl-light .msg {
+  background: var(--chat-bg, rgba(255, 255, 255, 0.92));
+  color: var(--chat-text, #1d1d1f);
+  border-radius: 14px;
+  padding: 0.45em 0.85em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 6px 16px rgba(0, 0, 0, 0.14);
+}
+.tpl-light .name { color: var(--chat-accent, #0071e3); font-weight: 600; }
+.tpl-light .avatar { display: none; }
+
+/* Alert (follow, share, gift): kartu yang sama dengan chat, dengan judul dan keterangan di atas-bawah.
+   Selector dibuat lebih spesifik supaya mengalahkan padding dan avatar dari template. */
+.chat .msg.alert {
+  align-items: center;
+  gap: 0.8em;
+  padding: 0.7em 1em;
+}
+.chat .msg.alert .avatar {
+  display: grid;
+  width: 2.2em;
+  height: 2.2em;
+  font-size: 0.9em;
+}
+.chat .msg.alert .text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+}
+.chat .msg.alert .name {
+  margin: 0;
+  font-size: 1em;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+.chat .msg.alert .sub {
+  font-size: 0.72em;
+  font-weight: 500;
+  opacity: 0.85;
+}
+.chat .msg.alert .gift {
+  flex: none;
+  width: 2.2em;
+  height: 2.2em;
+  object-fit: contain;
+}
+
+/* Animasi masuk. Pilihannya dari --chat-anim, durasinya dari --chat-dur. */
+@keyframes chat-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes chat-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes chat-left {
+  from { opacity: 0; transform: translateX(-24px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes chat-zoom {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes chat-bounce {
+  0% { opacity: 0; transform: translateY(16px) scale(0.9); }
+  60% { opacity: 1; transform: translateY(-4px) scale(1.03); }
+  100% { opacity: 1; transform: none; }
+}

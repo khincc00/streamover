@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Overlay Alert</title>
+  <link rel="stylesheet" href="/overlay/chat-templates.css">
+  <style>
+    html, body {
+      margin: 0;
+      background: transparent;
+      overflow: hidden;
+    }
+    #stage {
+      --size: 28px;
+      position: absolute;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: max-content;
+      max-width: 80vw;
+    }
+  </style>
+</head>
+<body>
+  <div id="stage" class="chat"></div>
+  <script type="module">
+    import { connectHub } from '/shared/ws.js';
+    import { avatarNode } from '/shared/chatRow.js';
+    import { DEFAULT_CHAT_TEMPLATE, isChatTemplate } from '/shared/chatTemplates.js';
+    import { applyStyle, styleFromParams } from '/shared/chatStyle.js';
+    import { applyPerspective, perspectiveFromParams } from '/shared/perspective.js';
+
+    const params = new URLSearchParams(location.search);
+    const SHOW_MS = Number(params.get('duration')) || 4000;
+    const template = isChatTemplate(params.get('template')) ? params.get('template') : DEFAULT_CHAT_TEMPLATE;
+
+    const stage = document.getElementById('stage');
+    stage.classList.add(`tpl-${template}`);
+    applyStyle(stage, styleFromParams(params));
+    applyPerspective(stage, perspectiveFromParams(params));
+
+    const queue = [];
+    let busy = false;
+
+    function describe(msg) {
+      if (msg.type === 'gift') {
+        const diamonds = msg.gift.diamonds ? ` · ${msg.gift.diamonds} diamond` : '';
+        return {
+          title: `${msg.user.nickname} mengirim ${msg.gift.name}`,
+          sub: `x${msg.gift.count}${diamonds}`,
+          avatar: msg.user.avatar,
+          gift: msg.gift.image,
+        };
+      }
+      if (msg.type === 'follow') {
+        return { title: msg.user.nickname, sub: 'mulai mengikuti kamu', avatar: msg.user.avatar };
+      }
+      if (msg.type === 'share') {
+        return { title: msg.user.nickname, sub: 'membagikan live ini', avatar: msg.user.avatar };
+      }
+      return null;
+    }
+
+    // Satu kartu alert. Dibuat ulang setiap kali tampil supaya animasi masuk ikut berjalan.
+    // textContent (not innerHTML) so names and gift names can't inject markup.
+    function alertCard(item) {
+      const card = document.createElement('div');
+      card.className = 'msg alert';
+
+      const body = document.createElement('span');
+      body.className = 'text';
+      const title = document.createElement('span');
+      title.className = 'name';
+      title.textContent = item.title;
+      const sub = document.createElement('span');
+      sub.className = 'sub';
+      sub.textContent = item.sub;
+      body.append(title, sub);
+
+      card.append(avatarNode({ nickname: item.title, avatar: item.avatar }), body);
+
+      if (item.gift) {
+        const gift = document.createElement('img');
+        gift.className = 'gift';
+        gift.src = item.gift;
+        gift.alt = '';
+        gift.referrerPolicy = 'no-referrer';
+        card.append(gift);
+      }
+      return card;
+    }
+
+    async function playNext() {
+      if (busy) return;
+      const item = queue.shift();
+      if (!item) return;
+      busy = true;
+      stage.replaceChildren(alertCard(item));
+      await new Promise((resolve) => setTimeout(resolve, SHOW_MS));
+      stage.replaceChildren();
+      busy = false;
+      playNext();
+    }
+
+    connectHub((msg) => {
+      const item = describe(msg);
+      if (!item) return;
+      queue.push(item);
+      playNext();
+    });
+  </script>
+</body>
+</html>

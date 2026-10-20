@@ -1,0 +1,6 @@
+node_modules/
+.env
+.spotify.json
+.music.json
+panel-settings.json
+panel-settings.json.tmp

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Overlay Chat</title>
+  <link rel="stylesheet" href="/overlay/chat-templates.css">
+  <style>
+    html, body {
+      margin: 0;
+      background: transparent;
+      overflow: hidden;
+    }
+    #list {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div id="list" class="chat"></div>
+  <script type="module">
+    import { connectHub } from '/shared/ws.js';
+    import { chatRow } from '/shared/chatRow.js';
+    import { DEFAULT_CHAT_TEMPLATE, isChatTemplate } from '/shared/chatTemplates.js';
+    import { applyStyle, styleFromParams } from '/shared/chatStyle.js';
+    import { applyPerspective, perspectiveFromParams } from '/shared/perspective.js';
+
+    const params = new URLSearchParams(location.search);
+    const max = Number(params.get('max')) || 15;
+    const size = Number(params.get('size')) || 22;
+    const template = isChatTemplate(params.get('template')) ? params.get('template') : DEFAULT_CHAT_TEMPLATE;
+    document.documentElement.style.setProperty('--size', `${size}px`);
+
+    const list = document.getElementById('list');
+    list.classList.add(`tpl-${template}`);
+    applyStyle(list, styleFromParams(params));
+    applyPerspective(list, perspectiveFromParams(params));
+
+    connectHub((msg) => {
+      if (msg.type !== 'chat') return;
+
+      list.append(chatRow({ nickname: msg.user.nickname, avatar: msg.user.avatar, text: msg.text }));
+      while (list.children.length > max) list.firstElementChild.remove();
+    });
+  </script>
+</body>
+</html>

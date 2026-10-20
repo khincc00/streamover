@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Streamover</title>
+  <link rel="stylesheet" href="/panel.css">
+  <link rel="stylesheet" href="/overlay/chat-templates.css">
+  <link rel="stylesheet" href="/overlay/nowplaying-templates.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">S</div>
+        <div>
+          <b>Streamover</b>
+          <small>Overlay TikTok Live untuk OBS</small>
+        </div>
+      </div>
+      <div class="status" id="status" data-state="idle" role="status" aria-live="polite">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="statusText">Belum terhubung</span>
+      </div>
+    </header>
+
+    <!-- Tampilan awal sampai akun TikTok terhubung (atau dilewati). -->
+    <section id="welcome" class="card welcome">
+      <h1>Hubungkan akun TikTok kamu</h1>
+      <p>Masukkan username TikTok tanpa @. Akun harus sedang live supaya chat, gift, dan penonton bisa tampil di overlay.</p>
+      <form id="welcomeForm" class="connect-row" autocomplete="off">
+        <label class="input-wrap">
+          <span>@</span>
+          <input id="welcomeUsername" name="username" placeholder="username TikTok" aria-label="Username TikTok">
+        </label>
+        <button id="welcomeConnect" class="btn primary" type="submit">Hubungkan</button>
+      </form>
+      <p id="welcomeError" class="error" role="alert"></p>
+      <button id="welcomeSkip" class="btn ghost skip" type="button">Lewati, coba tanpa live</button>
+    </section>
+
+    <div id="dashboard" hidden>
+      <!-- Beranda: koneksi dan kartu kustomisasi. -->
+      <section class="home" data-view="home">
+        <section class="card">
+          <div class="card-head">
+            <h2>Koneksi</h2>
+            <p class="hint">Akun TikTok harus sedang live</p>
+          </div>
+          <form id="connectForm" class="connect-row" autocomplete="off">
+            <label class="input-wrap">
+              <span>@</span>
+              <input id="username" name="username" placeholder="username TikTok" aria-label="Username TikTok">
+            </label>
+            <button id="connect" class="btn primary" type="submit">Hubungkan</button>
+            <button id="disconnect" class="btn ghost danger" type="button">Putuskan</button>
+          </form>
+          <p id="error" class="error" role="alert"></p>
+
+          <div class="stats">
+            <div class="stat main">
+              <span class="label">Penonton</span>
+              <b id="viewers">0</b>
+            </div>
+            <div class="stat"><span class="label">Chat</span><b data-count="chat">0</b></div>
+            <div class="stat"><span class="label">Gift</span><b data-count="gift">0</b></div>
+            <div class="stat"><span class="label">Follow</span><b data-count="follow">0</b></div>
+            <div class="stat"><span class="label">Share</span><b data-count="share">0</b></div>
+          </div>
+        </section>
+
+        <div class="custom-grid">
+          <a class="cust-card" href="#/chat">
+            <b>Chat</b>
+            <span class="hint">Ukuran teks, template, animasi, dan warna chat</span>
+            <span class="cust-sum" data-summary="chat"></span>
+          </a>
+          <a class="cust-card" href="#/alert">
+            <b>Alert</b>
+            <span class="hint">Durasi, template, animasi, dan warna alert gift, follow, dan share</span>
+            <span class="cust-sum" data-summary="alert"></span>
+          </a>
+          <a class="cust-card" href="#/musik">
+            <b>Musik</b>
+            <span class="hint">Lagu Spotify yang sedang diputar, dan template tampilannya</span>
+            <span class="cust-sum" data-summary="musik"></span>
+          </a>
+        </div>
+
+        <section class="card feed-card">
+          <div class="card-head">
+            <h2>Aktivitas</h2>
+            <button id="clearFeed" class="btn ghost small" type="button">Bersihkan</button>
+          </div>
+          <ul id="feed" class="feed">
+            <li class="empty">Belum ada aktivitas. Hubungkan ke live atau coba tes.</li>
+          </ul>
+        </section>
+      </section>
+
+      <!-- Kustomisasi chat: pengaturan, animasi dan warna, pratinjau, dan link. -->
+      <section class="view" data-view="chat" hidden>
+        <div class="view-head">
+          <a class="btn ghost small" href="#/">Kembali</a>
+          <h2>Chat</h2>
+        </div>
+        <div class="grid">
+          <main class="col">
+            <section class="card">
+              <div class="card-head">
+                <h2>Tes tanpa live</h2>
+                <p class="hint">Kirim chat contoh ke overlay</p>
+              </div>
+              <div class="tests">
+                <button class="test" type="button" data-test="chat">Chat</button>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <h2>Pratinjau</h2>
+                <button class="btn ghost small js-reload" type="button">Muat ulang</button>
+              </div>
+              <div class="stage">
+                <iframe data-frame="chat" title="Pratinjau chat" tabindex="-1"></iframe>
+                <span class="stage-label">Pratinjau 1920×1080</span>
+              </div>
+              <div class="preview-foot">
+                <p class="hint">Overlay ini sama persis dengan yang tampil di OBS.</p>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <h2>Template</h2>
+                <p class="hint">Dipakai juga oleh alert. Klik untuk memakai.</p>
+              </div>
+              <div class="templates" data-chat-templates role="radiogroup" aria-label="Template chat"></div>
+            </section>
+          </main>
+
+          <aside class="col">
+            <section class="card">
+              <div class="card-head"><h2>Pengaturan overlay</h2></div>
+              <div class="field">
+                <div class="field-head"><label for="size">Ukuran teks chat</label><output id="sizeOut">22</output></div>
+                <input type="range" id="size" min="14" max="40" value="22">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="max">Maks. pesan di layar</label><output id="maxOut">15</output></div>
+                <input type="range" id="max" min="5" max="30" value="15">
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <h2>Animasi & warna</h2>
+                <button class="btn ghost small js-replay" type="button">Putar ulang</button>
+              </div>
+              <div class="field">
+                <span class="field-label" id="animLabelChat">Animasi masuk</span>
+                <div class="chips js-anims" role="radiogroup" aria-labelledby="animLabelChat"></div>
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="animDurChat">Durasi animasi</label><output class="js-animdur-out">250 ms</output></div>
+                <input type="range" class="js-animdur" id="animDurChat" min="100" max="1000" step="50" value="250">
+              </div>
+              <div class="field">
+                <label class="check"><input type="checkbox" class="js-custom-colors"> Pakai warna sendiri</label>
+                <p class="hint">Kalau mati, setiap template memakai warnanya sendiri.</p>
+                <div class="color-row">
+                  <label class="color">Nama<input type="color" class="js-color" data-key="accent" value="#6ee7ff"></label>
+                  <label class="color">Teks<input type="color" class="js-color" data-key="text" value="#ffffff"></label>
+                  <label class="color">Latar<input type="color" class="js-color" data-key="bg" value="#000000"></label>
+                </div>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <h2>Perspektif</h2>
+                <button class="btn ghost small js-persp-reset" type="button" data-persp="chat">Reset</button>
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="rx-chat">Miring atas-bawah</label><output class="js-persp-out" data-axis="rx">0°</output></div>
+                <input type="range" id="rx-chat" class="js-persp" data-persp="chat" data-axis="rx" min="-60" max="60" value="0">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="ry-chat">Miring kiri-kanan</label><output class="js-persp-out" data-axis="ry">0°</output></div>
+                <input type="range" id="ry-chat" class="js-persp" data-persp="chat" data-axis="ry" min="-60" max="60" value="0">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="depth-chat">Kedalaman perspektif</label><output class="js-persp-out" data-axis="depth">1200 px</output></div>
+                <input type="range" id="depth-chat" class="js-persp" data-persp="chat" data-axis="depth" min="300" max="3000" step="50" value="1200">
+              </div>
+              <p class="hint">Miring 0° berarti tampilan datar. Kedalaman kecil membuat efek lebih kuat.</p>
+            </section>
+
+            <section class="card">
+              <div class="card-head"><h2>Link untuk OBS</h2></div>
+              <p class="hint" style="margin-bottom: 12px">Tambahkan sebagai Browser Source. Background sudah transparan.</p>
+              <div class="links" data-link="chat"></div>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <!-- Kustomisasi alert: pengaturan, animasi dan warna, pratinjau, dan link. -->
+      <section class="view" data-view="alert" hidden>
+        <div class="view-head">
+          <a class="btn ghost small" href="#/">Kembali</a>
+          <h2>Alert</h2>
+        </div>
+        <div class="grid">
+          <main class="col">
+            <section class="card">
+              <div class="card-head">
+                <h2>Tes tanpa live</h2>
+                <p class="hint">Kirim alert contoh ke overlay</p>
+              </div>
+              <div class="tests">
+                <button class="test" type="button" data-test="gift">Gift</button>
+                <button class="test" type="button" data-test="follow">Follow</button>
+                <button class="test" type="button" data-test="share">Share</button>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <h2>Pratinjau</h2>
+                <button class="btn ghost small js-reload" type="button">Muat ulang</button>
+              </div>
+              <div class="stage">
+                <iframe data-frame="alerts" title="Pratinjau alert" tabindex="-1"></iframe>
+                <span class="stage-label">Pratinjau 1920×1080</span>
+              </div>
+              <div class="preview-foot">
+                <p class="hint">Overlay ini sama persis dengan yang tampil di OBS.</p>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <h2>Template</h2>
+                <p class="hint">Dipakai juga oleh chat. Klik untuk memakai.</p>
+              </div>
+              <div class="templates" data-chat-templates role="radiogroup" aria-label="Template alert"></div>
+            </section>
+          </main>
+
+          <aside class="col">
+            <section class="card">
+              <div class="card-head"><h2>Pengaturan overlay</h2></div>
+              <div class="field">
+                <div class="field-head"><label for="duration">Durasi alert</label><output><span id="durOut">4</span> detik</output></div>
+                <input type="range" id="duration" min="2" max="10" value="4">
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <h2>Animasi & warna</h2>
+                <button class="btn ghost small js-replay" type="button">Putar ulang</button>
+              </div>
+              <div class="field">
+                <span class="field-label" id="animLabelAlert">Animasi masuk</span>
+                <div class="chips js-anims" role="radiogroup" aria-labelledby="animLabelAlert"></div>
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="animDurAlert">Durasi animasi</label><output class="js-animdur-out">250 ms</output></div>
+                <input type="range" class="js-animdur" id="animDurAlert" min="100" max="1000" step="50" value="250">
+              </div>
+              <div class="field">
+                <label class="check"><input type="checkbox" class="js-custom-colors"> Pakai warna sendiri</label>
+                <p class="hint">Kalau mati, setiap template memakai warnanya sendiri.</p>
+                <div class="color-row">
+                  <label class="color">Nama<input type="color" class="js-color" data-key="accent" value="#6ee7ff"></label>
+                  <label class="color">Teks<input type="color" class="js-color" data-key="text" value="#ffffff"></label>
+                  <label class="color">Latar<input type="color" class="js-color" data-key="bg" value="#000000"></label>
+                </div>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <h2>Perspektif</h2>
+                <button class="btn ghost small js-persp-reset" type="button" data-persp="alerts">Reset</button>
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="rx-alerts">Miring atas-bawah</label><output class="js-persp-out" data-axis="rx">0°</output></div>
+                <input type="range" id="rx-alerts" class="js-persp" data-persp="alerts" data-axis="rx" min="-60" max="60" value="0">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="ry-alerts">Miring kiri-kanan</label><output class="js-persp-out" data-axis="ry">0°</output></div>
+                <input type="range" id="ry-alerts" class="js-persp" data-persp="alerts" data-axis="ry" min="-60" max="60" value="0">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="depth-alerts">Kedalaman perspektif</label><output class="js-persp-out" data-axis="depth">1200 px</output></div>
+                <input type="range" id="depth-alerts" class="js-persp" data-persp="alerts" data-axis="depth" min="300" max="3000" step="50" value="1200">
+              </div>
+              <p class="hint">Miring 0° berarti tampilan datar. Kedalaman kecil membuat efek lebih kuat.</p>
+            </section>
+
+            <section class="card">
+              <div class="card-head"><h2>Link untuk OBS</h2></div>
+              <p class="hint" style="margin-bottom: 12px">Tambahkan sebagai Browser Source. Background sudah transparan.</p>
+              <div class="links" data-link="alerts"></div>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <!-- Kustomisasi musik: koneksi Spotify, template, pratinjau, dan link. -->
+      <section class="view" data-view="musik" hidden>
+        <div class="view-head">
+          <a class="btn ghost small" href="#/">Kembali</a>
+          <h2>Musik</h2>
+        </div>
+        <div class="grid">
+          <main class="col">
+            <section class="card">
+              <div class="card-head">
+                <h2>Pratinjau</h2>
+                <button class="btn ghost small js-reload" type="button">Muat ulang</button>
+              </div>
+              <div class="stage">
+                <iframe data-frame="nowplaying" title="Pratinjau lagu Spotify" tabindex="-1"></iframe>
+                <span class="stage-label">Pratinjau 1920×1080</span>
+              </div>
+              <div class="preview-foot">
+                <p class="hint">Overlay ini sama persis dengan yang tampil di OBS.</p>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <h2>Template lagu</h2>
+                <p class="hint">Tampilan kartu lagu di overlay. Klik untuk memakai.</p>
+              </div>
+              <div class="templates" id="spotifyTemplates" role="radiogroup" aria-label="Template overlay lagu"></div>
+            </section>
+
+            <section class="card">
+              <div class="card-head"><h2>Animasi & warna</h2></div>
+              <p class="hint">Warna lagu mengikuti template yang dipilih. Pengaturan animasi untuk lagu belum tersedia.</p>
+            </section>
+          </main>
+
+          <aside class="col">
+            <section class="card">
+              <div class="card-head"><h2>Sumber musik</h2></div>
+              <div class="chips" id="musicSource" role="radiogroup" aria-label="Sumber musik">
+                <button class="chip" type="button" data-source="spotify" role="radio" aria-checked="true">Spotify</button>
+                <button class="chip" type="button" data-source="youtube" role="radio" aria-checked="false">YouTube Music</button>
+              </div>
+              <p class="hint" style="margin-top: 12px">Overlay hanya menampilkan lagu dari sumber yang dipilih.</p>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <h2>Spotify</h2>
+                <p class="hint">Tampilkan lagu yang sedang diputar</p>
+              </div>
+              <form id="spotifyForm" class="connect-row" autocomplete="off">
+                <label class="input-wrap">
+                  <input id="spotifyClientId" name="spotifyClientId" placeholder="Client ID dari dashboard Spotify" aria-label="Client ID Spotify">
+                </label>
+                <button id="spotifySave" class="btn" type="submit">Simpan</button>
+              </form>
+              <div class="connect-row" style="margin-top: 8px">
+                <button id="spotifyConnect" class="btn primary" type="button">Hubungkan Spotify</button>
+                <button id="spotifyDisconnect" class="btn ghost danger" type="button">Putuskan</button>
+              </div>
+              <p id="spotifyText" class="hint" role="status">Belum terhubung</p>
+              <p class="hint">Redirect URI di dashboard Spotify: <code>http://127.0.0.1:3000/api/spotify/callback</code></p>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <h2>YouTube Music</h2>
+                <p class="hint">Lewat extension Chrome</p>
+              </div>
+              <p id="youtubeText" class="hint" role="status">Belum ada data dari YouTube Music</p>
+              <p class="hint" style="margin-top: 12px">
+                Buka <code>chrome://extensions</code>, aktifkan Mode developer, pilih Load unpacked, lalu pilih folder <code>extension</code> di proyek ini.
+                Setelah itu buka music.youtube.com dan putar lagu.
+              </p>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <h2>Perspektif</h2>
+                <button class="btn ghost small js-persp-reset" type="button" data-persp="nowplaying">Reset</button>
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="rx-nowplaying">Miring atas-bawah</label><output class="js-persp-out" data-axis="rx">0°</output></div>
+                <input type="range" id="rx-nowplaying" class="js-persp" data-persp="nowplaying" data-axis="rx" min="-60" max="60" value="0">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="ry-nowplaying">Miring kiri-kanan</label><output class="js-persp-out" data-axis="ry">0°</output></div>
+                <input type="range" id="ry-nowplaying" class="js-persp" data-persp="nowplaying" data-axis="ry" min="-60" max="60" value="0">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="depth-nowplaying">Kedalaman perspektif</label><output class="js-persp-out" data-axis="depth">1200 px</output></div>
+                <input type="range" id="depth-nowplaying" class="js-persp" data-persp="nowplaying" data-axis="depth" min="300" max="3000" step="50" value="1200">
+              </div>
+              <p class="hint">Miring 0° berarti tampilan datar. Kedalaman kecil membuat efek lebih kuat.</p>
+            </section>
+
+            <section class="card">
+              <div class="card-head"><h2>Link untuk OBS</h2></div>
+              <p class="hint" style="margin-bottom: 12px">Tambahkan sebagai Browser Source. Background sudah transparan.</p>
+              <div class="links" data-link="nowplaying"></div>
+            </section>
+          </aside>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="/panel.js"></script>
+</body>
+</html>
