@@ -30,6 +30,10 @@ Catatan: mode development Spotify membatasi 5 pengguna per Client ID, dan pemili
 
 Overlay: `http://127.0.0.1:3000/overlay/nowplaying.html`
 
+Permintaan lagu dari chat (`!req judul lagu`) hanya masuk ke daftar kecuali opsi **Masukkan otomatis ke antrean Spotify** dinyalakan. Opsi itu butuh:
+- Akun Spotify yang Premium, dan Spotify sedang aktif di salah satu perangkat.
+- Izin antrean. Akun yang sudah terhubung sebelum fitur ini harus klik **Hubungkan Spotify** sekali lagi.
+
 ## YouTube Music (opsional)
 
 YouTube Music tidak punya API resmi untuk lagu yang sedang diputar, jadi dibaca lewat extension Chrome di folder `extension/`.

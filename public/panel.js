@@ -359,6 +359,11 @@ function renderQueue(items) {
     const who = document.createElement('span');
     who.textContent = item.nickname;
     text.append(song, who);
+    if (item.note) {
+      const note = document.createElement('span');
+      note.textContent = item.note;
+      text.append(note);
+    }
 
     const done = document.createElement('button');
     done.className = 'btn small';
@@ -879,6 +884,17 @@ for (const chip of document.querySelectorAll('#musicSource .chip')) {
   chip.addEventListener('click', () => chooseMusicSource(chip.dataset.source));
 }
 
+$('autoQueue').addEventListener('change', async () => {
+  try {
+    const data = await api('/api/music/autoqueue', { enabled: $('autoQueue').checked });
+    $('autoQueue').checked = data.autoQueue;
+    toast(data.autoQueue ? 'Request masuk antrean Spotify otomatis' : 'Request hanya masuk daftar');
+  } catch (err) {
+    $('autoQueue').checked = !$('autoQueue').checked;
+    toast(err.message);
+  }
+});
+
 $('queueClear').addEventListener('click', async () => {
   try {
     renderQueue(await api('/api/queue/clear', {}));
@@ -972,6 +988,7 @@ api('/api/spotify/status')
 api('/api/music/status')
   .then((status) => {
     musicSource = status.source;
+    $('autoQueue').checked = status.autoQueue === true;
     renderMusicSource();
     renderYouTube(status.youtube);
   })

@@ -45,6 +45,15 @@ export class RequestQueue {
     return { item };
   }
 
+  // Adds details such as the Spotify match or an error, and returns the updated item.
+  update(id, patch) {
+    const item = this.items.find((entry) => entry.id === id);
+    if (!item) return null;
+    Object.assign(item, patch);
+    this.save();
+    return item;
+  }
+
   remove(id) {
     const before = this.items.length;
     this.items = this.items.filter((item) => item.id !== id);

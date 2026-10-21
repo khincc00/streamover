@@ -4,7 +4,9 @@ import fs from 'node:fs/promises';
 const AUTH_URL = 'https://accounts.spotify.com/authorize';
 const TOKEN_URL = 'https://accounts.spotify.com/api/token';
 const PLAYER_URL = 'https://api.spotify.com/v1/me/player/currently-playing';
-const SCOPE = 'user-read-currently-playing';
+// Adding songs to the queue needs the playback permission too. Accounts connected before this
+// change must connect again to grant it.
+const SCOPE = 'user-read-currently-playing user-modify-playback-state';
 // Short interval so a track change shows up within a couple of seconds.
 const POLL_MS = 2000;
 
@@ -187,6 +189,38 @@ export class SpotifySession {
   async authorizedGet(url) {
     const token = await this.accessToken();
     return fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  }
+
+  // Sends a request with the account's token. If the token was rejected, refresh it once and try again.
+  async authorized(url, init = {}) {
+    const send = async () => fetch(url, {
+      ...init,
+      headers: { ...(init.headers || {}), Authorization: `Bearer ${await this.accessToken()}` },
+    });
+    let res = await send();
+    if (res.status === 401) {
+      this.tokens.expiresAt = 0;
+      res = await send();
+    }
+    return res;
+  }
+
+  // Finds the best match for a song request and returns it, or null if nothing matched.
+  async searchTrack(query) {
+    const params = new URLSearchParams({ q: query, type: 'track', limit: '1' });
+    const res = await this.authorized(`https://api.spotify.com/v1/search?${params}`);
+    if (!res.ok) throw new Error(`Pencarian Spotify gagal (HTTP ${res.status})`);
+    const track = (await res.json()).tracks?.items?.[0];
+    if (!track) return null;
+    return { uri: track.uri, name: track.name, artist: (track.artists || []).map((a) => a.name).join(', ') };
+  }
+
+  // Adds a track to the account's Spotify queue. Needs Premium and an active Spotify device.
+  async addToQueue(uri) {
+    const res = await this.authorized(`https://api.spotify.com/v1/me/player/queue?uri=${encodeURIComponent(uri)}`, { method: 'POST' });
+    if (res.status === 403) throw new Error('Izin antrean belum ada. Klik Hubungkan Spotify lagi di panel.');
+    if (res.status === 404) throw new Error('Tidak ada perangkat Spotify yang aktif. Buka Spotify dulu.');
+    if (!res.ok) throw new Error(`Gagal menambah ke antrean Spotify (HTTP ${res.status})`);
   }
 
   async accessToken() {

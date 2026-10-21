@@ -112,13 +112,22 @@ app.post('/api/logout', (req, res) => {
 
 // ---- Per-account state ----
 
-function readMusicSource(file) {
+// The music choice for one account: which service feeds the overlay, and whether requests
+// are also added to the Spotify queue.
+function readMusicSettings(file) {
   try {
-    const saved = JSON.parse(fs.readFileSync(file, 'utf8')).source;
-    return MUSIC_SOURCES.includes(saved) ? saved : 'spotify';
+    const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
+    return {
+      source: MUSIC_SOURCES.includes(saved.source) ? saved.source : 'spotify',
+      autoQueue: saved.autoQueue === true,
+    };
   } catch {
-    return 'spotify';
+    return { source: 'spotify', autoQueue: false };
   }
+}
+
+function saveMusicSettings(ctx) {
+  fs.writeFileSync(ctx.musicFile, JSON.stringify({ source: ctx.musicSource, autoQueue: ctx.autoQueue }));
 }
 
 // The overlay only listens to one message, whichever source the account has chosen.
@@ -138,7 +147,27 @@ function handleChat(ctx, event) {
   const uniqueId = event.user?.uniqueId || event.user?.nickname || '';
   const nickname = event.user?.nickname || 'Penonton';
   const { item } = ctx.queue.add({ uniqueId, nickname, song });
-  if (item) broadcastQueue(ctx);
+  if (!item) return;
+  broadcastQueue(ctx);
+  if (ctx.autoQueue && ctx.musicSource === 'spotify') queueOnSpotify(ctx, item);
+}
+
+// Finds the requested song on Spotify and adds it to the queue. The outcome is saved on the request,
+// so the panel can show whether it worked and why not.
+async function queueOnSpotify(ctx, item) {
+  const note = (text, extra = {}) => {
+    ctx.queue.update(item.id, { note: text, ...extra });
+    broadcastQueue(ctx);
+  };
+  if (!ctx.spotify.status().connected) return note('Spotify belum terhubung');
+  try {
+    const track = await ctx.spotify.searchTrack(item.song);
+    if (!track) return note('Lagu tidak ditemukan di Spotify');
+    await ctx.spotify.addToQueue(track.uri);
+    note(`Masuk antrean Spotify: ${track.name} - ${track.artist}`, { sent: true });
+  } catch (err) {
+    note(err.message);
+  }
 }
 
 function contextFor(userId) {
@@ -147,12 +176,14 @@ function contextFor(userId) {
 
   const dir = store.userDir(userId);
   const send = (message) => hub.broadcast(userId, message);
+  const music = readMusicSettings(path.join(dir, 'music.json'));
   const ctx = {
     userId,
     dir,
     settingsFile: path.join(dir, 'settings.json'),
     musicFile: path.join(dir, 'music.json'),
-    musicSource: readMusicSource(path.join(dir, 'music.json')),
+    musicSource: music.source,
+    autoQueue: music.autoQueue,
     feed: new FeedBuffer(path.join(dir, 'feed.json')),
     queue: new RequestQueue(path.join(dir, 'queue.json')),
   };
@@ -317,7 +348,14 @@ app.post('/api/spotify/disconnect', async (req, res) => {
 
 app.get('/api/music/status', (req, res) => {
   const ctx = req.ctx;
-  res.json({ source: ctx.musicSource, spotify: ctx.spotify.status(), youtube: ctx.youtube.status() });
+  res.json({ source: ctx.musicSource, autoQueue: ctx.autoQueue, spotify: ctx.spotify.status(), youtube: ctx.youtube.status() });
+});
+
+app.post('/api/music/autoqueue', (req, res) => {
+  const ctx = req.ctx;
+  ctx.autoQueue = req.body?.enabled === true;
+  saveMusicSettings(ctx);
+  res.json({ autoQueue: ctx.autoQueue });
 });
 
 app.post('/api/music/source', (req, res) => {
@@ -327,7 +365,7 @@ app.post('/api/music/source', (req, res) => {
     return res.status(400).json({ error: 'Sumber musik tidak dikenal' });
   }
   ctx.musicSource = source;
-  fs.writeFileSync(ctx.musicFile, JSON.stringify({ source }));
+  saveMusicSettings(ctx);
   broadcastNowPlaying(ctx);
   res.json({ source });
 });
