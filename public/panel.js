@@ -336,6 +336,47 @@ function renderYouTube(status) {
   renderSummaries();
 }
 
+// ---- Antrean request dari chat ----
+
+function renderQueue(items) {
+  const list = $('queueList');
+  list.replaceChildren();
+  if (!items.length) {
+    const empty = document.createElement('li');
+    empty.className = 'empty';
+    empty.textContent = 'Belum ada permintaan.';
+    list.append(empty);
+    return;
+  }
+  items.forEach((item, index) => {
+    const li = document.createElement('li');
+    li.className = 'queue-item';
+
+    const text = document.createElement('div');
+    text.className = 'feed-text';
+    const song = document.createElement('strong');
+    song.textContent = `${index + 1}. ${item.song}`;
+    const who = document.createElement('span');
+    who.textContent = item.nickname;
+    text.append(song, who);
+
+    const done = document.createElement('button');
+    done.className = 'btn small';
+    done.type = 'button';
+    done.textContent = 'Selesai';
+    done.addEventListener('click', async () => {
+      try {
+        renderQueue(await api(`/api/queue/${encodeURIComponent(item.id)}/done`, {}));
+      } catch (err) {
+        toast(err.message);
+      }
+    });
+
+    li.append(text, done);
+    list.append(li);
+  });
+}
+
 // ---- Stats and feed ----
 
 function renderCounts() {
@@ -838,6 +879,14 @@ for (const chip of document.querySelectorAll('#musicSource .chip')) {
   chip.addEventListener('click', () => chooseMusicSource(chip.dataset.source));
 }
 
+$('queueClear').addEventListener('click', async () => {
+  try {
+    renderQueue(await api('/api/queue/clear', {}));
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
 $('clearFeed').addEventListener('click', async () => {
   try {
     await api('/api/feed/clear', {});
@@ -863,6 +912,8 @@ connectHub((msg) => {
       return renderSpotify(msg);
     case 'youtube':
       return renderYouTube(msg);
+    case 'queue':
+      return renderQueue(msg.items);
     case 'chat':
     case 'gift':
     case 'follow':
@@ -928,6 +979,8 @@ api('/api/music/status')
 
 // Recent activity from earlier visits. The server returns newest first; the list shows the
 // newest at the top, so the oldest one is added first.
+api('/api/queue').then(renderQueue).catch(() => {});
+
 api('/api/feed?limit=60')
   .then((events) => {
     for (const event of events.reverse()) addFeed(event);

@@ -176,6 +176,20 @@ body {
 .view-head h2 { margin: 0; font-size: 20px; }
 .view-head .btn { text-decoration: none; }
 
+/* Antrean request dari chat */
+.queue { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.queue .empty { color: var(--muted); font-size: 14px; }
+.queue-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-radius: 10px;
+}
+.queue-item .feed-text { min-width: 0; }
+
 /* Cards */
 .card {
   background: var(--surface);

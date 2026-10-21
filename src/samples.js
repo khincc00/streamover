@@ -18,4 +18,10 @@ export const SAMPLES = {
     type: 'share',
     user: { uniqueId: 'rina_test', nickname: 'Rina', avatar: '' },
   }),
+  // A chat message that asks for a song, so the request list can be tested without going live.
+  request: () => ({
+    type: 'chat',
+    user: { uniqueId: 'req_test', nickname: 'Penonton Tes', avatar: '' },
+    text: '!req Jupiter - dustbox',
+  }),
 };

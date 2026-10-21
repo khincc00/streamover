@@ -11,6 +11,7 @@ import { SpotifySession } from './src/spotify.js';
 import { YouTubeMusicBridge } from './src/ytmusic.js';
 import { UserStore } from './src/users.js';
 import { FeedBuffer } from './src/feed.js';
+import { RequestQueue, parseRequest } from './src/queue.js';
 import { SESSION_COOKIE, sessionTokenFrom, tooManyAttempts } from './src/auth.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -126,6 +127,20 @@ function broadcastNowPlaying(ctx) {
   hub.broadcast(ctx.userId, { type: 'nowplaying', source: ctx.musicSource, nowPlaying });
 }
 
+function broadcastQueue(ctx) {
+  hub.broadcast(ctx.userId, { type: 'queue', items: ctx.queue.list() });
+}
+
+// A chat message like "!req judul lagu" goes into the account's request list.
+function handleChat(ctx, event) {
+  const song = parseRequest(event.text);
+  if (!song) return;
+  const uniqueId = event.user?.uniqueId || event.user?.nickname || '';
+  const nickname = event.user?.nickname || 'Penonton';
+  const { item } = ctx.queue.add({ uniqueId, nickname, song });
+  if (item) broadcastQueue(ctx);
+}
+
 function contextFor(userId) {
   const existing = contexts.get(userId);
   if (existing) return existing;
@@ -139,10 +154,12 @@ function contextFor(userId) {
     musicFile: path.join(dir, 'music.json'),
     musicSource: readMusicSource(path.join(dir, 'music.json')),
     feed: new FeedBuffer(path.join(dir, 'feed.json')),
+    queue: new RequestQueue(path.join(dir, 'queue.json')),
   };
   ctx.live = new LiveSession({
     onEvent: (event) => {
       if (FEED_TYPES.has(event.type)) ctx.feed.add(event);
+      if (event.type === 'chat') handleChat(ctx, event);
       send(event);
     },
     onStatus: (status) => send({ type: 'status', ...status }),
@@ -220,8 +237,30 @@ app.post('/api/test/:kind', (req, res) => {
   if (!make) return res.status(404).json({ error: 'Jenis tes tidak dikenal' });
   const sample = make();
   if (FEED_TYPES.has(sample.type)) req.ctx.feed.add(sample);
+  if (sample.type === 'chat') handleChat(req.ctx, sample);
   hub.broadcast(req.user.id, sample);
   res.json({ ok: true });
+});
+
+// ---- Song requests ----
+
+app.get('/api/queue', (req, res) => {
+  res.json(req.ctx.queue.list());
+});
+
+// Played or skipped: the streamer removes the request from the list.
+app.post('/api/queue/:id/done', (req, res) => {
+  if (!req.ctx.queue.remove(req.params.id)) {
+    return res.status(404).json({ error: 'Permintaan tidak ditemukan' });
+  }
+  broadcastQueue(req.ctx);
+  res.json(req.ctx.queue.list());
+});
+
+app.post('/api/queue/clear', (req, res) => {
+  req.ctx.queue.clear();
+  broadcastQueue(req.ctx);
+  res.json(req.ctx.queue.list());
 });
 
 // Recent activity for this account. The panel asks for at most 60 at a time.

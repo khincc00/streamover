@@ -409,6 +409,17 @@
             </section>
 
             <section class="card">
+              <div class="card-head">
+                <h2>Antrean request</h2>
+                <button id="queueClear" class="btn ghost small" type="button">Bersihkan</button>
+              </div>
+              <p class="hint">Penonton mengetik <code>!req judul lagu</code> di chat. Satu permintaan menunggu per penonton.</p>
+              <ol id="queueList" class="queue">
+                <li class="empty">Belum ada permintaan.</li>
+              </ol>
+            </section>
+
+            <section class="card">
               <div class="card-head"><h2>Link untuk OBS</h2></div>
               <p class="hint" style="margin-bottom: 12px">Tambahkan sebagai Browser Source. Background sudah transparan.</p>
               <div class="links" data-link="nowplaying"></div>
