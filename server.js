@@ -134,6 +134,17 @@ function saveMusicSettings(ctx) {
 function broadcastNowPlaying(ctx) {
   const nowPlaying = ctx.musicSource === 'youtube' ? ctx.youtube.nowPlaying() : ctx.spotify.status().nowPlaying;
   hub.broadcast(ctx.userId, { type: 'nowplaying', source: ctx.musicSource, nowPlaying });
+  removePlayedRequests(ctx, nowPlaying);
+}
+
+// When a new song starts, the requests for it leave the list. The same song playing on and on
+// doesn't remove anything again, so a request for the song that is already playing waits for its next play.
+function removePlayedRequests(ctx, nowPlaying) {
+  if (!nowPlaying?.playing) return;
+  const key = nowPlaying.uri || `${nowPlaying.title}|${nowPlaying.artist}`;
+  if (key === ctx.lastTrackKey) return;
+  ctx.lastTrackKey = key;
+  if (ctx.queue.removePlayed(nowPlaying).length > 0) broadcastQueue(ctx);
 }
 
 function broadcastQueue(ctx) {
@@ -164,7 +175,7 @@ async function queueOnSpotify(ctx, item) {
     const track = await ctx.spotify.searchTrack(item.song);
     if (!track) return note('Lagu tidak ditemukan di Spotify');
     await ctx.spotify.addToQueue(track.uri);
-    note(`Masuk antrean Spotify: ${track.name} - ${track.artist}`, { sent: true });
+    note(`Masuk antrean Spotify: ${track.name} - ${track.artist}`, { sent: true, uri: track.uri });
   } catch (err) {
     note(err.message);
   }

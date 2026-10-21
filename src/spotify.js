@@ -22,6 +22,7 @@ function toNowPlaying(data) {
   const isEpisode = item.type === 'episode';
   return {
     playing: Boolean(data.is_playing),
+    uri: item.uri || '',
     title: item.name || '',
     artist: isEpisode ? item.show?.name || '' : (item.artists || []).map((a) => a.name).join(', '),
     image: safeUrl(item.album?.images?.[0]?.url ?? item.images?.[0]?.url),

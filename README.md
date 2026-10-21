@@ -30,7 +30,7 @@ Catatan: mode development Spotify membatasi 5 pengguna per Client ID, dan pemili
 
 Overlay: `http://127.0.0.1:3000/overlay/nowplaying.html`
 
-Permintaan lagu dari chat (`!req judul lagu`) hanya masuk ke daftar kecuali opsi **Masukkan otomatis ke antrean Spotify** dinyalakan. Opsi itu butuh:
+Permintaan lagu dari chat (`!req judul lagu`) masuk ke daftar, maksimal 5 permintaan dengan satu permintaan per penonton. Lagu dihapus dari daftar saat mulai diputar. Permintaan hanya masuk ke daftar kecuali opsi **Masukkan otomatis ke antrean Spotify** dinyalakan. Opsi itu butuh:
 - Akun Spotify yang Premium, dan Spotify sedang aktif di salah satu perangkat.
 - Izin antrean. Akun yang sudah terhubung sebelum fitur ini harus klik **Hubungkan Spotify** sekali lagi.
 
