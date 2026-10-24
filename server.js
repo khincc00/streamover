@@ -333,12 +333,6 @@ app.post('/api/spotify/config', async (req, res) => {
 app.get('/api/spotify/login', (req, res) => {
   const fail = (message) => res.redirect(`/?spotify=error&message=${encodeURIComponent(message)}#/musik`);
   if (!req.ctx.spotify.clientId) return fail('Isi Client ID Spotify di panel dulu');
-  // Spotify sends the browser back to PUBLIC_URL. If the panel is open on another address,
-  // the login cookie is missing there and the connection fails, so stop before leaving.
-  const host = req.get('x-forwarded-host') || req.get('host');
-  if (host !== new URL(PUBLIC_URL).host) {
-    return fail(`Callback Spotify mengarah ke ${PUBLIC_URL}, tapi panel dibuka di ${host}. Atur PUBLIC_URL di .env server sesuai alamat panel, lalu restart server.`);
-  }
   res.redirect(req.ctx.spotify.loginUrl());
 });
 

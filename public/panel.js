@@ -206,12 +206,14 @@ function overlayUrl(key) {
 
 // Whether the server asks for a password, and the key OBS overlays need when it does.
 let overlayKey = '';
+let publicUrl = '';
 async function loadSession() {
   try {
     const session = await api('/api/session');
     overlayKey = session.overlayKey || '';
     $('logout').hidden = !session.authEnabled;
     // Show the redirect exactly as the server sends it, so it can be copied into Spotify's dashboard.
+    publicUrl = session.publicUrl || '';
     if (session.publicUrl) $('spotifyRedirect').textContent = `${session.publicUrl}/api/spotify/callback`;
   } catch {
     // The panel still works without this; the overlay links just won't carry a key.
@@ -869,6 +871,13 @@ $('spotifyForm').addEventListener('submit', async (event) => {
 
 // The login page redirects back here, so this is a full navigation, not a fetch.
 $('spotifyConnect').addEventListener('click', () => {
+  // Spotify sends the browser back to PUBLIC_URL. On any other address the login cookie is
+  // missing there and the connection fails, so stop before leaving. Only the browser knows the
+  // real address; behind a proxy the server sees its own.
+  if (publicUrl && publicUrl !== location.origin) {
+    $('spotifyText').textContent = `Callback Spotify mengarah ke ${publicUrl}, tapi panel dibuka di ${location.origin}. Atur PUBLIC_URL di .env server sesuai alamat panel, lalu restart server.`;
+    return;
+  }
   location.href = '/api/spotify/login';
 });
 
