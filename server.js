@@ -214,6 +214,8 @@ function contextFor(userId) {
   ctx.spotify = new SpotifySession({
     redirectUri: `${PUBLIC_URL}/api/spotify/callback`,
     tokenFile: path.join(dir, 'spotify.json'),
+    // Spotify's rate limit is shared by every account, so nobody watching means no requests.
+    isWatched: () => hub.hasClients(userId),
     onChange: (message) => {
       send(message);
       broadcastNowPlaying(ctx);

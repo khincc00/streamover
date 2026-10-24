@@ -28,5 +28,12 @@ export function createHub(server, { resolveUser, snapshotFor }) {
     }
   }
 
-  return { broadcast };
+  function hasClients(userId) {
+    for (const client of wss.clients) {
+      if (client.userId === userId && client.readyState === client.OPEN) return true;
+    }
+    return false;
+  }
+
+  return { broadcast, hasClients };
 }
