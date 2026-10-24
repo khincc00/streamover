@@ -131,10 +131,15 @@ function saveMusicSettings(ctx) {
 }
 
 // The overlay only listens to one message, whichever source the account has chosen.
-function broadcastNowPlaying(ctx) {
+function nowPlayingMessage(ctx) {
   const nowPlaying = ctx.musicSource === 'youtube' ? ctx.youtube.nowPlaying() : ctx.spotify.status().nowPlaying;
-  hub.broadcast(ctx.userId, { type: 'nowplaying', source: ctx.musicSource, nowPlaying });
-  removePlayedRequests(ctx, nowPlaying);
+  return { type: 'nowplaying', source: ctx.musicSource, nowPlaying };
+}
+
+function broadcastNowPlaying(ctx) {
+  const message = nowPlayingMessage(ctx);
+  hub.broadcast(ctx.userId, message);
+  removePlayedRequests(ctx, message.nowPlaying);
 }
 
 // When a new song starts, the requests for it leave the list. The same song playing on and on
@@ -422,7 +427,11 @@ const hub = createHub(server, {
     contextFor(user.id);
     return user.id;
   },
-  snapshotFor: (userId) => contextFor(userId).live.status(),
+  // The overlay shows the current song right away instead of waiting for the next change.
+  snapshotFor: (userId) => {
+    const ctx = contextFor(userId);
+    return [{ type: 'status', ...ctx.live.status() }, nowPlayingMessage(ctx)];
+  },
 });
 
 server.listen(PORT, HOST, () => {

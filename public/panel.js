@@ -302,6 +302,7 @@ function renderSpotify(status) {
   else if (connected && track) text = `${track.playing ? 'Diputar' : 'Dijeda'}: ${track.title}${track.artist ? ` — ${track.artist}` : ''}`;
   else if (connected) text = 'Tidak ada lagu yang sedang diputar';
   if (status.error) text = status.error;
+  if (connected && status.account) text = `Akun Spotify: ${status.account} · ${text}`;
   $('spotifyText').textContent = text;
   renderSummaries();
 }

@@ -3,7 +3,7 @@ import { WebSocketServer } from 'ws';
 // WebSocket hub. Every connection belongs to one account, so a user's chat, alerts, and
 // status are only sent to that user's panel and overlays.
 // `resolveUser(req)` returns the account id for a connection, or null to refuse it.
-// `snapshotFor(userId)` returns the status sent right after connecting.
+// `snapshotFor(userId)` returns the messages sent right after connecting.
 export function createHub(server, { resolveUser, snapshotFor }) {
   const wss = new WebSocketServer({
     server,
@@ -18,7 +18,7 @@ export function createHub(server, { resolveUser, snapshotFor }) {
 
   wss.on('connection', (ws, req) => {
     ws.userId = req.userId;
-    ws.send(JSON.stringify({ type: 'status', ...snapshotFor(req.userId) }));
+    for (const message of snapshotFor(req.userId)) ws.send(JSON.stringify(message));
   });
 
   function broadcast(userId, message) {

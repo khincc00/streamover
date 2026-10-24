@@ -9,6 +9,9 @@ const PLAYER_URL = 'https://api.spotify.com/v1/me/player/currently-playing';
 const SCOPE = 'user-read-currently-playing user-modify-playback-state';
 // Short interval so a track change shows up within a couple of seconds.
 const POLL_MS = 2000;
+// A request that hangs would block every later poll, so each one gives up after this long.
+const TIMEOUT_MS = 10_000;
+const ME_URL = 'https://api.spotify.com/v1/me';
 
 const b64url = (buf) => buf.toString('base64url');
 
@@ -41,6 +44,7 @@ export class SpotifySession {
     this.pending = null; // { state, verifier } while waiting for the browser to come back
     this.tokens = null; // { refreshToken, accessToken, expiresAt }
     this.nowPlaying = null;
+    this.account = ''; // Spotify display name, so the panel shows which account is connected
     this.error = null;
     this.timer = null;
     this.polling = false;
@@ -52,6 +56,7 @@ export class SpotifySession {
       clientId: this.clientId,
       configured: Boolean(this.clientId),
       connected: Boolean(this.tokens),
+      account: this.account,
       nowPlaying: this.nowPlaying,
       error: this.error,
     };
@@ -79,6 +84,7 @@ export class SpotifySession {
       // A token belongs to the Client ID it was issued for, so a new ID means connecting again.
       this.stopPolling();
       this.tokens = null;
+      this.account = '';
       this.nowPlaying = null;
       this.pending = null;
     }
@@ -120,6 +126,7 @@ export class SpotifySession {
       code_verifier: verifier,
     });
     this.tokens = { refreshToken: data.refresh_token, accessToken: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 };
+    this.account = ''; // Possibly a different account than before
     this.error = null;
     await this.save();
     this.startPolling();
@@ -128,6 +135,7 @@ export class SpotifySession {
   async disconnect() {
     this.stopPolling();
     this.tokens = null;
+    this.account = '';
     this.nowPlaying = null;
     this.error = null;
     await this.save();
@@ -165,6 +173,7 @@ export class SpotifySession {
         this.retryAt = Date.now() + seconds * 1000;
         throw new Error(`Spotify membatasi permintaan, dicoba lagi dalam ${seconds} detik`);
       }
+      if (!this.account) await this.loadAccount();
       if (res.status === 204) {
         this.nowPlaying = null; // Nothing is playing.
       } else if (res.ok) {
@@ -187,15 +196,29 @@ export class SpotifySession {
     }
   }
 
+  // Remembers the connected account's name. A failure here only leaves the name empty.
+  async loadAccount() {
+    try {
+      const res = await this.authorizedGet(ME_URL);
+      if (res.ok) {
+        const me = await res.json();
+        this.account = me.display_name || me.id || '';
+      }
+    } catch {
+      // The name is only shown in the panel.
+    }
+  }
+
   async authorizedGet(url) {
     const token = await this.accessToken();
-    return fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(TIMEOUT_MS) });
   }
 
   // Sends a request with the account's token. If the token was rejected, refresh it once and try again.
   async authorized(url, init = {}) {
     const send = async () => fetch(url, {
       ...init,
+      signal: AbortSignal.timeout(TIMEOUT_MS),
       headers: { ...(init.headers || {}), Authorization: `Bearer ${await this.accessToken()}` },
     });
     let res = await send();
@@ -244,6 +267,7 @@ export class SpotifySession {
     const res = await fetch(TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
       body: new URLSearchParams({ client_id: this.clientId, ...fields }),
     });
     const data = await res.json().catch(() => ({}));
