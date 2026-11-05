@@ -4,78 +4,124 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Masuk - Streamover</title>
+  <script>(function(){var t=null;try{t=localStorage.getItem('streamover.theme')}catch(e){}var dark=t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches;var r=document.documentElement;r.dataset.theme=dark?'dark':'light';r.classList.toggle('dark',dark);})();</script>
+  <link rel="stylesheet" href="/template.css">
   <style>
-    :root { color-scheme: light dark; }
     body {
       margin: 0;
       min-height: 100vh;
       display: grid;
       place-items: center;
-      background: #f4f5f9;
-      color: #17181c;
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      -webkit-font-smoothing: antialiased;
     }
     .card {
-      width: min(360px, calc(100vw - 32px));
+      width: min(380px, calc(100vw - 32px));
       padding: 28px;
-      background: #fff;
-      border: 1px solid #e2e4ec;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      background: var(--surface-glass);
+      border: 1px solid var(--border-glass);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      -webkit-backdrop-filter: blur(24px) saturate(1.5);
+      backdrop-filter: blur(24px) saturate(1.5);
     }
-    h1 { margin: 0 0 6px; font-size: 20px; }
-    p { margin: 0 0 18px; color: #3f4352; font-size: 15px; line-height: 1.5; }
-    label { display: block; font-size: 14px; margin: 14px 0 6px; }
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+    .logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: #111114;
+      color: #fff;
+      font-weight: 900;
+      font-size: 15px;
+      letter-spacing: 0.04em;
+    }
+    .brand b { display: block; font-size: 14px; font-weight: 800; letter-spacing: -0.01em; }
+    .brand small { display: block; color: var(--text-soft); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; }
+    h1 { margin: 0 0 6px; font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+    p { margin: 0 0 18px; color: var(--text-soft); font-size: 14px; line-height: 1.5; }
+    label {
+      display: block;
+      margin: 14px 0 6px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
     input {
       width: 100%;
       box-sizing: border-box;
-      padding: 11px 12px;
+      padding: 12px 14px;
       font: inherit;
-      border: 1px solid #d6d9e3;
-      border-radius: 10px;
-      background: #fff;
-      color: inherit;
+      border: 1px solid rgba(17, 17, 20, 0.1);
+      border-radius: 14px;
+      background: var(--surface-strong);
+      color: var(--text);
+      outline: none;
     }
+    input:focus-visible { outline: 2px solid #111114; outline-offset: 2px; }
     button.submit {
       width: 100%;
-      margin-top: 18px;
-      padding: 11px 12px;
+      margin-top: 20px;
+      padding: 12px;
       font: inherit;
+      font-size: 14px;
       font-weight: 700;
       color: #fff;
-      background: #6d4aff;
+      background: #111114;
       border: 0;
-      border-radius: 10px;
+      border-radius: 999px;
       cursor: pointer;
     }
     button.submit:disabled { opacity: 0.6; cursor: default; }
-    .switch { margin: 16px 0 0; font-size: 14px; color: #3f4352; text-align: center; }
+    .switch { margin: 16px 0 0; font-size: 13px; color: var(--text-soft); text-align: center; }
     .switch button {
       background: none;
       border: 0;
       padding: 0;
       font: inherit;
-      color: #6d4aff;
+      font-weight: 700;
+      color: var(--text);
       text-decoration: underline;
       cursor: pointer;
     }
-    #error { min-height: 20px; margin: 12px 0 0; color: #d92d20; font-size: 14px; }
+    #error { min-height: 20px; margin: 12px 0 0; color: #dc2626; font-size: 13px; }
     .hidden { display: none; }
 
-    /* Keep this block last: it has to override the light colors above. */
-    @media (prefers-color-scheme: dark) {
-      body { background: #111218; color: #f2f3f7; }
-      .card { background: #1b1d26; border-color: #2c2f3b; }
-      p { color: #c3c7d4; }
-      label { color: #f2f3f7; }
-      input { background: #111218; color: #f2f3f7; border-color: #3a3e4d; }
-      .switch { color: #c3c7d4; }
-      .switch button { color: #b9a8ff; }
+    #themeToggle {
+      margin-left: auto;
+      font: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(17, 17, 20, 0.1);
+      background: var(--surface-strong);
+      color: var(--text);
+      cursor: pointer;
     }
+    /* Tema malam: kelas "dark" di <html> dipasang di skrip atas (ikut sistem atau pilihan tombol). */
+    html.dark input { border-color: rgba(255, 255, 255, 0.12); }
+    html.dark .logo { background: #f5f5f7; color: #111114; }
+    html.dark button.submit { background: #f5f5f7; color: #111114; }
+    html.dark #error { color: #f87171; }
   </style>
 </head>
-<body>
+<body class="mesh-bg">
   <form class="card" id="authForm" autocomplete="off">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">S</div>
+      <div>
+        <b>Streamover</b>
+        <small>Overlay TikTok Live</small>
+      </div>
+      <button id="themeToggle" type="button" aria-label="Ganti tema siang dan malam">☾ Malam</button>
+    </div>
+
     <h1 id="title">Masuk ke Streamover</h1>
     <p id="subtitle">Masukkan username dan password akun kamu.</p>
 
@@ -100,6 +146,33 @@
   </form>
 
   <script>
+    const THEME_KEY = 'streamover.theme';
+    const systemDark = matchMedia('(prefers-color-scheme: dark)');
+    function currentTheme() {
+      let saved = '';
+      try { saved = localStorage.getItem(THEME_KEY) || ''; } catch {}
+      if (saved === 'light' || saved === 'dark') return saved;
+      return systemDark.matches ? 'dark' : 'light';
+    }
+    function applyTheme() {
+      const theme = currentTheme();
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+      const toggle = document.getElementById('themeToggle');
+      toggle.textContent = theme === 'dark' ? '☀ Siang' : '☾ Malam';
+      toggle.setAttribute('aria-pressed', String(theme === 'dark'));
+    }
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      try { localStorage.setItem(THEME_KEY, currentTheme() === 'dark' ? 'light' : 'dark'); } catch {}
+      applyTheme();
+    });
+    systemDark.addEventListener('change', () => {
+      let saved = '';
+      try { saved = localStorage.getItem(THEME_KEY) || ''; } catch {}
+      if (saved !== 'light' && saved !== 'dark') applyTheme();
+    });
+    applyTheme();
+
     const form = document.getElementById('authForm');
     const error = document.getElementById('error');
     const submit = document.getElementById('submit');

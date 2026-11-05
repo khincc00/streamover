@@ -109,6 +109,77 @@
 .np-vinyl.playing .art { animation-play-state: running; }
 .np-vinyl .state { color: #fbbf24; }
 
+/* 6. Liquid Glass: kaca cair dengan blur tebal dan aksen biru, gaya Apple */
+.np-apple {
+  background: rgba(255, 255, 255, 0.72);
+  color: #1d1d1f;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 1.6em;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: blur(24px) saturate(1.6);
+}
+.np-apple .art { width: 4.25em; height: 4.25em; border-radius: 0.9em; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15); }
+.np-apple .state { color: #0a84ff; font-size: 0.75em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.np-apple .artist { color: #6e6e73; }
+
+/* 7. Sinematik: bilah hitam di tengah dengan huruf jarang dan kapital, seperti kredit film */
+.np-cinematic {
+  background: #000000;
+  color: #ffffff;
+  border-radius: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  padding: 0.8em 2em;
+}
+.np-cinematic .art { width: 3.6em; height: 3.6em; border-radius: 0; filter: grayscale(0.3); }
+.np-cinematic .info { text-align: center; }
+.np-cinematic .state { color: #bbbbbb; font-size: 0.6em; letter-spacing: 0.3em; text-transform: uppercase; }
+.np-cinematic .title {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  font-size: 1.2em;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.np-cinematic .artist { font-size: 0.85em; letter-spacing: 0.15em; text-transform: uppercase; opacity: 0.7; }
+
+/* 8. Minimal: kartu putih polos dengan huruf kecil dan garis tipis */
+.np-minimal {
+  background: #ffffff;
+  color: #111111;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 0.5em;
+  padding: 0.7em 1.1em 0.7em 0.7em;
+}
+.np-minimal .art { width: 3.2em; height: 3.2em; border-radius: 0.25em; }
+.np-minimal .state { color: #111111; font-size: 0.6em; letter-spacing: 0.18em; text-transform: uppercase; }
+.np-minimal .title { font-size: 1.2em; font-weight: 600; }
+.np-minimal .artist { font-size: 0.95em; color: #888888; }
+
+/* 9. Lirik: teks besar tanpa kotak, gaya karaoke. Judul berkilau saat lagu diputar. */
+.np-lyrics {
+  background: none;
+  color: #ffffff;
+  border-radius: 0;
+  padding: 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85), 0 0 2px #000000;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35em;
+}
+.np-lyrics .art { width: 2.6em; height: 2.6em; border-radius: 0.4em; }
+.np-lyrics .info { max-width: 100%; }
+.np-lyrics .state { color: #f0abfc; font-size: 0.7em; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; }
+.np-lyrics .title { font-size: 2.2em; font-weight: 900; line-height: 1.05; white-space: normal; overflow: visible; text-overflow: clip; }
+.np-lyrics .artist { font-size: 1.1em; color: #fde68a; }
+.np-lyrics.playing .title { animation: np-glow 2.4s ease-in-out infinite alternate; }
+
 @keyframes np-spin {
   to { transform: rotate(360deg); }
+}
+
+@keyframes np-glow {
+  from { text-shadow: 0 0 6px #f0abfc, 0 2px 10px rgba(0, 0, 0, 0.85); }
+  to { text-shadow: 0 0 18px #f0abfc, 0 2px 10px rgba(0, 0, 0, 0.85); }
 }

@@ -1,0 +1,48 @@
+/* Gaya running text. Warna datang dari --rt-color di #stage, jadi setiap template ikut warna yang dipilih. */
+
+.rt-word {
+  display: inline-block;
+  white-space: nowrap;
+  line-height: 1.2;
+  color: var(--rt-color, #ffffff);
+}
+
+.rt-script {
+  font-family: "Mr Dafoe", "Brush Script MT", cursive;
+  font-weight: 400;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+.rt-classic {
+  font-family: "Arial Black", Impact, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0.06em 0 rgba(0, 0, 0, 0.45);
+}
+
+.rt-neon {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-weight: 700;
+  text-shadow: 0 0 0.08em currentColor, 0 0 0.25em currentColor, 0 0 0.6em currentColor;
+}
+
+.rt-outline {
+  font-family: Impact, "Arial Black", sans-serif;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: transparent;
+  -webkit-text-stroke: 0.025em var(--rt-color, #ffffff);
+}
+
+.rt-pill {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(0, 0, 0, 0.72);
+  border-radius: 999px;
+  padding: 0.18em 0.7em 0.22em;
+  box-shadow: 0 0.08em 0.3em rgba(0, 0, 0, 0.3);
+}

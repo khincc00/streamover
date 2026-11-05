@@ -4,436 +4,621 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Streamover</title>
+  <script>(function(){var t=null;try{t=localStorage.getItem('streamover.theme')}catch(e){}var dark=t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches;var r=document.documentElement;r.dataset.theme=dark?'dark':'light';r.classList.toggle('dark',dark);})();</script>
+  <link rel="stylesheet" href="/template.css">
   <link rel="stylesheet" href="/panel.css">
   <link rel="stylesheet" href="/overlay/chat-templates.css">
   <link rel="stylesheet" href="/overlay/nowplaying-templates.css">
+  <link rel="stylesheet" href="/overlay/running-text-templates.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mr+Dafoe&display=swap">
 </head>
-<body>
-  <div class="app">
-    <header class="topbar">
-      <div class="brand">
-        <div class="logo" aria-hidden="true">S</div>
-        <div>
-          <b>Streamover</b>
-          <small>Overlay TikTok Live untuk OBS</small>
+<body class="mesh-bg">
+<div class="min-h-screen w-full overflow-x-clip">
+<div class="flex min-h-screen">
+
+  <aside class="hidden md:flex w-[248px] shrink-0 p-3 pr-0 flex-col gap-3 sticky top-0 h-screen">
+    <div class="glass-strong rounded-[20px] p-4 flex items-center gap-3">
+      <div class="w-9 h-9 rounded-[12px] bg-black text-white flex items-center justify-center font-black text-[12px] tracking-widest">KH</div>
+      <div>
+        <div class="text-[13px] font-extrabold tracking-tight leading-none">KHINCC</div>
+        <div class="text-[10px] tracking-[0.2em] opacity-60 font-semibold">OVERLAY LAB</div>
+      </div>
+      <div class="ml-auto w-2 h-2 rounded-full bg-[#00FF88] shadow-[0_0_8px_#00FF88]"></div>
+    </div>
+    <div class="glass rounded-[20px] p-2 flex-1 flex flex-col">
+      <nav class="space-y-1">
+        <a href="#/" data-nav="home" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">◧</span>Dashboard</a>
+        <a href="#/chat" data-nav="chat" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">⬙</span>Template Studio<span class="ml-auto text-[10px] bg-black/10 px-1.5 py-0.5 rounded-full">11</span></a>
+        <a href="#/musik" data-nav="musik" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">♫</span>Spotify Studio</a>
+        <a href="#/alert" data-nav="alert" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">★</span>Alert Studio</a>
+        <a href="#/running" data-nav="running" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">A</span>Running Text</a>
+        <a href="#/lab" data-nav="lab" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">⧉</span>Overlay Lab</a>
+        <a href="#/settings" data-nav="settings" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">⚙</span>Settings</a>
+      </nav>
+      <div class="mt-auto p-3 rounded-[14px] bg-black text-white">
+        <div class="text-[11px] tracking-widest opacity-60">ACTIVE TEMPLATE</div>
+        <div id="activeTemplateName" class="mt-1 text-[12px] font-bold leading-tight">—</div>
+        <div id="activeTemplateColors" class="mt-2 flex gap-1"></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="flex-1 min-w-0">
+    <header class="sticky top-0 z-20 backdrop-blur-xl bg-[var(--bg)]/70 border-b border-black/5 dark:border-white/5">
+      <div class="px-4 md:px-6 h-[64px] flex items-center gap-3">
+        <div class="flex items-center gap-2 md:hidden">
+          <div class="w-8 h-8 rounded-[10px] bg-black text-white flex items-center justify-center font-black text-[11px]">KH</div>
+          <div class="text-[12px] font-bold">KHINCC</div>
+        </div>
+        <div class="hidden md:flex items-center gap-2 text-[12px]">
+          <span class="opacity-50">Streamover</span>
+          <span class="opacity-20">/</span>
+          <span id="crumbTemplate" class="font-semibold">LIQUID GLASS</span>
+        </div>
+        <div class="ml-auto flex items-center gap-2 min-w-0">
+          <button id="themeToggle" type="button" class="shrink-0 h-8 px-3 rounded-full glass text-[11px] font-bold border border-black/10 dark:border-white/10" aria-label="Ganti tema siang dan malam">☾ Malam</button>
+          <div id="status" class="status shrink-0 h-8 px-3 rounded-full flex items-center gap-2 text-[11px] font-bold border" data-state="idle" role="status" aria-live="polite">
+            <span class="dot" aria-hidden="true"></span>
+            <span id="statusText">Belum terhubung</span>
+          </div>
+          <div class="hidden xl:flex glass rounded-full px-3 h-8 items-center gap-2 text-[11px]">
+            <span class="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center">♪</span>
+            TikTok <span id="headerUser" class="font-bold">—</span>
+          </div>
+          <div class="hidden 2xl:flex glass rounded-full px-3 h-8 items-center gap-2 text-[11px]">
+            <span class="w-2 h-2 rounded-full bg-[#1DB954]"></span>
+            <span id="spotifyPill">Spotify belum terhubung</span>
+          </div>
+          <div id="accountInitial" class="shrink-0 w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-[11px] font-bold">K</div>
         </div>
       </div>
-      <div class="status" id="status" data-state="idle" role="status" aria-live="polite">
-        <span class="dot" aria-hidden="true"></span>
-        <span id="statusText">Belum terhubung</span>
+      <div class="md:hidden px-2 pb-2 flex gap-1 overflow-x-auto scrollbar-thin">
+        <a href="#/" data-nav="home" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">dashboard</a>
+        <a href="#/chat" data-nav="chat" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">templates</a>
+        <a href="#/musik" data-nav="musik" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">spotify</a>
+        <a href="#/alert" data-nav="alert" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">alert</a>
+        <a href="#/running" data-nav="running" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">running</a>
+        <a href="#/lab" data-nav="lab" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">lab</a>
+        <a href="#/settings" data-nav="settings" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">settings</a>
       </div>
-      <button id="logout" class="btn ghost small" type="button" hidden>Keluar</button>
     </header>
 
-    <!-- Tampilan awal sampai akun TikTok terhubung (atau dilewati). -->
-    <section id="welcome" class="card welcome">
-      <h1>Hubungkan akun TikTok kamu</h1>
-      <p>Masukkan username TikTok tanpa @. Akun harus sedang live supaya chat, gift, dan penonton bisa tampil di overlay.</p>
-      <form id="welcomeForm" class="connect-row" autocomplete="off">
-        <label class="input-wrap">
-          <span>@</span>
-          <input id="welcomeUsername" name="username" placeholder="username TikTok" aria-label="Username TikTok">
-        </label>
-        <button id="welcomeConnect" class="btn primary" type="submit">Hubungkan</button>
-      </form>
-      <p id="welcomeError" class="error" role="alert"></p>
-      <button id="welcomeSkip" class="btn ghost skip" type="button">Lewati, coba tanpa live</button>
+    <!-- ============ DASHBOARD ============ -->
+    <section data-view="home" class="min-w-0" hidden>
+      <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
+
+        <section id="welcome" class="glass-strong rounded-[24px] p-6 max-w-[520px] mx-auto space-y-3" hidden>
+          <h1 class="text-[22px] font-black tracking-tight">Hubungkan akun TikTok kamu</h1>
+          <p class="text-[13px] opacity-70">Masukkan username TikTok tanpa @. Akun harus sedang live supaya chat, gift, dan penonton bisa tampil di overlay.</p>
+          <form id="welcomeForm" class="flex gap-2 flex-wrap" autocomplete="off">
+            <label class="flex-1 min-w-[200px] flex items-center rounded-[14px] bg-white border border-black/10 pl-4">
+              <span class="font-bold opacity-60">@</span>
+              <input id="welcomeUsername" name="username" class="flex-1 min-w-0 bg-transparent outline-none px-2 py-3 text-[13px]" placeholder="username TikTok" aria-label="Username TikTok">
+            </label>
+            <button id="welcomeConnect" class="h-10 px-5 rounded-full bg-black text-white text-[12px] font-bold" type="submit">Hubungkan</button>
+          </form>
+          <p id="welcomeError" class="text-[12px] text-red-600" role="alert"></p>
+          <button id="welcomeSkip" class="text-[12px] underline opacity-60" type="button">Lewati, coba tanpa live</button>
+        </section>
+
+        <div id="dashboard" class="space-y-6">
+
+          <div id="connectCard" class="glass-strong rounded-[24px] p-5">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <h2 class="text-[18px] font-bold tracking-tight">Koneksi TikTok</h2>
+              <span class="text-[11px] opacity-60">Akun TikTok harus sedang live</span>
+            </div>
+            <form id="connectForm" class="mt-4 flex gap-2 flex-wrap" autocomplete="off">
+              <label class="flex-1 min-w-[200px] flex items-center rounded-[14px] bg-white border border-black/10 pl-4">
+                <span class="font-bold opacity-60">@</span>
+                <input id="username" name="username" class="flex-1 min-w-0 bg-transparent outline-none px-2 py-3 text-[13px]" placeholder="username TikTok" aria-label="Username TikTok">
+              </label>
+              <button id="connect" class="h-10 px-5 rounded-full bg-black text-white text-[12px] font-bold" type="submit">Hubungkan</button>
+              <button id="disconnect" class="h-10 px-5 rounded-full bg-white border border-black/10 text-[12px] font-bold" type="button">Putuskan</button>
+            </form>
+            <p id="error" class="error" role="alert"></p>
+          </div>
+
+          <div class="grid md:grid-cols-3 gap-4">
+            <div class="glass-strong rounded-[24px] p-5 md:col-span-2">
+              <div class="flex items-center justify-between flex-wrap gap-2">
+                <h2 class="text-[18px] font-bold tracking-tight">Live Overview</h2>
+                <div class="flex items-center gap-2">
+                  <span id="liveBadge" class="text-[11px] px-2 py-1 rounded-full font-bold bg-black/5 text-black/50">○ PAUSED</span>
+                  <span class="text-[11px] opacity-60">Follow <b data-count="follow">0</b> • Share <b data-count="share">0</b></span>
+                </div>
+              </div>
+              <div class="mt-4 grid grid-cols-3 gap-3">
+                <div class="rounded-[16px] bg-black text-white p-4">
+                  <div class="text-[10px] opacity-60 tracking-widest">PENONTON</div>
+                  <div id="viewers" class="text-[22px] font-bold mt-1">0</div>
+                  <div class="text-[11px] opacity-60">Live sekarang</div>
+                </div>
+                <div class="rounded-[16px] bg-white border border-black/5 p-4">
+                  <div class="text-[10px] opacity-60 tracking-widest">CHAT</div>
+                  <div class="text-[22px] font-bold mt-1" data-count="chat">0</div>
+                  <div class="text-[11px] opacity-60">Pesan masuk</div>
+                </div>
+                <div class="rounded-[16px] bg-white border border-black/5 p-4">
+                  <div class="text-[10px] opacity-60 tracking-widest">GIFT</div>
+                  <div class="text-[22px] font-bold mt-1" data-count="gift">0</div>
+                  <div class="text-[11px] opacity-60">Gift masuk</div>
+                </div>
+              </div>
+              <div class="mt-5">
+                <div class="flex items-center justify-between mb-2 gap-2">
+                  <div class="text-[12px] font-bold tracking-widest">LIVE CHAT • AKTIVITAS</div>
+                  <div class="flex gap-2">
+                    <button data-test="chat" class="h-7 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold" type="button">+ Chat Manual</button>
+                    <button id="clearFeed" class="h-7 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold" type="button">Bersihkan</button>
+                  </div>
+                </div>
+                <ul id="feed" class="feed rounded-[16px] border border-black/5 bg-white/60 p-3">
+                  <li class="empty">Belum ada aktivitas. Hubungkan ke live atau coba tes.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="glass rounded-[24px] p-5">
+              <div class="text-[13px] font-bold">Template Aktif</div>
+              <div id="activeTemplateCard" class="mt-3 rounded-[14px] bg-black text-white p-3">
+                <div class="text-[11px] tracking-widest opacity-60">CHAT &amp; ALERT</div>
+                <div id="dashTemplateName" class="mt-1 text-[12px] font-bold leading-tight">—</div>
+                <div id="dashTemplateDesc" class="mt-1 text-[11px] opacity-60"></div>
+              </div>
+              <div class="mt-4 rounded-[14px] bg-black text-white p-3">
+                <div class="text-[10px] tracking-widest opacity-60">GIFT TERAKHIR</div>
+                <div id="lastGift" class="mt-1 text-[12px] font-bold">Belum ada gift</div>
+                <button data-test="gift" class="mt-2 h-7 px-3 rounded-full bg-white text-black text-[10px] font-bold w-full" type="button">Trigger Gift Manual</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass-strong rounded-[24px] p-5">
+            <h3 class="font-bold text-[14px] tracking-tight">OBS Browser Source URLs — 4 Sumber (Copy &amp; Paste ke OBS)</h3>
+            <div class="mt-4 grid md:grid-cols-2 xl:grid-cols-4 gap-3">
+              <div data-link="chat"></div>
+              <div data-link="alerts"></div>
+              <div data-link="nowplaying"></div>
+              <div data-link="runningtext"></div>
+            </div>
+            <div class="mt-4 text-[11px] opacity-60">Tip: Width 1920 Height 1080, FPS 30, Shutdown source when not visible. Template yang dipilih otomatis ikut di semua URL.</div>
+          </div>
+        </div>
+      </main>
     </section>
 
-    <div id="dashboard" hidden>
-      <!-- Beranda: koneksi dan kartu kustomisasi. -->
-      <section class="home" data-view="home">
-        <section class="card">
-          <div class="card-head">
-            <h2>Koneksi</h2>
-            <p class="hint">Akun TikTok harus sedang live</p>
+    <!-- ============ TEMPLATE STUDIO ============ -->
+    <section data-view="chat" class="min-w-0" hidden>
+      <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 class="text-[28px] font-black tracking-[-0.03em] leading-none">TEMPLATE STUDIO • 11</h1>
+            <p class="text-[13px] opacity-60 mt-2">11 gaya chat dan alert. Template yang dipilih dipakai di overlay chat dan alert untuk OBS.</p>
           </div>
-          <form id="connectForm" class="connect-row" autocomplete="off">
-            <label class="input-wrap">
-              <span>@</span>
-              <input id="username" name="username" placeholder="username TikTok" aria-label="Username TikTok">
-            </label>
-            <button id="connect" class="btn primary" type="submit">Hubungkan</button>
-            <button id="disconnect" class="btn ghost danger" type="button">Putuskan</button>
-          </form>
-          <p id="error" class="error" role="alert"></p>
+          <div class="flex gap-2">
+            <div class="glass rounded-full px-3 h-8 flex items-center gap-2 text-[11px]"><span class="w-2 h-2 rounded-full bg-black animate-pulse"></span>11 Templates Loaded</div>
+          </div>
+        </div>
 
-          <div class="stats">
-            <div class="stat main">
-              <span class="label">Penonton</span>
-              <b id="viewers">0</b>
+        <div class="glass-strong rounded-[24px] p-4 border-2 border-black">
+          <div class="flex items-center gap-2 mb-3 flex-wrap">
+            <span class="px-2.5 py-1 rounded-full bg-black text-white text-[10px] font-black tracking-widest">TEMPLATE DIPAKAI</span>
+            <span id="featuredDesc" class="text-[11px] opacity-60"></span>
+          </div>
+          <div class="grid md:grid-cols-[280px_1fr] gap-4 items-start">
+            <div id="featuredArt" class="text-left"></div>
+            <div class="rounded-[18px] bg-white/70 border border-black/5 p-3">
+              <div class="text-[11px] font-bold tracking-widest opacity-60 mb-2">LIVE PREVIEW • CHAT</div>
+              <div id="chatSample" class="chat"></div>
             </div>
-            <div class="stat"><span class="label">Chat</span><b data-count="chat">0</b></div>
-            <div class="stat"><span class="label">Gift</span><b data-count="gift">0</b></div>
-            <div class="stat"><span class="label">Follow</span><b data-count="follow">0</b></div>
-            <div class="stat"><span class="label">Share</span><b data-count="share">0</b></div>
           </div>
-        </section>
-
-        <div class="custom-grid">
-          <a class="cust-card" href="#/chat">
-            <b>Chat</b>
-            <span class="hint">Ukuran teks, template, animasi, dan warna chat</span>
-            <span class="cust-sum" data-summary="chat"></span>
-          </a>
-          <a class="cust-card" href="#/alert">
-            <b>Alert</b>
-            <span class="hint">Durasi, template, animasi, dan warna alert gift, follow, dan share</span>
-            <span class="cust-sum" data-summary="alert"></span>
-          </a>
-          <a class="cust-card" href="#/musik">
-            <b>Musik</b>
-            <span class="hint">Lagu Spotify yang sedang diputar, dan template tampilannya</span>
-            <span class="cust-sum" data-summary="musik"></span>
-          </a>
         </div>
 
-        <section class="card feed-card">
-          <div class="card-head">
-            <h2>Aktivitas</h2>
-            <button id="clearFeed" class="btn ghost small" type="button">Bersihkan</button>
-          </div>
-          <ul id="feed" class="feed">
-            <li class="empty">Belum ada aktivitas. Hubungkan ke live atau coba tes.</li>
-          </ul>
-        </section>
-      </section>
+        <div id="chatGrid" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3" role="radiogroup" aria-label="Template chat"><button class="text-left group relative" type="button" data-template="apple" role="radio" aria-checked="false"><div class="absolute -top-2 -right-2 z-10 px-2 py-0.5 rounded-full bg-black text-white text-[8px] font-black tracking-widest">FEATURED</div><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all ring-2 ring-black dark:ring-white scale-[1.02]" style="background: rgba(255, 255, 255, 0.72);"><div class="absolute -top-8 -left-8 w-24 h-24 rounded-full bg-[#E8D5FF] blur-[20px] opacity-80"></div><div class="absolute -top-6 right-8 w-20 h-20 rounded-full bg-[#D5E8FF] blur-[18px] opacity-80"></div><div class="absolute bottom-2 left-6 w-16 h-16 rounded-full bg-[#FFD6E8] blur-[16px] opacity-70"></div><div class="absolute top-0 left-0 right-0 h-7 bg-white/80 border-b border-white/60 flex items-center gap-1.5 px-3"><span class="w-2.5 h-2.5 rounded-full bg-[#FF5F57] border border-black/10"></span><span class="w-2.5 h-2.5 rounded-full bg-[#FFBD2E] border border-black/10"></span><span class="w-2.5 h-2.5 rounded-full bg-[#28C940] border border-black/10"></span><span class="ml-auto text-[8px] font-semibold tracking-widest opacity-40">LIQUID GLASS • BLUR 24px</span></div><div class="absolute top-10 left-3 right-3 h-[42%] bg-white/72 backdrop-blur-[8px] rounded-[14px] border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-2"><div class="flex gap-2 items-center"><div class="w-5 h-5 rounded-full bg-black/5 border border-white"></div><div class="h-2 w-16 bg-black/10 rounded-full"></div><div class="ml-auto w-2 h-2 rounded-full bg-[#0A84FF]"></div></div><div class="mt-2 h-2 w-[80%] bg-black/5 rounded-full"></div><div class="mt-1 h-2 w-[60%] bg-black/5 rounded-full"></div></div><div class="absolute bottom-2 left-2 text-[8px] font-bold tracking-[0.18em] px-1.5 py-0.5 rounded-full bg-black text-white">FEATURED • APPLE STYLE</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight underline">APPLE GLASSMORPHISM / LIQUID GLASS</div><div class="text-[10px] opacity-50 mt-0.5">liquid glass, blur 24px, mesh blob, spring</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(232, 213, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(213, 232, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 214, 232);"></span></div></div></button><button class="text-left group relative" type="button" data-template="cyberpunk" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: rgb(10, 10, 15);"><div class="absolute inset-0" style="background-image: linear-gradient(rgba(0,255,240,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,240,0.12) 1px, transparent 1px); background-size: 22px 22px;"></div><div class="absolute inset-0 opacity-40" style="background: linear-gradient(90deg, transparent, #00FFF022, transparent); animation: scan 2s linear infinite;"></div><div class="absolute top-3 left-3 right-12 h-[28%] bg-black border border-[#00FFF0] shadow-[0_0_12px_#00FFF0]" style="clip-path: polygon(0 0, 92% 0, 100% 30%, 100% 100%, 8% 100%, 0 70%);"></div><div class="absolute bottom-3 left-3 text-[9px] font-bold tracking-[0.2em] text-[#00FFF0]" style="font-family: JetBrains Mono;">HUD // 00FFF0</div><div class="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#FFE600] shadow-[0_0_8px_#FFE600]"></div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">CYBERPUNK / NEON FUTURISTIC</div><div class="text-[10px] opacity-50 mt-0.5">HUD angular, glitch, scanline</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 255, 240);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 0, 229);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 230, 0);"></span></div></div></button><button class="text-left group relative" type="button" data-template="y2k" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: linear-gradient(135deg,#eef2ff,#fde2f3);"><div class="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/80 blur-[1px] border border-white shadow-[inset_0_2px_12px_white,0_8px_20px_rgba(0,0,0,0.12)]"></div><div class="absolute top-6 left-6 px-3 py-1.5 rounded-full bg-gradient-to-b from-white to-[#d9dbe3] border border-white text-[10px] font-black tracking-widest shadow-lg">Y2K</div><div class="absolute bottom-3 left-3 right-3 h-2 rounded-full bg-gradient-to-r from-[#C7D2FE] via-[#FF6EC7] to-[#C2FF53] blur-[0.5px]"></div><div class="absolute top-10 left-12 text-[14px]">✦˚₊‧</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">Y2K / RETRO-FUTURISM</div><div class="text-[10px] opacity-50 mt-0.5">bubble chrome 3D, sparkle</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(199, 210, 254);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 110, 199);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(194, 255, 83);"></span></div></div></button><button class="text-left group relative" type="button" data-template="kawaii" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: linear-gradient(135deg, #FFD6E8, #E8D5FF);"><div class="absolute top-3 left-1/2 -translate-x-1/2 flex gap-1"><div class="w-3 h-6 bg-white rounded-full rotate-[-20deg]"></div><div class="w-3 h-6 bg-white rounded-full rotate-[20deg]"></div></div><div class="absolute inset-4 top-8 rounded-[22px] bg-white/85 backdrop-blur shadow-[0_10px_24px_rgba(0,0,0,0.08)] border border-white"></div><div class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px]">ฅ^•ﻌ•^ฅ ♡</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">KAWAII ANIME / PASTEL</div><div class="text-[10px] opacity-50 mt-0.5">rounded 32px, cat ears</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 214, 232);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(232, 213, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(213, 255, 232);"></span></div></div></button><button class="text-left group relative" type="button" data-template="minimalis" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10 bg-white"><div class="absolute inset-0 p-4 flex flex-col gap-2"><div class="h-px bg-black/10"></div><div class="flex gap-2"><div class="w-6 h-6 rounded-full bg-black/5"></div><div class="flex-1 h-3 bg-black/5 rounded"></div></div><div class="h-px bg-black/10"></div><div class="flex gap-2"><div class="w-6 h-6 rounded-full bg-black/5"></div><div class="flex-1 h-3 bg-black/5 rounded"></div></div></div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">MINIMALIS MODERN</div><div class="text-[10px] opacity-50 mt-0.5">text only, 1px line</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 255, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(17, 17, 17);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(245, 245, 245);"></span></div></div></button><button class="text-left group relative" type="button" data-template="vaporwave" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: rgb(26, 11, 46);"><div class="absolute bottom-0 left-0 right-0 h-[55%] bg-gradient-to-t from-[#FF6B9D] via-[#7B61FF] to-transparent opacity-80"></div><div class="absolute bottom-6 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-gradient-to-b from-[#FFEA5C] to-[#FF6B9D] shadow-[0_0_20px_#FF6B9D]"></div><div class="absolute inset-0 opacity-30" style="background-image: linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px); background-size: 100% 14px; transform: perspective(200px) rotateX(60deg); transform-origin: bottom;"></div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">VAPORWAVE / SYNTHWAVE</div><div class="text-[10px] opacity-50 mt-0.5">sunset gradient, VHS</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 107, 157);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(123, 97, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(46, 230, 255);"></span></div></div></button><button class="text-left group relative" type="button" data-template="grunge" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10 bg-[#F5F1E8]"><div class="absolute inset-0 opacity-[0.15]"></div><div class="absolute top-2 left-2 w-[70%] h-6 bg-white -rotate-2 shadow-sm border border-black/10 flex items-center px-2 text-[9px] font-black">TAPE</div><div class="absolute bottom-3 left-3 text-[18px] font-black tracking-tighter" style="font-family: Anton;">GRUNGE!</div><div class="absolute top-6 right-4 w-10 h-10 rounded-full bg-[#FF2A2A] blur-[6px] opacity-60"></div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">GRUNGE / STREET ART</div><div class="text-[10px] opacity-50 mt-0.5">torn paper, tape</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 42, 42);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 230, 0);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(18, 18, 18);"></span></div></div></button><button class="text-left group relative" type="button" data-template="esports" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: rgb(14, 14, 16);"><div class="absolute inset-0 p-2 flex flex-col gap-1"><div class="flex gap-1"><div class="h-1 w-12 bg-[#00FF88]"></div><div class="h-1 w-6 bg-white/30"></div><div class="ml-auto w-3 h-3 border border-white/40"></div></div><div class="mt-2 h-6 bg-white/5 border border-white/10 flex items-center px-2 text-[8px] text-white/70 tracking-widest">KILLFEED // NEON_HUNTER [HEADSHOT]</div><div class="h-6 bg-white/5 border border-white/10 flex items-center px-2 text-[8px] text-white/70 tracking-widest">+100 XP</div></div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">CLEAN ESPORTS / TACTICAL</div><div class="text-[10px] opacity-50 mt-0.5">military HUD, killfeed</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 255, 136);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 150, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(14, 14, 16);"></span></div></div></button><button class="text-left group relative" type="button" data-template="pixel" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10 bg-[#f8f8f0] border-[3px] border-black" style="box-shadow: 4px 4px 0 black;"><div class="absolute inset-0 grid grid-cols-6 grid-rows-4 gap-px p-2"><div class="bg-black/10 bg-[#FF0000] bg-[#0058F8]"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10 bg-[#0058F8]"></div><div class="bg-black/10"></div><div class="bg-black/10 bg-[#FF0000]"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10 bg-[#0058F8]"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10 bg-[#FF0000]"></div><div class="bg-black/10 bg-[#0058F8]"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10 bg-[#0058F8]"></div><div class="bg-black/10 bg-[#FF0000]"></div><div class="bg-black/10"></div><div class="bg-black/10"></div></div><div class="absolute bottom-1 left-1 text-[7px]" style="font-family: &quot;Press Start 2P&quot;;">LVL 8</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">PIXEL ART / 8-BIT RETRO</div><div class="text-[10px] opacity-50 mt-0.5">NES palette, 4px stepped</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 0, 0);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 88, 248);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 168, 0);"></span></div></div></button><button class="text-left group relative" type="button" data-template="cottage" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: rgb(253, 246, 227);"><div class="absolute top-2 left-2 text-[#8A9A7B] text-[18px]">🌿</div><div class="absolute top-8 left-4 right-4 rounded-[12px] border border-[#8A9A7B]/30 bg-white/70 p-2"><div class="h-1 w-8 bg-[#C67B5C]/50 rounded-full mb-1"></div><div class="h-2 w-full bg-[#8A9A7B]/20 rounded"></div></div><div class="absolute bottom-2 right-3 text-[10px]">🍄</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">COTTAGECORE / BOTANICAL</div><div class="text-[10px] opacity-50 mt-0.5">hand-drawn, linen</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(138, 154, 123);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(253, 246, 227);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(198, 123, 92);"></span></div></div></button><button class="text-left group relative" type="button" data-template="comic" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10 bg-[#FFEA00]" style="border-width: 4px; border-color: black;"><div class="absolute inset-0 opacity-30" style="background-image: radial-gradient(black 1.8px, transparent 1.8px); background-size: 10px 10px;"></div><div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-6 bg-[#FF0000] text-white px-3 py-1 border-[3px] border-black font-black text-[12px] tracking-widest" style="font-family: Bangers;">POW!</div><div class="absolute bottom-1 left-1 bg-white border-2 border-black text-[8px] px-1 font-black">BOOM</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">COMIC BOOK / POP ART</div><div class="text-[10px] opacity-50 mt-0.5">halftone, 4px border</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 0, 0);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 87, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 234, 0);"></span></div></div></button></div>
 
-      <!-- Kustomisasi chat: pengaturan, animasi dan warna, pratinjau, dan link. -->
-      <section class="view" data-view="chat" hidden>
-        <div class="view-head">
-          <a class="btn ghost small" href="#/">Kembali</a>
-          <h2>Chat</h2>
-        </div>
-        <div class="grid">
-          <main class="col">
-            <section class="card">
-              <div class="card-head">
-                <h2>Tes tanpa live</h2>
-                <p class="hint">Kirim chat contoh ke overlay</p>
-              </div>
-              <div class="tests">
-                <button class="test" type="button" data-test="chat">Chat</button>
-              </div>
-            </section>
-
-            <section class="card">
-              <div class="card-head">
-                <h2>Pratinjau</h2>
-                <button class="btn ghost small js-reload" type="button">Muat ulang</button>
-              </div>
-              <div class="stage">
-                <iframe data-frame="chat" title="Pratinjau chat" tabindex="-1"></iframe>
-                <span class="stage-label">Pratinjau 1920×1080</span>
-              </div>
-              <div class="preview-foot">
-                <p class="hint">Overlay ini sama persis dengan yang tampil di OBS.</p>
-              </div>
-            </section>
-
-            <section class="card">
-              <div class="card-head">
-                <h2>Template</h2>
-                <p class="hint">Dipakai juga oleh alert. Klik untuk memakai.</p>
-              </div>
-              <div class="templates" data-chat-templates role="radiogroup" aria-label="Template chat"></div>
-            </section>
-          </main>
-
-          <aside class="col">
-            <section class="card">
-              <div class="card-head"><h2>Pengaturan overlay</h2></div>
+        <div class="grid lg:grid-cols-[360px_1fr] gap-4 items-start">
+          <div class="glass-strong rounded-[24px] p-5 h-fit lg:sticky lg:top-[72px]">
+            <h3 class="font-bold text-[13px] tracking-widest">DETAIL EDITOR • <span id="detailName">—</span></h3>
+            <div class="mt-4 space-y-4">
               <div class="field">
-                <div class="field-head"><label for="size">Ukuran teks chat</label><output id="sizeOut">22</output></div>
+                <div class="field-head"><label for="size">Ukuran teks</label><output id="sizeOut">22</output></div>
                 <input type="range" id="size" min="14" max="40" value="22">
               </div>
               <div class="field">
-                <div class="field-head"><label for="max">Maks. pesan di layar</label><output id="maxOut">15</output></div>
+                <div class="field-head"><label for="max">Jumlah pesan</label><output id="maxOut">15</output></div>
                 <input type="range" id="max" min="5" max="30" value="15">
               </div>
-            </section>
-
-            <section class="card">
-              <div class="card-head">
-                <h2>Animasi & warna</h2>
-                <button class="btn ghost small js-replay" type="button">Putar ulang</button>
+              <div class="field">
+                <div class="field-label">Mode chat</div>
+                <div class="chips js-chatmode"></div>
+              </div>
+              <div class="field js-chathold-field">
+                <div class="field-head"><label for="chatHold">Tampil pesan terbaru</label><output id="chatHoldOut">6 detik</output></div>
+                <input type="range" id="chatHold" min="2" max="60" value="6">
               </div>
               <div class="field">
-                <span class="field-label" id="animLabelChat">Animasi masuk</span>
-                <div class="chips js-anims" role="radiogroup" aria-labelledby="animLabelChat"></div>
+                <div class="field-label">Animasi</div>
+                <div class="chips js-anims"></div>
               </div>
               <div class="field">
                 <div class="field-head"><label for="animDurChat">Durasi animasi</label><output class="js-animdur-out">250 ms</output></div>
                 <input type="range" class="js-animdur" id="animDurChat" min="100" max="1000" step="50" value="250">
               </div>
               <div class="field">
+                <div class="field-label">Gradasi latar</div>
+                <div class="grad-grid js-gradients"></div>
+              </div>
+              <div class="field">
                 <label class="check"><input type="checkbox" class="js-custom-colors"> Pakai warna sendiri</label>
-                <p class="hint">Kalau mati, setiap template memakai warnanya sendiri.</p>
                 <div class="color-row">
                   <label class="color">Nama<input type="color" class="js-color" data-key="accent" value="#6ee7ff"></label>
                   <label class="color">Teks<input type="color" class="js-color" data-key="text" value="#ffffff"></label>
                   <label class="color">Latar<input type="color" class="js-color" data-key="bg" value="#000000"></label>
                 </div>
               </div>
-            </section>
-
-            <section class="card">
-              <div class="card-head">
-                <h2>Perspektif</h2>
-                <button class="btn ghost small js-persp-reset" type="button" data-persp="chat">Reset</button>
-              </div>
               <div class="field">
-                <div class="field-head"><label for="rx-chat">Miring atas-bawah</label><output class="js-persp-out" data-axis="rx">0°</output></div>
-                <input type="range" id="rx-chat" class="js-persp" data-persp="chat" data-axis="rx" min="-60" max="60" value="0">
-              </div>
-              <div class="field">
-                <div class="field-head"><label for="ry-chat">Miring kiri-kanan</label><output class="js-persp-out" data-axis="ry">0°</output></div>
-                <input type="range" id="ry-chat" class="js-persp" data-persp="chat" data-axis="ry" min="-60" max="60" value="0">
-              </div>
-              <div class="field">
-                <div class="field-head"><label for="depth-chat">Kedalaman perspektif</label><output class="js-persp-out" data-axis="depth">1200 px</output></div>
-                <input type="range" id="depth-chat" class="js-persp" data-persp="chat" data-axis="depth" min="300" max="3000" step="50" value="1200">
-              </div>
-              <p class="hint">Miring 0° berarti tampilan datar. Kedalaman kecil membuat efek lebih kuat.</p>
-            </section>
-
-            <section class="card">
-              <div class="card-head"><h2>Link untuk OBS</h2></div>
-              <p class="hint" style="margin-bottom: 12px">Tambahkan sebagai Browser Source. Background sudah transparan.</p>
-              <div class="links" data-link="chat"></div>
-            </section>
-          </aside>
-        </div>
-      </section>
-
-      <!-- Kustomisasi alert: pengaturan, animasi dan warna, pratinjau, dan link. -->
-      <section class="view" data-view="alert" hidden>
-        <div class="view-head">
-          <a class="btn ghost small" href="#/">Kembali</a>
-          <h2>Alert</h2>
-        </div>
-        <div class="grid">
-          <main class="col">
-            <section class="card">
-              <div class="card-head">
-                <h2>Tes tanpa live</h2>
-                <p class="hint">Kirim alert contoh ke overlay</p>
-              </div>
-              <div class="tests">
-                <button class="test" type="button" data-test="gift">Gift</button>
-                <button class="test" type="button" data-test="follow">Follow</button>
-                <button class="test" type="button" data-test="share">Share</button>
-              </div>
-            </section>
-
-            <section class="card">
-              <div class="card-head">
-                <h2>Pratinjau</h2>
-                <button class="btn ghost small js-reload" type="button">Muat ulang</button>
-              </div>
-              <div class="stage">
-                <iframe data-frame="alerts" title="Pratinjau alert" tabindex="-1"></iframe>
-                <span class="stage-label">Pratinjau 1920×1080</span>
-              </div>
-              <div class="preview-foot">
-                <p class="hint">Overlay ini sama persis dengan yang tampil di OBS.</p>
-              </div>
-            </section>
-
-            <section class="card">
-              <div class="card-head">
-                <h2>Template</h2>
-                <p class="hint">Dipakai juga oleh chat. Klik untuk memakai.</p>
-              </div>
-              <div class="templates" data-chat-templates role="radiogroup" aria-label="Template alert"></div>
-            </section>
-          </main>
-
-          <aside class="col">
-            <section class="card">
-              <div class="card-head"><h2>Pengaturan overlay</h2></div>
-              <div class="field">
-                <div class="field-head"><label for="duration">Durasi alert</label><output><span id="durOut">4</span> detik</output></div>
-                <input type="range" id="duration" min="2" max="10" value="4">
-              </div>
-            </section>
-
-            <section class="card">
-              <div class="card-head">
-                <h2>Animasi & warna</h2>
-                <button class="btn ghost small js-replay" type="button">Putar ulang</button>
-              </div>
-              <div class="field">
-                <span class="field-label" id="animLabelAlert">Animasi masuk</span>
-                <div class="chips js-anims" role="radiogroup" aria-labelledby="animLabelAlert"></div>
-              </div>
-              <div class="field">
-                <div class="field-head"><label for="animDurAlert">Durasi animasi</label><output class="js-animdur-out">250 ms</output></div>
-                <input type="range" class="js-animdur" id="animDurAlert" min="100" max="1000" step="50" value="250">
-              </div>
-              <div class="field">
-                <label class="check"><input type="checkbox" class="js-custom-colors"> Pakai warna sendiri</label>
-                <p class="hint">Kalau mati, setiap template memakai warnanya sendiri.</p>
-                <div class="color-row">
-                  <label class="color">Nama<input type="color" class="js-color" data-key="accent" value="#6ee7ff"></label>
-                  <label class="color">Teks<input type="color" class="js-color" data-key="text" value="#ffffff"></label>
-                  <label class="color">Latar<input type="color" class="js-color" data-key="bg" value="#000000"></label>
+                <div class="field-head"><span class="field-label">Perspektif chat</span><button class="btn ghost small js-persp-reset" type="button" data-persp="chat">Reset</button></div>
+                <div class="field">
+                  <div class="field-head"><label for="rx-chat">Miring kiri-kanan</label><output class="js-persp-out" data-axis="rx">0°</output></div>
+                  <input type="range" id="rx-chat" class="js-persp" data-persp="chat" data-axis="rx" min="-60" max="60" value="0">
+                </div>
+                <div class="field">
+                  <div class="field-head"><label for="ry-chat">Miring atas-bawah</label><output class="js-persp-out" data-axis="ry">0°</output></div>
+                  <input type="range" id="ry-chat" class="js-persp" data-persp="chat" data-axis="ry" min="-60" max="60" value="0">
+                </div>
+                <div class="field">
+                  <div class="field-head"><label for="depth-chat">Kedalaman perspektif</label><output class="js-persp-out" data-axis="depth">1200 px</output></div>
+                  <input type="range" id="depth-chat" class="js-persp" data-persp="chat" data-axis="depth" min="300" max="3000" step="50" value="1200">
                 </div>
               </div>
-            </section>
+            </div>
+          </div>
 
-            <section class="card">
-              <div class="card-head">
-                <h2>Perspektif</h2>
-                <button class="btn ghost small js-persp-reset" type="button" data-persp="alerts">Reset</button>
-              </div>
-              <div class="field">
-                <div class="field-head"><label for="rx-alerts">Miring atas-bawah</label><output class="js-persp-out" data-axis="rx">0°</output></div>
-                <input type="range" id="rx-alerts" class="js-persp" data-persp="alerts" data-axis="rx" min="-60" max="60" value="0">
-              </div>
-              <div class="field">
-                <div class="field-head"><label for="ry-alerts">Miring kiri-kanan</label><output class="js-persp-out" data-axis="ry">0°</output></div>
-                <input type="range" id="ry-alerts" class="js-persp" data-persp="alerts" data-axis="ry" min="-60" max="60" value="0">
-              </div>
-              <div class="field">
-                <div class="field-head"><label for="depth-alerts">Kedalaman perspektif</label><output class="js-persp-out" data-axis="depth">1200 px</output></div>
-                <input type="range" id="depth-alerts" class="js-persp" data-persp="alerts" data-axis="depth" min="300" max="3000" step="50" value="1200">
-              </div>
-              <p class="hint">Miring 0° berarti tampilan datar. Kedalaman kecil membuat efek lebih kuat.</p>
-            </section>
-
-            <section class="card">
-              <div class="card-head"><h2>Link untuk OBS</h2></div>
-              <p class="hint" style="margin-bottom: 12px">Tambahkan sebagai Browser Source. Background sudah transparan.</p>
-              <div class="links" data-link="alerts"></div>
-            </section>
-          </aside>
+          <div class="glass rounded-[24px] p-4 md:p-6 space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="text-[11px] font-bold tracking-widest opacity-60">LIVE PREVIEW • OVERLAY CHAT</div>
+              <button class="h-7 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold js-reload" type="button">Muat ulang</button>
+            </div>
+            <div class="stage" style="--scale: 0.4">
+              <iframe data-frame="chat" title="Pratinjau chat" tabindex="-1"></iframe>
+              <span class="stage-label">CHAT</span>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button data-test="chat" class="h-8 px-3 rounded-full bg-black text-white text-[11px] font-bold" type="button">Tes chat</button>
+              <button data-test="gift" class="h-8 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold" type="button">Tes gift</button>
+              <button data-test="follow" class="h-8 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold" type="button">Tes follow</button>
+              <button data-test="share" class="h-8 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold" type="button">Tes share</button>
+            </div>
+          </div>
         </div>
-      </section>
+      </main>
+    </section>
 
-      <!-- Kustomisasi musik: koneksi Spotify, template, pratinjau, dan link. -->
-      <section class="view" data-view="musik" hidden>
-        <div class="view-head">
-          <a class="btn ghost small" href="#/">Kembali</a>
-          <h2>Musik</h2>
-        </div>
-        <div class="grid">
-          <main class="col">
-            <section class="card">
-              <div class="card-head">
-                <h2>Pratinjau</h2>
-                <button class="btn ghost small js-reload" type="button">Muat ulang</button>
-              </div>
-              <div class="stage">
-                <iframe data-frame="nowplaying" title="Pratinjau lagu Spotify" tabindex="-1"></iframe>
-                <span class="stage-label">Pratinjau 1920×1080</span>
-              </div>
-              <div class="preview-foot">
-                <p class="hint">Overlay ini sama persis dengan yang tampil di OBS.</p>
-              </div>
-            </section>
+    <!-- ============ SPOTIFY STUDIO ============ -->
+    <section data-view="musik" class="min-w-0" hidden>
+      <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
+        <div class="space-y-5">
+          <div class="flex items-end justify-between gap-3 flex-wrap">
+            <h1 class="text-[26px] font-black tracking-[-0.02em]">SPOTIFY STUDIO</h1>
+            <div class="text-[11px] opacity-60">9 template Spotify • <span id="musicSourceLabel">Spotify</span></div>
+          </div>
 
-            <section class="card">
-              <div class="card-head">
-                <h2>Template lagu</h2>
-                <p class="hint">Tampilan kartu lagu di overlay. Klik untuk memakai.</p>
+          <div class="grid md:grid-cols-3 gap-4">
+            <div class="md:col-span-2 glass-strong rounded-[24px] p-5">
+              <div class="text-[12px] font-bold tracking-widest">PILIH SPOTIFY TEMPLATE</div>
+              <div id="spotifyGrid" class="mt-3 grid grid-cols-2 lg:grid-cols-3 gap-2" role="radiogroup" aria-label="Template Spotify"></div>
+            </div>
+            <div class="glass rounded-[24px] p-5">
+              <div class="text-[12px] font-bold">Adaptasi Warna</div>
+              <div class="mt-2 text-[11px] opacity-70">Template Spotify ikut warna template chat yang dipilih: <span id="spotifyChatName" class="font-bold">—</span>.</div>
+              <div class="mt-3 flex gap-2">
+                <div class="flex-1 h-8 rounded-[8px] border border-black/10" style="background: #E8D5FF"></div>
+                <div class="flex-1 h-8 rounded-[8px] border border-black/10" style="background: #D5E8FF"></div>
+                <div class="flex-1 h-8 rounded-[8px] border border-black/10" style="background: #FFD6E8"></div>
               </div>
-              <div class="templates" id="spotifyTemplates" role="radiogroup" aria-label="Template overlay lagu"></div>
-            </section>
+              <a href="#/lab" class="mt-4 block text-center w-full h-9 leading-9 rounded-full bg-black text-white text-[11px] font-bold">Lihat di Overlay Lab →</a>
+              <div class="mt-3 text-[10px] opacity-60" id="spotifySummary">Sumber: Spotify</div>
+            </div>
+          </div>
 
-            <section class="card">
-              <div class="card-head"><h2>Animasi & warna</h2></div>
-              <p class="hint">Warna lagu mengikuti template yang dipilih. Pengaturan animasi untuk lagu belum tersedia.</p>
-            </section>
-          </main>
-
-          <aside class="col">
-            <section class="card">
-              <div class="card-head"><h2>Sumber musik</h2></div>
-              <div class="chips" id="musicSource" role="radiogroup" aria-label="Sumber musik">
-                <button class="chip" type="button" data-source="spotify" role="radio" aria-checked="true">Spotify</button>
-                <button class="chip" type="button" data-source="youtube" role="radio" aria-checked="false">YouTube Music</button>
-              </div>
-              <p class="hint" style="margin-top: 12px">Overlay hanya menampilkan lagu dari sumber yang dipilih.</p>
-            </section>
-
-            <section class="card">
-              <div class="card-head">
-                <h2>Spotify</h2>
-                <p class="hint">Tampilkan lagu yang sedang diputar</p>
-              </div>
-              <form id="spotifyForm" class="connect-row" autocomplete="off">
-                <label class="input-wrap">
-                  <input id="spotifyClientId" name="spotifyClientId" placeholder="Client ID dari dashboard Spotify" aria-label="Client ID Spotify">
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="glass-strong rounded-[24px] p-5 space-y-4">
+              <h2 class="text-[16px] font-bold tracking-tight">Spotify</h2>
+              <form id="spotifyForm" class="flex gap-2 flex-wrap" autocomplete="off">
+                <label class="flex-1 min-w-[200px] flex items-center rounded-[14px] bg-white border border-black/10 pl-4">
+                  <span class="text-[11px] font-bold opacity-60">Client ID</span>
+                  <input id="spotifyClientId" class="flex-1 min-w-0 bg-transparent outline-none px-2 py-3 text-[13px]" placeholder="Client ID dari dashboard Spotify" aria-label="Client ID Spotify" autocomplete="off">
                 </label>
-                <button id="spotifySave" class="btn" type="submit">Simpan</button>
+                <button class="h-10 px-5 rounded-full bg-white border border-black/10 text-[12px] font-bold" type="submit">Simpan</button>
               </form>
-              <div class="connect-row" style="margin-top: 8px">
-                <button id="spotifyConnect" class="btn primary" type="button">Hubungkan Spotify</button>
-                <button id="spotifyDisconnect" class="btn ghost danger" type="button">Putuskan</button>
+              <div class="flex gap-2 flex-wrap">
+                <button id="spotifyConnect" class="h-10 px-5 rounded-full bg-black text-white text-[12px] font-bold" type="button">Hubungkan Spotify</button>
+                <button id="spotifyDisconnect" class="h-10 px-5 rounded-full bg-white border border-black/10 text-[12px] font-bold" type="button">Putuskan</button>
               </div>
-              <p id="spotifyText" class="hint" role="status">Belum terhubung</p>
+              <p id="spotifyText" class="hint">Belum terhubung</p>
               <p class="hint">Redirect URI di dashboard Spotify: <code id="spotifyRedirect">/api/spotify/callback</code></p>
-            </section>
+            </div>
 
-            <section class="card">
-              <div class="card-head">
-                <h2>YouTube Music</h2>
-                <p class="hint">Lewat extension Chrome</p>
-              </div>
-              <p id="youtubeText" class="hint" role="status">Belum ada data dari YouTube Music</p>
-              <p class="hint" style="margin-top: 12px">
-                Buka <code>chrome://extensions</code>, aktifkan Mode developer, pilih Load unpacked, lalu pilih folder <code>extension</code> di proyek ini.
-                Setelah itu buka music.youtube.com dan putar lagu.
-              </p>
-            </section>
+            <div class="glass-strong rounded-[24px] p-5 space-y-4">
+              <h2 class="text-[16px] font-bold tracking-tight">Lagu dari Spotify</h2>
+              <label class="check"><input type="checkbox" id="autoQueue"> Masukkan otomatis ke antrean Spotify</label>
+              <p class="hint">Hanya untuk Spotify. Akun harus Premium, dan Spotify harus sedang aktif di salah satu perangkat.</p>
+            </div>
+          </div>
 
-            <section class="card">
-              <div class="card-head">
-                <h2>Perspektif</h2>
-                <button class="btn ghost small js-persp-reset" type="button" data-persp="nowplaying">Reset</button>
-              </div>
-              <div class="field">
-                <div class="field-head"><label for="rx-nowplaying">Miring atas-bawah</label><output class="js-persp-out" data-axis="rx">0°</output></div>
-                <input type="range" id="rx-nowplaying" class="js-persp" data-persp="nowplaying" data-axis="rx" min="-60" max="60" value="0">
-              </div>
-              <div class="field">
-                <div class="field-head"><label for="ry-nowplaying">Miring kiri-kanan</label><output class="js-persp-out" data-axis="ry">0°</output></div>
-                <input type="range" id="ry-nowplaying" class="js-persp" data-persp="nowplaying" data-axis="ry" min="-60" max="60" value="0">
-              </div>
-              <div class="field">
-                <div class="field-head"><label for="depth-nowplaying">Kedalaman perspektif</label><output class="js-persp-out" data-axis="depth">1200 px</output></div>
-                <input type="range" id="depth-nowplaying" class="js-persp" data-persp="nowplaying" data-axis="depth" min="300" max="3000" step="50" value="1200">
-              </div>
-              <p class="hint">Miring 0° berarti tampilan datar. Kedalaman kecil membuat efek lebih kuat.</p>
-            </section>
-
-            <section class="card">
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="glass-strong rounded-[24px] p-5">
               <div class="card-head">
                 <h2>Antrean request</h2>
                 <button id="queueClear" class="btn ghost small" type="button">Bersihkan</button>
               </div>
               <p class="hint">Penonton mengetik <code>!req judul lagu</code> di chat. Maksimal 5 permintaan, satu per penonton. Lagu dihapus dari antrean saat diputar.</p>
-              <label class="check"><input type="checkbox" id="autoQueue"> Masukkan otomatis ke antrean Spotify</label>
-              <p class="hint">Hanya untuk Spotify. Akun harus Premium, dan Spotify harus sedang aktif di salah satu perangkat.</p>
-              <ol id="queueList" class="queue">
+              <ol id="queueList" class="queue mt-3">
                 <li class="empty">Belum ada permintaan.</li>
               </ol>
-            </section>
-
-            <section class="card">
-              <div class="card-head"><h2>Link untuk OBS</h2></div>
-              <p class="hint" style="margin-bottom: 12px">Tambahkan sebagai Browser Source. Background sudah transparan.</p>
-              <div class="links" data-link="nowplaying"></div>
-            </section>
-          </aside>
+            </div>
+            <div class="glass-strong rounded-[24px] p-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <h2 class="text-[16px] font-bold tracking-tight">Pratinjau Spotify</h2>
+                <button class="h-7 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold js-reload" type="button">Muat ulang</button>
+              </div>
+              <div class="stage" style="--scale: 0.4">
+                <iframe data-frame="nowplaying" title="Pratinjau Spotify" tabindex="-1"></iframe>
+                <span class="stage-label">MUSIK</span>
+              </div>
+              <div class="field">
+                <div class="field-head"><span class="field-label">Perspektif Spotify</span><button class="btn ghost small js-persp-reset" type="button" data-persp="nowplaying">Reset</button></div>
+                <div class="field">
+                  <div class="field-head"><label for="rx-nowplaying">Miring kiri-kanan</label><output class="js-persp-out" data-axis="rx">0°</output></div>
+                  <input type="range" id="rx-nowplaying" class="js-persp" data-persp="nowplaying" data-axis="rx" min="-60" max="60" value="0">
+                </div>
+                <div class="field">
+                  <div class="field-head"><label for="ry-nowplaying">Miring atas-bawah</label><output class="js-persp-out" data-axis="ry">0°</output></div>
+                  <input type="range" id="ry-nowplaying" class="js-persp" data-persp="nowplaying" data-axis="ry" min="-60" max="60" value="0">
+                </div>
+                <div class="field">
+                  <div class="field-head"><label for="depth-nowplaying">Kedalaman perspektif</label><output class="js-persp-out" data-axis="depth">1200 px</output></div>
+                  <input type="range" id="depth-nowplaying" class="js-persp" data-persp="nowplaying" data-axis="depth" min="300" max="3000" step="50" value="1200">
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </section>
-    </div>
+      </main>
+    </section>
+
+    <!-- ============ ALERT STUDIO ============ -->
+    <section data-view="alert" class="min-w-0" hidden>
+      <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
+        <div class="space-y-5">
+          <div class="flex items-end justify-between gap-3 flex-wrap">
+            <h1 class="text-[26px] font-black tracking-[-0.02em]">ALERT STUDIO</h1>
+            <div class="text-[11px] opacity-60">Gift • Follow • Share</div>
+          </div>
+
+          <div class="grid md:grid-cols-3 gap-4">
+            <div class="md:col-span-2 glass-strong rounded-[24px] p-5 space-y-3">
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <h2 class="text-[16px] font-bold tracking-tight">Pratinjau</h2>
+                <button class="h-7 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold js-reload" type="button">Muat ulang</button>
+              </div>
+              <div class="stage" style="--scale: 0.4">
+                <iframe data-frame="alerts" title="Pratinjau alert" tabindex="-1"></iframe>
+                <span class="stage-label">ALERT</span>
+              </div>
+              <div class="flex gap-2 flex-wrap">
+                <button data-test="gift" class="h-8 px-3 rounded-full bg-black text-white text-[11px] font-bold" type="button">Tes gift</button>
+                <button data-test="follow" class="h-8 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold" type="button">Tes follow</button>
+                <button data-test="share" class="h-8 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold" type="button">Tes share</button>
+              </div>
+              <div class="text-[10px] opacity-60">Alert hanya tampil saat ada event. Pratinjau kosong sampai tombol tes ditekan atau ada event sungguhan dari live.</div>
+            </div>
+            <div class="glass rounded-[24px] p-5">
+              <div class="text-[12px] font-bold">Pakai di OBS</div>
+              <div class="mt-2 text-[11px] opacity-70">Salin link lalu tempel sebagai Browser Source. Setiap perubahan menghasilkan link baru, jadi salin ulang setelah mengedit.</div>
+              <div class="mt-3" data-link="alerts"></div>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="glass-strong rounded-[24px] p-5">
+              <h2 class="text-[16px] font-bold tracking-tight">Tampilan alert</h2>
+              <div class="mt-4 space-y-4">
+                <div class="field">
+                  <div class="field-head"><label for="duration">Lama tampil</label><output id="durOut">4</output></div>
+                  <input type="range" id="duration" min="2" max="10" value="4">
+                </div>
+                <div class="field">
+                  <div class="field-label">Animasi</div>
+                  <div class="chips js-anims"></div>
+                </div>
+                <div class="field">
+                  <div class="field-head"><label for="animDurAlert">Durasi animasi</label><output class="js-animdur-out">250 ms</output></div>
+                  <input type="range" class="js-animdur" id="animDurAlert" min="100" max="1000" step="50" value="250">
+                </div>
+              </div>
+            </div>
+
+            <div class="glass-strong rounded-[24px] p-5">
+              <h2 class="text-[16px] font-bold tracking-tight">Perspektif</h2>
+              <div class="mt-4 space-y-4">
+                <div class="field">
+                  <div class="field-head"><span class="field-label">Perspektif alert</span><button class="btn ghost small js-persp-reset" type="button" data-persp="alerts">Reset</button></div>
+                  <div class="field">
+                    <div class="field-head"><label for="rx-alerts">Miring kiri-kanan</label><output class="js-persp-out" data-axis="rx">0°</output></div>
+                    <input type="range" id="rx-alerts" class="js-persp" data-persp="alerts" data-axis="rx" min="-60" max="60" value="0">
+                  </div>
+                  <div class="field">
+                    <div class="field-head"><label for="ry-alerts">Miring atas-bawah</label><output class="js-persp-out" data-axis="ry">0°</output></div>
+                    <input type="range" id="ry-alerts" class="js-persp" data-persp="alerts" data-axis="ry" min="-60" max="60" value="0">
+                  </div>
+                  <div class="field">
+                    <div class="field-head"><label for="depth-alerts">Kedalaman perspektif</label><output class="js-persp-out" data-axis="depth">1200 px</output></div>
+                    <input type="range" id="depth-alerts" class="js-persp" data-persp="alerts" data-axis="depth" min="300" max="3000" step="50" value="1200">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ============ RUNNING TEXT STUDIO ============ -->
+    <section data-view="running" class="min-w-0" hidden>
+      <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
+        <div class="space-y-5">
+          <div class="flex items-end justify-between gap-3 flex-wrap">
+            <h1 class="text-[26px] font-black tracking-[-0.02em]">RUNNING TEXT STUDIO</h1>
+            <div class="text-[11px] opacity-60">5 template • kata tampil bergantian</div>
+          </div>
+
+          <div class="grid md:grid-cols-3 gap-4">
+            <div class="md:col-span-2 glass-strong rounded-[24px] p-5">
+              <div class="text-[12px] font-bold tracking-widest">PILIH TEMPLATE</div>
+              <div id="runningGrid" class="mt-3 grid grid-cols-2 lg:grid-cols-3 gap-2" role="radiogroup" aria-label="Template running text"></div>
+            </div>
+            <div class="glass rounded-[24px] p-5">
+              <div class="text-[12px] font-bold">Pakai di OBS</div>
+              <div class="mt-2 text-[11px] opacity-70">Salin link lalu tempel sebagai Browser Source. Setiap perubahan menghasilkan link baru, jadi salin ulang setelah mengedit.</div>
+              <div class="mt-3" data-link="runningtext"></div>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="glass-strong rounded-[24px] p-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <h2 class="text-[16px] font-bold tracking-tight">Pratinjau</h2>
+                <button class="h-7 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold js-reload" type="button">Muat ulang</button>
+              </div>
+              <div class="stage" style="--scale: 0.4; background: #111">
+                <iframe data-frame="runningtext" title="Pratinjau running text" tabindex="-1"></iframe>
+                <span class="stage-label">RUNNING</span>
+              </div>
+              <div class="text-[10px] opacity-60">Latar hitam hanya untuk pratinjau. Di OBS, latarnya transparan.</div>
+            </div>
+
+            <div class="glass-strong rounded-[24px] p-5 space-y-4">
+              <h2 class="text-[16px] font-bold tracking-tight">Isi teks</h2>
+              <div class="field">
+                <div class="field-head"><label for="runningWords">Daftar kata</label></div>
+                <input type="text" id="runningWords" maxlength="400" placeholder="Photography,Videography,Streaming,Tutorial" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none">
+                <div class="text-[10px] opacity-60">Pisahkan tiap kata dengan koma. Kosong berarti pakai kata default.</div>
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="runningHold">Lama tiap kata (detik)</label><output id="runningHoldOut">1.4</output></div>
+                <input type="range" id="runningHold" min="0.5" max="10" step="0.1" value="1.4">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="runningSize">Ukuran font (px)</label><output id="runningSizeOut">96</output></div>
+                <input type="range" id="runningSize" min="32" max="200" step="2" value="96">
+              </div>
+              <div class="field">
+                <label class="color">Warna teks<input type="color" id="runningColor" value="#ffffff"></label>
+              </div>
+              <div class="field">
+                <div class="field-head"><span class="field-label">Perspektif running text</span><button class="btn ghost small js-persp-reset" type="button" data-persp="runningtext">Reset</button></div>
+                <div class="field">
+                  <div class="field-head"><label for="rx-runningtext">Miring kiri-kanan</label><output class="js-persp-out" data-axis="rx">0°</output></div>
+                  <input type="range" id="rx-runningtext" class="js-persp" data-persp="runningtext" data-axis="rx" min="-60" max="60" value="0">
+                </div>
+                <div class="field">
+                  <div class="field-head"><label for="ry-runningtext">Miring atas-bawah</label><output class="js-persp-out" data-axis="ry">0°</output></div>
+                  <input type="range" id="ry-runningtext" class="js-persp" data-persp="runningtext" data-axis="ry" min="-60" max="60" value="0">
+                </div>
+                <div class="field">
+                  <div class="field-head"><label for="depth-runningtext">Kedalaman perspektif</label><output class="js-persp-out" data-axis="depth">1200 px</output></div>
+                  <input type="range" id="depth-runningtext" class="js-persp" data-persp="runningtext" data-axis="depth" min="300" max="3000" step="50" value="1200">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ============ OVERLAY LAB ============ -->
+    <section data-view="lab" class="min-w-0" hidden>
+      <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
+        <div class="space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h1 class="text-[26px] font-black">OVERLAY LAB • 1920x1080 Canvas</h1>
+            <div class="flex gap-2">
+              <button class="h-8 px-3 rounded-full bg-black text-white text-[11px] font-bold js-reload" type="button">Muat ulang pratinjau</button>
+            </div>
+          </div>
+
+          <div class="glass rounded-[24px] p-3">
+            <div class="relative w-full aspect-[16/9] rounded-[16px] overflow-hidden border border-black/10 bg-white checker">
+              <div class="absolute" style="left: 2%; top: 4%; width: 26%">
+                <div class="rounded-[12px] border border-black/20 bg-white/90 p-2 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+                  <div class="text-[10px] font-bold tracking-widest opacity-60 flex items-center justify-between mb-1"><span>CHAT • LIVE</span><span class="w-2 h-2 rounded-full bg-[#00FF88]"></span></div>
+                  <div class="stage" style="--scale: 0.2"><iframe data-frame="chat" title="Pratinjau chat" tabindex="-1"></iframe></div>
+                </div>
+              </div>
+              <div class="absolute" style="left: 62%; top: 6%; width: 34%">
+                <div class="rounded-[12px] border border-black/20 bg-white/90 p-2 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+                  <div class="text-[10px] font-bold tracking-widest opacity-60 flex items-center justify-between mb-1"><span>SPOTIFY • LIVE</span><span class="w-2 h-2 rounded-full bg-[#00FF88]"></span></div>
+                  <div class="stage" style="--scale: 0.3"><iframe data-frame="nowplaying" title="Pratinjau Spotify" tabindex="-1"></iframe></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid lg:grid-cols-2 gap-4">
+
+            <div class="glass-strong rounded-[24px] p-5">
+              <h3 class="font-bold text-[14px] tracking-tight">Link untuk OBS</h3>
+              <p class="mt-1 text-[11px] opacity-60">Tambahkan sebagai Browser Source. Background sudah transparan.</p>
+              <div class="mt-4 grid gap-3">
+                <div data-link="chat"></div>
+                <div data-link="alerts"></div>
+                <div data-link="nowplaying"></div>
+                <div data-link="runningtext"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </section>
+
+    <!-- ============ SETTINGS ============ -->
+    <section data-view="settings" class="min-w-0" hidden>
+      <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
+        <div class="glass-strong rounded-[24px] p-6 max-w-[720px]">
+          <h1 class="text-[22px] font-black">Settings • Akun &amp; Koneksi</h1>
+          <div class="mt-4 space-y-3 text-[13px]">
+            <div class="flex justify-between py-2 border-b border-black/5"><span>Akun Streamover</span><span id="accountName" class="opacity-60">—</span></div>
+            <div class="flex justify-between py-2 border-b border-black/5"><span>TikTok</span><span id="settingsTikTok" class="opacity-60">Belum terhubung</span></div>
+            <div class="flex justify-between py-2 border-b border-black/5"><span>Spotify</span><span id="settingsSpotify" class="opacity-60">Belum terhubung</span></div>
+            <div class="flex justify-between py-2"><span>Musik</span><span id="settingsMusic" class="opacity-60">Spotify</span></div>
+          </div>
+          <div class="mt-6">
+            <button id="logout" class="h-9 px-4 rounded-full bg-black text-white text-[11px] font-bold" type="button" hidden>Keluar</button>
+          </div>
+        </div>
+
+        <div class="glass-strong rounded-[24px] p-6 max-w-[720px]">
+          <h2 class="text-[16px] font-bold tracking-tight">Tes overlay</h2>
+          <p class="mt-1 text-[12px] opacity-60">Kirim event contoh ke overlay tanpa harus live.</p>
+          <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <button class="test" type="button" data-test="chat">Chat</button>
+            <button class="test" type="button" data-test="gift">Gift</button>
+            <button class="test" type="button" data-test="follow">Follow</button>
+            <button class="test" type="button" data-test="share">Share</button>
+          </div>
+        </div>
+      </main>
+    </section>
+
   </div>
+</div>
+</div>
 
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="/panel.js"></script>
+<script type="module" src="/panel.js"></script>
 </body>
 </html>

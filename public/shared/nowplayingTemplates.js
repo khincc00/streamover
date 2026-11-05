@@ -5,9 +5,13 @@ export const NOWPLAYING_TEMPLATES = [
   { id: 'modern', label: 'Modern', hint: 'Kaca terang gaya Apple Music' },
   { id: 'neon', label: 'Neon', hint: 'Cahaya neon di latar gelap' },
   { id: 'vinyl', label: 'Vinyl', hint: 'Sampul bulat yang berputar' },
+  { id: 'apple', label: 'Liquid Glass', hint: 'Kaca cair dengan blur tebal' },
+  { id: 'cinematic', label: 'Sinematik', hint: 'Bilah hitam dengan huruf kredit film' },
+  { id: 'minimal', label: 'Minimal', hint: 'Kartu putih polos dengan garis tipis' },
+  { id: 'lyrics', label: 'Lirik', hint: 'Teks besar gaya karaoke tanpa kotak' },
 ];
 
-export const DEFAULT_NOWPLAYING_TEMPLATE = 'classic';
+export const DEFAULT_NOWPLAYING_TEMPLATE = 'apple';
 
 export function isNowPlayingTemplate(id) {
   return NOWPLAYING_TEMPLATES.some((template) => template.id === id);

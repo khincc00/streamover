@@ -1,9 +1,10 @@
 import { connectHub } from '/shared/ws.js';
 import { chatRow } from '/shared/chatRow.js';
 import { CHAT_TEMPLATES, DEFAULT_CHAT_TEMPLATE, isChatTemplate } from '/shared/chatTemplates.js';
-import { CHAT_ANIMATIONS, DEFAULT_CHAT_STYLE, applyStyle, normalizeStyle } from '/shared/chatStyle.js';
+import { CHAT_ANIMATIONS, CHAT_GRADIENTS, DEFAULT_CHAT_STYLE, applyStyle, normalizeStyle } from '/shared/chatStyle.js';
 import { NOWPLAYING_TEMPLATES, DEFAULT_NOWPLAYING_TEMPLATE, isNowPlayingTemplate } from '/shared/nowplayingTemplates.js';
 import { DEFAULT_PERSPECTIVE, PERSPECTIVE_LIMITS } from '/shared/perspective.js';
+import { RUNNING_TEXT_TEMPLATES, DEFAULT_RUNNING_TEXT_TEMPLATE, isRunningTextTemplate } from '/shared/runningTextTemplates.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -15,10 +16,11 @@ const OVERLAYS = {
   chat: { label: 'Chat', file: 'chat.html' },
   alerts: { label: 'Alert', file: 'alerts.html' },
   nowplaying: { label: 'Musik', file: 'nowplaying.html' },
+  runningtext: { label: 'Running text', file: 'running-text.html' },
 };
 
-// Halaman kustomisasi (#/chat, #/alert, #/musik) dan overlay yang dipratinjaunya.
-const VIEWS = { chat: 'chat', alert: 'alerts', musik: 'nowplaying' };
+// Halaman sesuai menu sidebar: Dashboard, Template Studio, Spotify Studio, Overlay Lab, Settings.
+const VIEW_NAMES = ['home', 'chat', 'musik', 'alert', 'running', 'lab', 'settings'];
 
 const STATE_LABEL = {
   idle: 'Belum terhubung',
@@ -39,21 +41,40 @@ const FEED_TEXT = {
 const settings = {
   size: 22,
   max: 15,
+  chatMode: 'history', // 'history': daftar chat, 'latest': satu pesan terbaru saja
+  chatHold: 6, // detik pesan terbaru tampil di mode 'latest'
   duration: 4,
   template: DEFAULT_CHAT_TEMPLATE,
   spotifyTemplate: DEFAULT_NOWPLAYING_TEMPLATE,
+  runningWords: 'Photography,Videography,Streaming,Tutorial',
+  runningTemplate: DEFAULT_RUNNING_TEXT_TEMPLATE,
+  runningHold: 1.4, // detik tiap kata tampil
+  runningSize: 96,
+  runningColor: '#ffffff',
   username: '',
   ...DEFAULT_CHAT_STYLE,
   ...readJson(SETTINGS_KEY),
 };
 
 // Perspektif per overlay. Saved values are clamped so a bad saved value can't break the overlay.
-const PERSP_KEYS = ['chat', 'alerts', 'nowplaying'];
+const PERSP_KEYS = ['chat', 'alerts', 'nowplaying', 'runningtext'];
 
 // Makes sure every setting has a valid value, whether it came from this browser or the server.
+const CHAT_MODES = [
+  { id: 'history', label: 'Riwayat chat' },
+  { id: 'latest', label: '1 pesan terbaru' },
+];
+
 function sanitizeSettings() {
   if (!isChatTemplate(settings.template)) settings.template = DEFAULT_CHAT_TEMPLATE;
   if (!isNowPlayingTemplate(settings.spotifyTemplate)) settings.spotifyTemplate = DEFAULT_NOWPLAYING_TEMPLATE;
+  if (!CHAT_MODES.some((m) => m.id === settings.chatMode)) settings.chatMode = 'history';
+  settings.chatHold = clampTo(Number(settings.chatHold) || 6, { min: 2, max: 60 });
+  if (!isRunningTextTemplate(settings.runningTemplate)) settings.runningTemplate = DEFAULT_RUNNING_TEXT_TEMPLATE;
+  settings.runningWords = String(settings.runningWords ?? '').slice(0, 400);
+  settings.runningHold = clampTo(Number(settings.runningHold) || 1.4, { min: 0.5, max: 10 });
+  settings.runningSize = clampTo(Number(settings.runningSize) || 96, { min: 16, max: 300 });
+  if (!/^#[0-9a-f]{6}$/i.test(settings.runningColor)) settings.runningColor = '#ffffff';
   Object.assign(settings, normalizeStyle(settings));
   settings.persp = normalizePersp(settings.persp);
 }
@@ -74,8 +95,6 @@ let dashboardShown = false;
 let previousState = 'idle';
 let previewTimer = null;
 let spotifyStatus = null;
-let youtubeStatus = null;
-let musicSource = 'spotify'; // Kept on the server, which decides what the overlay shows.
 const counts = { chat: 0, gift: 0, follow: 0, share: 0 };
 
 // localStorage is only used for per-browser conveniences, so every access is guarded.
@@ -173,6 +192,7 @@ function addStyleParams(params) {
   const style = chatStyle();
   params.set('anim', style.anim);
   params.set('dur', style.dur);
+  params.set('grad', style.gradient);
   if (style.custom) {
     params.set('custom', '1');
     params.set('accent', style.accent.slice(1));
@@ -187,6 +207,8 @@ function overlayUrl(key) {
   if (key === 'chat') {
     params.set('size', settings.size);
     params.set('max', settings.max);
+    params.set('mode', settings.chatMode);
+    params.set('hold', settings.chatHold * 1000);
     addStyleParams(params);
   }
   if (key === 'alerts') {
@@ -194,6 +216,13 @@ function overlayUrl(key) {
     addStyleParams(params);
   }
   if (key === 'nowplaying') params.set('template', settings.spotifyTemplate);
+  if (key === 'runningtext') {
+    params.set('template', settings.runningTemplate);
+    params.set('words', settings.runningWords);
+    params.set('hold', Math.round(settings.runningHold * 1000));
+    params.set('size', settings.runningSize);
+    params.set('color', settings.runningColor);
+  }
   const persp = settings.persp[key];
   params.set('rx', persp.rx);
   params.set('ry', persp.ry);
@@ -214,6 +243,8 @@ async function loadSession() {
     $('logout').hidden = !session.authEnabled;
     // Show the redirect exactly as the server sends it, so it can be copied into Spotify's dashboard.
     publicUrl = session.publicUrl || '';
+    $('accountName').textContent = session.username || '—';
+    $('accountInitial').textContent = (session.username || 'K').charAt(0).toUpperCase();
     if (session.publicUrl) $('spotifyRedirect').textContent = `${session.publicUrl}/api/spotify/callback`;
   } catch {
     // The panel still works without this; the overlay links just won't carry a key.
@@ -229,17 +260,17 @@ $('logout').addEventListener('click', async () => {
 
 function currentView() {
   const name = location.hash.replace(/^#\/?/, '');
-  return Object.hasOwn(VIEWS, name) ? name : 'home';
-}
-
-function currentOverlay() {
-  return VIEWS[currentView()] ?? null;
+  return VIEW_NAMES.includes(name) ? name : 'home';
 }
 
 function route() {
   const view = currentView();
   for (const section of document.querySelectorAll('[data-view]')) {
     section.hidden = section.dataset.view !== view;
+  }
+  for (const link of document.querySelectorAll('[data-nav]')) {
+    if (link.dataset.nav === view) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
   }
   refreshPreview();
 }
@@ -270,6 +301,9 @@ function renderStatus(status) {
   $('welcomeConnect').textContent = busy ? 'Menghubungkan…' : 'Hubungkan';
   $('welcomeError').textContent = status.error || '';
 
+  $('liveBadge').textContent = connected ? '● LIVE' : '○ PAUSED';
+  $('headerUser').textContent = status.username ? `@${status.username}` : '—';
+  $('settingsTikTok').textContent = status.username && state !== 'idle' ? `${STATE_LABEL[state]} · @${status.username}` : STATE_LABEL[state] || state;
   if (!connected) $('viewers').textContent = '0';
   if (status.username && !$('username').value) $('username').value = status.username;
   if (status.username && !$('welcomeUsername').value) $('welcomeUsername').value = status.username;
@@ -283,7 +317,10 @@ function renderView(state) {
     && (state === 'idle' || ((state === 'connecting' || state === 'error') && !dashboardShown));
   dashboardShown = !onboarding;
   $('welcome').hidden = !onboarding;
-  $('dashboard').hidden = onboarding;
+  // Dashboard selalu tampil; kartu sambutan muncul di atasnya sampai akun terhubung.
+  $('dashboard').hidden = false;
+  // Kartu Koneksi hanya tampil setelah kartu sambutan selesai, supaya formnya tidak ganda.
+  $('connectCard').hidden = onboarding;
 }
 
 // ---- Spotify ----
@@ -304,38 +341,8 @@ function renderSpotify(status) {
   if (status.error) text = status.error;
   if (connected && status.account) text = `Akun Spotify: ${status.account} · ${text}`;
   $('spotifyText').textContent = text;
-  renderSummaries();
-}
-
-// ---- Sumber musik: Spotify atau YouTube Music ----
-
-const SOURCE_LABEL = { spotify: 'Spotify', youtube: 'YouTube Music' };
-
-function renderMusicSource() {
-  for (const chip of document.querySelectorAll('#musicSource .chip')) {
-    chip.setAttribute('aria-checked', String(chip.dataset.source === musicSource));
-  }
-  renderSummaries();
-}
-
-async function chooseMusicSource(source) {
-  try {
-    const data = await api('/api/music/source', { source });
-    musicSource = data.source;
-    renderMusicSource();
-    toast(`Sumber musik: ${SOURCE_LABEL[musicSource]}`);
-  } catch (err) {
-    toast(err.message);
-  }
-}
-
-function renderYouTube(status) {
-  youtubeStatus = status;
-  const track = status.nowPlaying;
-  let text = 'Belum ada data dari YouTube Music';
-  if (track) text = `${track.playing ? 'Diputar' : 'Dijeda'}: ${track.title}${track.artist ? ` — ${track.artist}` : ''}`;
-  else if (status.connected) text = 'Extension aktif, tidak ada lagu yang diputar';
-  $('youtubeText').textContent = text;
+  $('spotifyPill').textContent = connected ? 'Spotify terhubung' : 'Spotify belum terhubung';
+  $('settingsSpotify').textContent = connected ? 'Terhubung' : 'Belum terhubung';
   renderSummaries();
 }
 
@@ -427,6 +434,7 @@ function addFeed(msg) {
   badge.textContent = msg.type;
 
   item.append(avatarNode(msg.user), text, badge);
+  if (msg.type === 'gift') $('lastGift').textContent = `${msg.user.nickname} • ${msg.gift.name} x${msg.gift.count}`;
   feed.prepend(item);
   while (feed.children.length > FEED_MAX) feed.lastElementChild.remove();
 }
@@ -434,19 +442,28 @@ function addFeed(msg) {
 // ---- Beranda: ringkasan kartu kustomisasi ----
 
 function renderSummaries() {
-  const chatLabel = CHAT_TEMPLATES.find((t) => t.id === settings.template)?.label ?? '';
-  const spotifyLabel = NOWPLAYING_TEMPLATES.find((t) => t.id === settings.spotifyTemplate)?.label ?? '';
-  const sourceOn = musicSource === 'youtube'
-    ? (youtubeStatus?.connected ? 'YouTube Music terhubung' : 'YouTube Music belum terhubung')
-    : (spotifyStatus?.connected ? 'Spotify terhubung' : 'Spotify belum terhubung');
-  setSummary('chat', `Template ${chatLabel} · teks ${settings.size}px`);
-  setSummary('alert', `Template ${chatLabel} · tampil ${settings.duration} detik`);
-  setSummary('musik', `Template ${spotifyLabel} · ${sourceOn}`);
+  renderActiveTemplate();
+  const connected = spotifyStatus?.connected;
+  $('spotifySummary').textContent = `Sumber: Spotify · ${connected ? 'Spotify terhubung' : 'Spotify belum terhubung'}`;
 }
 
-function setSummary(key, text) {
-  const el = document.querySelector(`[data-summary="${key}"]`);
-  if (el) el.textContent = text;
+// Nama, deskripsi, warna, dan gambar template yang dipilih diambil dari kartu di Template Studio,
+// jadi tampilannya sama dengan kartu yang diklik.
+function renderActiveTemplate() {
+  const card = document.querySelector(`#chatGrid [data-template="${settings.template}"]`);
+  const info = card?.querySelector('.mt-2.px-1');
+  const name = info?.querySelector('.font-extrabold')?.textContent
+    ?? CHAT_TEMPLATES.find((t) => t.id === settings.template)?.label
+    ?? 'Template lama';
+  const desc = info?.querySelector('.opacity-50')?.textContent ?? '';
+  for (const id of ['activeTemplateName', 'dashTemplateName', 'detailName', 'crumbTemplate', 'spotifyChatName']) {
+    $(id).textContent = name;
+  }
+  for (const id of ['dashTemplateDesc', 'featuredDesc']) $(id).textContent = desc;
+  const colors = info?.querySelector('.mt-1.flex.gap-1');
+  $('activeTemplateColors').replaceChildren(...(colors ? [...colors.children].map((dot) => dot.cloneNode(true)) : []));
+  const art = card?.querySelector('.aspect-\\[16\\/10\\]');
+  $('featuredArt').replaceChildren(...(art ? [art.cloneNode(true)] : []));
 }
 
 // ---- Link dan pratinjau ----
@@ -497,15 +514,11 @@ function renderLinks() {
   }
 }
 
-// Each page has one preview frame, so only the page that is open loads an overlay.
-function setPreview(key) {
-  const frame = document.querySelector(`[data-frame="${key}"]`);
-  if (frame) frame.src = overlayUrl(key);
-}
-
+// Setiap pratinjau di halaman yang sedang terbuka dimuat ulang dengan pengaturan terbaru.
 function refreshPreview() {
-  const key = currentOverlay();
-  if (key) setPreview(key);
+  for (const frame of document.querySelectorAll('[data-view]:not([hidden]) [data-frame]')) {
+    frame.src = overlayUrl(frame.dataset.frame);
+  }
 }
 
 function refreshPreviewSoon() {
@@ -522,50 +535,36 @@ function fitStages() {
 
 // ---- Template chat dan alert ----
 
-// Each card shows a small static sample rendered with the same template CSS as the overlay.
-function renderTemplates() {
-  for (const wrap of document.querySelectorAll('[data-chat-templates]')) {
-    wrap.replaceChildren();
-
-    for (const template of CHAT_TEMPLATES) {
-      const selected = template.id === settings.template;
-
-      const card = document.createElement('button');
-      card.className = 'tpl';
-      card.type = 'button';
-      card.dataset.template = template.id;
-      card.setAttribute('role', 'radio');
-      card.setAttribute('aria-checked', String(selected));
-      card.addEventListener('click', () => selectTemplate(template.id));
-
-      const thumb = document.createElement('div');
-      thumb.className = 'tpl-thumb';
-      const sample = document.createElement('div');
-      sample.className = `chat tpl-${template.id}`;
-      applyStyle(sample, chatStyle());
-      for (const line of SAMPLE_CHAT) sample.append(chatRow(line));
-      thumb.append(sample);
-
-      const name = document.createElement('span');
-      name.className = 'tpl-name';
-      name.textContent = template.label;
-      const hint = document.createElement('span');
-      hint.className = 'tpl-hint';
-      hint.textContent = template.hint;
-
-      card.append(thumb, name, hint);
-      wrap.append(card);
-    }
+// Kartu template ada di HTML (Template Studio). Di sini hanya dipasang klik dan penanda pilihan.
+function bindChatCards() {
+  for (const card of document.querySelectorAll('#chatGrid [data-template]')) {
+    card.addEventListener('click', () => selectTemplate(card.dataset.template));
   }
+}
+
+function markChatCards() {
+  for (const card of document.querySelectorAll('#chatGrid [data-template]')) {
+    const on = card.dataset.template === settings.template;
+    card.setAttribute('aria-checked', String(on));
+    const art = card.querySelector('.aspect-\\[16\\/10\\]');
+    for (const cls of ['ring-2', 'ring-black', 'scale-[1.02]']) art?.classList.toggle(cls, on);
+  }
+}
+
+// Contoh chat di Template Studio memakai template dan pengaturan yang sedang dipilih.
+function renderSample() {
+  const sample = $('chatSample');
+  sample.className = `chat tpl-${settings.template}`;
+  applyStyle(sample, chatStyle());
+  sample.replaceChildren(...SAMPLE_CHAT.map((line) => chatRow(line)));
 }
 
 function selectTemplate(id) {
   const template = CHAT_TEMPLATES.find((t) => t.id === id);
   settings.template = id;
   saveSettings();
-  for (const card of document.querySelectorAll('[data-chat-templates] .tpl')) {
-    card.setAttribute('aria-checked', String(card.dataset.template === id));
-  }
+  markChatCards();
+  renderSample();
   renderLinks();
   renderSummaries();
   refreshPreview();
@@ -590,60 +589,124 @@ function bindSetting(id, key, outputId) {
   });
 }
 
-// ---- Template Spotify ----
+// ---- Running text: template, daftar kata, dan warna. Lama dan ukuran memakai bindSetting. ----
 
-// Each card shows a static sample of the now-playing card with the same template CSS as OBS.
-function sampleNowPlaying(id) {
-  const box = document.createElement('div');
-  box.className = `np np-${id} playing`;
-
-  const art = document.createElement('div');
-  art.className = 'art';
-  art.style.background = 'linear-gradient(135deg, #f97316, #db2777)';
-
-  const info = document.createElement('div');
-  info.className = 'info';
-  const state = document.createElement('div');
-  state.className = 'state';
-  state.textContent = 'Sedang diputar';
-  const title = document.createElement('div');
-  title.className = 'title';
-  title.textContent = 'Lagu contoh';
-  const artist = document.createElement('div');
-  artist.className = 'artist';
-  artist.textContent = 'Nama artis';
-  info.append(state, title, artist);
-
-  box.append(art, info);
-  return box;
-}
-
-function renderSpotifyTemplates() {
-  const wrap = $('spotifyTemplates');
-  wrap.replaceChildren();
-
-  for (const template of NOWPLAYING_TEMPLATES) {
+// Kartu template dibuat dari daftar bersama. Contoh teks memakai warna yang sedang dipilih.
+function renderRunningTemplates() {
+  const grid = $('runningGrid');
+  grid.replaceChildren();
+  for (const template of RUNNING_TEXT_TEMPLATES) {
+    const on = settings.runningTemplate === template.id;
     const card = document.createElement('button');
-    card.className = 'tpl';
+    card.className = `text-left rounded-[14px] border p-3 bg-white/70 dark:bg-white/5 ${on ? 'border-black ring-1 ring-black dark:border-white dark:ring-white' : 'border-black/10 dark:border-white/10'}`;
     card.type = 'button';
     card.dataset.template = template.id;
     card.setAttribute('role', 'radio');
-    card.setAttribute('aria-checked', String(template.id === settings.spotifyTemplate));
-    card.addEventListener('click', () => selectSpotifyTemplate(template.id));
+    card.setAttribute('aria-checked', String(on));
 
     const thumb = document.createElement('div');
-    thumb.className = 'tpl-thumb';
-    thumb.append(sampleNowPlaying(template.id));
+    thumb.className = 'h-16 rounded-[10px] bg-black flex items-center justify-center overflow-hidden';
+    const sample = document.createElement('span');
+    sample.className = `rt-word rt-${template.id}`;
+    sample.style.fontSize = '26px';
+    sample.style.setProperty('--rt-color', settings.runningColor);
+    sample.textContent = 'Giveaway';
+    thumb.append(sample);
 
-    const name = document.createElement('span');
-    name.className = 'tpl-name';
+    const name = document.createElement('div');
+    name.className = 'mt-2 text-[12px] font-bold';
     name.textContent = template.label;
-    const hint = document.createElement('span');
-    hint.className = 'tpl-hint';
+    const desc = document.createElement('div');
+    desc.className = 'text-[10px] opacity-60';
+    desc.textContent = template.desc;
+
+    card.append(thumb, name, desc);
+    card.addEventListener('click', () => selectRunningTemplate(template.id));
+    grid.append(card);
+  }
+}
+
+function selectRunningTemplate(id) {
+  const template = RUNNING_TEXT_TEMPLATES.find((t) => t.id === id);
+  settings.runningTemplate = id;
+  saveSettings();
+  renderRunningTemplates();
+  renderLinks();
+  refreshPreview();
+  toast(`Template ${template.label} dipakai`);
+}
+
+function bindRunningText() {
+  const words = $('runningWords');
+  words.value = settings.runningWords;
+  words.addEventListener('input', () => {
+    settings.runningWords = words.value;
+    saveSettings();
+    renderLinks();
+    refreshPreviewSoon();
+  });
+
+  const color = $('runningColor');
+  color.value = settings.runningColor;
+  color.addEventListener('input', () => {
+    settings.runningColor = color.value;
+    saveSettings();
+    renderRunningTemplates();
+    renderLinks();
+    refreshPreviewSoon();
+  });
+
+  renderRunningTemplates();
+}
+
+// ---- Template Spotify ----
+
+// Kartu template Spotify dibuat dari daftar yang sama dengan overlay, dengan kelas np-* yang sama.
+// Semua ukuran .np memakai em, jadi font-size yang kecil membuat kartu contoh ini ikut mengecil.
+function renderSpotifyTemplates() {
+  const grid = $('spotifyGrid');
+  grid.replaceChildren();
+  for (const template of NOWPLAYING_TEMPLATES) {
+    const on = settings.spotifyTemplate === template.id;
+    const card = document.createElement('button');
+    card.className = `text-left rounded-[14px] border p-3 bg-white/70 dark:bg-white/5 ${on ? 'border-black ring-1 ring-black dark:border-white dark:ring-white' : 'border-black/10 dark:border-white/10'}`;
+    card.type = 'button';
+    card.dataset.template = template.id;
+    card.setAttribute('role', 'radio');
+    card.setAttribute('aria-checked', String(on));
+
+    const thumb = document.createElement('div');
+    thumb.className = 'h-20 rounded-[10px] bg-[#2a2a2e] flex items-center justify-center overflow-hidden px-2';
+    const np = document.createElement('div');
+    np.className = `np np-${template.id}`;
+    np.style.fontSize = '6px';
+    const art = document.createElement('div');
+    art.className = 'art';
+    const info = document.createElement('div');
+    info.className = 'info';
+    const state = document.createElement('div');
+    state.className = 'state';
+    state.textContent = '♪ Sedang diputar';
+    const title = document.createElement('div');
+    title.className = 'title';
+    title.textContent = 'Lagu Contoh';
+    const artist = document.createElement('div');
+    artist.className = 'artist';
+    artist.textContent = 'Nama Artis';
+    info.append(state, title, artist);
+    np.append(art, info);
+    thumb.append(np);
+
+    const name = document.createElement('div');
+    name.className = 'mt-2 text-[12px] font-bold';
+    name.textContent = template.label;
+    const hint = document.createElement('div');
+    hint.className = 'text-[10px] opacity-60';
     hint.textContent = template.hint;
 
     card.append(thumb, name, hint);
-    wrap.append(card);
+    card.addEventListener('click', () => selectSpotifyTemplate(template.id));
+    grid.append(card);
   }
 }
 
@@ -651,11 +714,8 @@ function selectSpotifyTemplate(id) {
   const template = NOWPLAYING_TEMPLATES.find((t) => t.id === id);
   settings.spotifyTemplate = id;
   saveSettings();
-  for (const card of document.querySelectorAll('#spotifyTemplates .tpl')) {
-    card.setAttribute('aria-checked', String(card.dataset.template === id));
-  }
+  renderSpotifyTemplates();
   renderLinks();
-  renderSummaries();
   refreshPreview();
   toast(`Template Spotify ${template.label} dipakai`);
 }
@@ -664,7 +724,7 @@ function selectSpotifyTemplate(id) {
 
 function refreshChatStyle() {
   saveSettings();
-  renderTemplates();
+  renderSample();
   renderLinks();
   renderSummaries();
   refreshPreviewSoon();
@@ -692,12 +752,80 @@ function renderAnims() {
   }
 }
 
+// Mode chat: riwayat atau satu pesan terbaru. Durasi tampil hanya dipakai di mode satu pesan.
+function renderChatMode() {
+  for (const wrap of document.querySelectorAll('.js-chatmode')) {
+    wrap.replaceChildren();
+    for (const mode of CHAT_MODES) {
+      const chip = document.createElement('button');
+      chip.className = 'chip';
+      chip.type = 'button';
+      chip.dataset.mode = mode.id;
+      chip.setAttribute('role', 'radio');
+      chip.setAttribute('aria-checked', String(settings.chatMode === mode.id));
+      chip.textContent = mode.label;
+      chip.addEventListener('click', () => {
+        settings.chatMode = mode.id;
+        renderChatMode();
+        saveSettings();
+        renderLinks();
+        renderSummaries();
+        refreshPreviewSoon();
+      });
+      wrap.append(chip);
+    }
+  }
+  for (const field of document.querySelectorAll('.js-chathold-field')) {
+    field.classList.toggle('dimmed', settings.chatMode !== 'latest');
+  }
+}
+
+// Kartu gradasi: contoh chat di atas latar gradasi, supaya hasilnya terlihat sebelum dipilih.
+function renderGradients() {
+  for (const wrap of document.querySelectorAll('.js-gradients')) {
+    wrap.replaceChildren();
+    const current = chatStyle().gradient;
+
+    for (const gradient of CHAT_GRADIENTS) {
+      const card = document.createElement('button');
+      card.className = 'tpl grad-card';
+      card.type = 'button';
+      card.dataset.gradient = gradient.id;
+      card.setAttribute('role', 'radio');
+      card.setAttribute('aria-checked', String(current === gradient.id));
+      card.addEventListener('click', () => {
+        settings.gradient = gradient.id;
+        renderGradients();
+        renderColorControls();
+        refreshChatStyle();
+      });
+
+      const thumb = document.createElement('div');
+      thumb.className = 'tpl-thumb grad-thumb';
+      if (gradient.from) thumb.style.background = `linear-gradient(135deg, ${gradient.from}, ${gradient.to})`;
+      const sample = document.createElement('div');
+      sample.className = `chat tpl-${settings.template}`;
+      // The card shows the gradient behind the sample, so the sample itself uses no gradient.
+      applyStyle(sample, { ...chatStyle(), gradient: 'none' });
+      sample.append(chatRow(SAMPLE_CHAT[1]));
+      thumb.append(sample);
+
+      const name = document.createElement('span');
+      name.className = 'tpl-name';
+      name.textContent = gradient.label;
+      card.append(thumb, name);
+      wrap.append(card);
+    }
+  }
+}
+
 function renderColorControls() {
   const style = chatStyle();
   for (const box of document.querySelectorAll('.js-custom-colors')) box.checked = style.custom;
   for (const input of document.querySelectorAll('.js-color')) {
     input.value = style[input.dataset.key];
-    input.disabled = !style.custom;
+    // A gradient replaces the background color, so the background picker has no effect while one is chosen.
+    input.disabled = !style.custom || (input.dataset.key === 'bg' && style.gradient !== 'none');
   }
 }
 
@@ -831,11 +959,6 @@ for (const button of document.querySelectorAll('.js-reload')) {
   button.addEventListener('click', () => refreshPreview());
 }
 
-for (const button of document.querySelectorAll('.js-replay')) {
-  // Replays the entrance animation on the template cards. Use "Tes" to see it on the overlay.
-  button.addEventListener('click', () => renderTemplates());
-}
-
 for (const button of document.querySelectorAll('[data-test]')) {
   button.addEventListener('click', () => {
     api(`/api/test/${button.dataset.test}`, {}).catch((err) => {
@@ -890,9 +1013,6 @@ $('spotifyDisconnect').addEventListener('click', async () => {
   }
 });
 
-for (const chip of document.querySelectorAll('#musicSource .chip')) {
-  chip.addEventListener('click', () => chooseMusicSource(chip.dataset.source));
-}
 
 $('autoQueue').addEventListener('change', async () => {
   try {
@@ -936,8 +1056,6 @@ connectHub((msg) => {
       return;
     case 'spotify':
       return renderSpotify(msg);
-    case 'youtube':
-      return renderYouTube(msg);
     case 'queue':
       return renderQueue(msg.items);
     case 'chat':
@@ -953,6 +1071,40 @@ connectHub((msg) => {
   }
 });
 
+// ---- Tema siang dan malam ----
+
+// Pilihan disimpan di browser ini. Kalau belum pernah dipilih, panel mengikuti tema sistem.
+// Kelas "dark" di <html> dipakai template untuk varian dark:, dan data-theme untuk token warna.
+const THEME_KEY = 'streamover.theme';
+const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+function currentTheme() {
+  const saved = readLocal(THEME_KEY);
+  if (saved === 'light' || saved === 'dark') return saved;
+  return systemDark.matches ? 'dark' : 'light';
+}
+
+function applyTheme() {
+  const theme = currentTheme();
+  const root = document.documentElement;
+  root.dataset.theme = theme;
+  root.classList.toggle('dark', theme === 'dark');
+  const toggle = $('themeToggle');
+  toggle.textContent = theme === 'dark' ? '☀ Siang' : '☾ Malam';
+  toggle.setAttribute('aria-pressed', String(theme === 'dark'));
+}
+
+$('themeToggle').addEventListener('click', () => {
+  writeLocal(THEME_KEY, currentTheme() === 'dark' ? 'light' : 'dark');
+  applyTheme();
+});
+
+systemDark.addEventListener('change', () => {
+  if (readLocal(THEME_KEY) !== 'light' && readLocal(THEME_KEY) !== 'dark') applyTheme();
+});
+
+applyTheme();
+
 // ---- Start ----
 
 // Load the saved settings before anything is drawn, so every control shows the saved values.
@@ -962,18 +1114,26 @@ await loadSession();
 
 bindSetting('size', 'size', 'sizeOut');
 bindSetting('max', 'max', 'maxOut');
+bindSetting('chatHold', 'chatHold', 'chatHoldOut');
+renderChatMode();
 bindSetting('duration', 'duration', 'durOut');
+bindSetting('runningHold', 'runningHold', 'runningHoldOut');
+bindSetting('runningSize', 'runningSize', 'runningSizeOut');
+bindRunningText();
 bindAnimDur();
 bindPerspective();
 
 renderAnims();
+renderGradients();
 renderColorControls();
 
 $('username').value = settings.username;
 $('welcomeUsername').value = $('username').value;
 renderCounts();
-renderTemplates();
+bindChatCards();
+markChatCards();
 renderSpotifyTemplates();
+renderSample();
 renderLinks();
 renderSummaries();
 for (const stage of document.querySelectorAll('.stage')) new ResizeObserver(fitStages).observe(stage);
@@ -997,10 +1157,7 @@ api('/api/spotify/status')
 
 api('/api/music/status')
   .then((status) => {
-    musicSource = status.source;
     $('autoQueue').checked = status.autoQueue === true;
-    renderMusicSource();
-    renderYouTube(status.youtube);
   })
   .catch(() => {});
 

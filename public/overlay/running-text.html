@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Overlay Running Text</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mr+Dafoe&display=swap">
+  <link rel="stylesheet" href="/overlay/running-text-templates.css">
+  <style>
+    html, body {
+      margin: 0;
+      background: transparent;
+      overflow: hidden;
+    }
+    #stage {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #word {
+      display: none;
+      will-change: transform, opacity, filter;
+    }
+    #word.show { display: inline-block; }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <div id="word"></div>
+  </div>
+  <script type="module">
+    import { perspectiveFromParams, applyPerspective } from '/shared/perspective.js';
+    import { DEFAULT_RUNNING_TEXT_TEMPLATE, isRunningTextTemplate } from '/shared/runningTextTemplates.js';
+
+    const DEFAULT_WORDS = ['Photography', 'Videography', 'Streaming', 'Tutorial'];
+    const DEFAULT_HOLD = 1400;
+    const DEFAULT_SIZE = 96;
+    const DEFAULT_COLOR = '#ffffff';
+
+    // Animation timing (ms). Masuk dan keluar sama seperti sampel branding.mp4.
+    const IN_MS = 520;
+    const OUT_MS = 420;
+
+    const params = new URLSearchParams(location.search);
+
+    // Kata dipisah koma, dibatasi supaya URL dan layar tetap masuk akal.
+    const words = (params.get('words') || '')
+      .split(',')
+      .map((word) => word.trim().slice(0, 60))
+      .filter(Boolean)
+      .slice(0, 20);
+    const list = words.length ? words : DEFAULT_WORDS;
+
+    const hold = clamp(Number(params.get('hold')) || DEFAULT_HOLD, 300, 60000);
+    const size = clamp(Number(params.get('size')) || DEFAULT_SIZE, 16, 400);
+    const colorParam = params.get('color') || '';
+    const color = /^#[0-9a-f]{3,8}$/i.test(colorParam) ? colorParam : DEFAULT_COLOR;
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    const template = isRunningTextTemplate(params.get('template')) ? params.get('template') : DEFAULT_RUNNING_TEXT_TEMPLATE;
+
+    const stage = document.getElementById('stage');
+    const word = document.getElementById('word');
+    word.classList.add('rt-word', `rt-${template}`);
+    word.style.fontSize = `${size}px`;
+    // The color is a variable on the stage, so the template CSS can use it for text, stroke and glow.
+    stage.style.setProperty('--rt-color', color);
+    // The perspective goes on the stage, not the word: the word's own animation sets its transform.
+    applyPerspective(stage, perspectiveFromParams(params));
+
+    const IN_FRAMES = [
+      { opacity: 0, filter: 'blur(14px)', transform: 'translateY(-28px)' },
+      { opacity: 1, filter: 'blur(0px)', transform: 'translateY(0)' },
+    ];
+    const OUT_FRAMES = [
+      { opacity: 1, filter: 'blur(0px)', transform: 'translateY(0)' },
+      { opacity: 0, filter: 'blur(10px)', transform: 'translateY(28px)' },
+    ];
+
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    async function run() {
+      let index = 0;
+      while (true) {
+        // textContent (not innerHTML) so the text can't inject markup.
+        word.textContent = list[index];
+        word.classList.add('show');
+
+        await word.animate(IN_FRAMES, { duration: IN_MS, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }).finished;
+        await wait(hold);
+        await word.animate(OUT_FRAMES, { duration: OUT_MS, easing: 'ease-in' }).finished;
+
+        word.classList.remove('show');
+        index = (index + 1) % list.length;
+        await wait(120);
+      }
+    }
+
+    run();
+  </script>
+</body>
+</html>

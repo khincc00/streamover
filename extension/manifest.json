@@ -8,10 +8,20 @@
       "matches": ["https://music.youtube.com/*"],
       "js": ["content.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://127.0.0.1:3000/*"],
+      "js": ["panel-bridge.js"],
+      "run_at": "document_idle"
     }
   ],
   "background": {
     "service_worker": "background.js"
+  },
+  "permissions": ["storage"],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
   },
   "host_permissions": ["http://127.0.0.1:3000/*"]
 }

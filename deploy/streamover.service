@@ -1,0 +1,20 @@
+# Service systemd untuk Streamover di server Linux.
+# Salin ke /etc/systemd/system/streamover.service, lalu jalankan:
+#   sudo systemctl daemon-reload && sudo systemctl enable --now streamover
+# Sesuaikan User, WorkingDirectory, dan lokasi node (cek dengan: which node).
+[Unit]
+Description=Streamover
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=streamover
+WorkingDirectory=/opt/streamover
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

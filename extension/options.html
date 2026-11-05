@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Streamover YT Music — Pengaturan</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 32px 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: #f5f5f7;
+      color: #111;
+    }
+    main {
+      max-width: 560px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+    h1 { font-size: 20px; margin: 0 0 8px; }
+    p { font-size: 14px; line-height: 1.5; margin: 8px 0; }
+    ol { font-size: 14px; line-height: 1.6; padding-left: 20px; }
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      min-height: 72px;
+      margin-top: 8px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font: 13px ui-monospace, Menlo, Consolas, monospace;
+    }
+    button {
+      margin-top: 12px;
+      height: 36px;
+      padding: 0 18px;
+      border: 0;
+      border-radius: 999px;
+      background: #111;
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    #status { margin-top: 12px; font-size: 13px; min-height: 18px; }
+    #status.ok { color: #14853a; }
+    #status.error { color: #c0392b; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Streamover YT Music</h1>
+    <p>Extension ini perlu tahu akun Streamover mana yang menerima lagu dari YouTube Music.</p>
+    <ol>
+      <li>Di panel Streamover, salin link <b>Musik</b> (kartu Link untuk OBS).</li>
+      <li>Tempel link itu di kotak di bawah, lalu klik <b>Simpan</b>.</li>
+    </ol>
+    <label for="link">Link overlay atau kunci overlay</label>
+    <textarea id="link" spellcheck="false" placeholder="http://127.0.0.1:3000/overlay/nowplaying.html?...&key=..."></textarea>
+    <button id="save" type="button">Simpan</button>
+    <div id="status" role="status"></div>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>

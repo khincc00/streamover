@@ -8,7 +8,6 @@ import { LiveSession } from './src/liveSession.js';
 import { createHub } from './src/hub.js';
 import { SAMPLES } from './src/samples.js';
 import { SpotifySession } from './src/spotify.js';
-import { YouTubeMusicBridge } from './src/ytmusic.js';
 import { UserStore } from './src/users.js';
 import { FeedBuffer } from './src/feed.js';
 import { RequestQueue, parseRequest } from './src/queue.js';
@@ -20,10 +19,10 @@ const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '127.0.0.1';
 // The address a browser uses to reach the server. Spotify's redirect goes here.
 const PUBLIC_URL = (process.env.PUBLIC_URL || `http://127.0.0.1:${PORT}`).replace(/\/$/, '');
-const MUSIC_SOURCES = ['spotify', 'youtube'];
 const PANEL_SETTING_KEYS = [
-  'size', 'max', 'duration', 'template', 'spotifyTemplate', 'anim', 'dur',
-  'custom', 'accent', 'text', 'bg', 'persp', 'username',
+  'size', 'max', 'chatMode', 'chatHold', 'duration', 'template', 'spotifyTemplate', 'anim', 'dur',
+  'custom', 'accent', 'text', 'bg', 'gradient', 'persp', 'username',
+  'runningWords', 'runningHold', 'runningSize', 'runningColor', 'runningTemplate',
 ];
 
 // The events kept in each account's activity history.
@@ -33,6 +32,9 @@ const store = new UserStore(path.join(here, 'data'));
 const contexts = new Map(); // account id -> that account's live connection, Spotify, and music state
 
 const app = express();
+// Behind a reverse proxy on this same computer, the real client address is in X-Forwarded-For.
+// Trusting only loopback keeps login throttling per visitor, and ignores forged headers from others.
+app.set('trust proxy', 'loopback');
 app.use(express.json());
 
 // ---- Pages ----
@@ -117,23 +119,18 @@ app.post('/api/logout', (req, res) => {
 function readMusicSettings(file) {
   try {
     const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
-    return {
-      source: MUSIC_SOURCES.includes(saved.source) ? saved.source : 'spotify',
-      autoQueue: saved.autoQueue === true,
-    };
+    return { autoQueue: saved.autoQueue === true };
   } catch {
-    return { source: 'spotify', autoQueue: false };
+    return { autoQueue: false };
   }
 }
 
 function saveMusicSettings(ctx) {
-  fs.writeFileSync(ctx.musicFile, JSON.stringify({ source: ctx.musicSource, autoQueue: ctx.autoQueue }));
+  fs.writeFileSync(ctx.musicFile, JSON.stringify({ autoQueue: ctx.autoQueue }));
 }
 
-// The overlay only listens to one message, whichever source the account has chosen.
 function nowPlayingMessage(ctx) {
-  const nowPlaying = ctx.musicSource === 'youtube' ? ctx.youtube.nowPlaying() : ctx.spotify.status().nowPlaying;
-  return { type: 'nowplaying', source: ctx.musicSource, nowPlaying };
+  return { type: 'nowplaying', nowPlaying: ctx.spotify.status().nowPlaying };
 }
 
 function broadcastNowPlaying(ctx) {
@@ -165,7 +162,7 @@ function handleChat(ctx, event) {
   const { item } = ctx.queue.add({ uniqueId, nickname, song });
   if (!item) return;
   broadcastQueue(ctx);
-  if (ctx.autoQueue && ctx.musicSource === 'spotify') queueOnSpotify(ctx, item);
+  if (ctx.autoQueue) queueOnSpotify(ctx, item);
 }
 
 // Finds the requested song on Spotify and adds it to the queue. The outcome is saved on the request,
@@ -198,7 +195,6 @@ function contextFor(userId) {
     dir,
     settingsFile: path.join(dir, 'settings.json'),
     musicFile: path.join(dir, 'music.json'),
-    musicSource: music.source,
     autoQueue: music.autoQueue,
     feed: new FeedBuffer(path.join(dir, 'feed.json')),
     queue: new RequestQueue(path.join(dir, 'queue.json')),
@@ -222,13 +218,6 @@ function contextFor(userId) {
     },
   });
   ctx.spotify.load();
-  ctx.youtube = new YouTubeMusicBridge({
-    onChange: () => {
-      send({ type: 'youtube', ...ctx.youtube.status() });
-      broadcastNowPlaying(ctx);
-    },
-  });
-  ctx.youtube.start();
 
   contexts.set(userId, ctx);
   return ctx;
@@ -240,14 +229,6 @@ app.use('/api', (req, res, next) => {
   req.user = store.userForSession(sessionTokenFrom(req));
   const pathname = req.originalUrl.split('?')[0];
   if (OPEN_API.has(pathname)) return next();
-
-  // The Chrome extension sends YouTube Music reports with an overlay key instead of a login.
-  if (pathname === '/api/ytmusic/report') {
-    const user = store.byOverlayKey(req.query.key);
-    if (!user) return res.status(401).json({ error: 'Perlu kunci overlay' });
-    req.ctx = contextFor(user.id);
-    return next();
-  }
 
   if (!req.user) {
     if (pathname === '/api/spotify/callback') return res.redirect('/login');
@@ -368,7 +349,7 @@ app.post('/api/spotify/disconnect', async (req, res) => {
 
 app.get('/api/music/status', (req, res) => {
   const ctx = req.ctx;
-  res.json({ source: ctx.musicSource, autoQueue: ctx.autoQueue, spotify: ctx.spotify.status(), youtube: ctx.youtube.status() });
+  res.json({ autoQueue: ctx.autoQueue, spotify: ctx.spotify.status() });
 });
 
 app.post('/api/music/autoqueue', (req, res) => {
@@ -378,22 +359,6 @@ app.post('/api/music/autoqueue', (req, res) => {
   res.json({ autoQueue: ctx.autoQueue });
 });
 
-app.post('/api/music/source', (req, res) => {
-  const ctx = req.ctx;
-  const source = req.body?.source;
-  if (!MUSIC_SOURCES.includes(source)) {
-    return res.status(400).json({ error: 'Sumber musik tidak dikenal' });
-  }
-  ctx.musicSource = source;
-  saveMusicSettings(ctx);
-  broadcastNowPlaying(ctx);
-  res.json({ source });
-});
-
-app.post('/api/ytmusic/report', (req, res) => {
-  req.ctx.youtube.report(req.body || {});
-  res.json({ ok: true });
-});
 
 // ---- Panel settings (per account) ----
 
@@ -449,7 +414,6 @@ server.listen(PORT, HOST, () => {
 async function shutdown() {
   for (const ctx of contexts.values()) {
     ctx.spotify.stop();
-    ctx.youtube.stop();
     ctx.feed.flush();
     await ctx.live.stop();
   }

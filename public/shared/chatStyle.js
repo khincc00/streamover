@@ -10,6 +10,15 @@ export const CHAT_ANIMATIONS = [
 
 export const CHAT_DURATION = { min: 100, max: 1000, step: 50 };
 
+// Gradasi latar. 'none' berarti memakai warna latar biasa.
+export const CHAT_GRADIENTS = [
+  { id: 'none', label: 'Polos' },
+  { id: 'sunset', label: 'Senja', from: '#f97316', to: '#db2777' },
+  { id: 'ocean', label: 'Laut', from: '#0ea5e9', to: '#4f46e5' },
+  { id: 'forest', label: 'Hutan', from: '#10b981', to: '#0f766e' },
+  { id: 'night', label: 'Malam', from: '#312e81', to: '#0f172a' },
+];
+
 export const DEFAULT_CHAT_STYLE = {
   anim: 'up',
   dur: 250,
@@ -17,6 +26,7 @@ export const DEFAULT_CHAT_STYLE = {
   accent: '#6ee7ff', // warna nama
   text: '#ffffff',
   bg: '#000000',
+  gradient: 'none',
 };
 
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -35,6 +45,7 @@ export function normalizeStyle(raw = {}) {
     if (!HEX.test(style[key])) style[key] = DEFAULT_CHAT_STYLE[key];
   }
   style.custom = Boolean(style.custom);
+  if (!CHAT_GRADIENTS.some((g) => g.id === style.gradient)) style.gradient = 'none';
   return style;
 }
 
@@ -48,6 +59,7 @@ export function styleFromParams(params) {
     accent: hex(params.get('accent')),
     text: hex(params.get('text')),
     bg: hex(params.get('bg')),
+    gradient: params.get('grad') || undefined,
   });
 }
 
@@ -63,6 +75,9 @@ export function styleVars(style) {
     vars['--chat-text'] = style.text;
     vars['--chat-bg'] = style.bg;
   }
+  // Gradasi menggantikan warna latar, baik warna sendiri aktif maupun tidak.
+  const gradient = CHAT_GRADIENTS.find((g) => g.id === style.gradient);
+  if (gradient?.from) vars['--chat-bg'] = `linear-gradient(135deg, ${gradient.from}, ${gradient.to})`;
   return vars;
 }
 

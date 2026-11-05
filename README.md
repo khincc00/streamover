@@ -34,16 +34,6 @@ Permintaan lagu dari chat (`!req judul lagu`) masuk ke daftar, maksimal 5 permin
 - Akun Spotify yang Premium, dan Spotify sedang aktif di salah satu perangkat.
 - Izin antrean. Akun yang sudah terhubung sebelum fitur ini harus klik **Hubungkan Spotify** sekali lagi.
 
-## YouTube Music (opsional)
-
-YouTube Music tidak punya API resmi untuk lagu yang sedang diputar, jadi dibaca lewat extension Chrome di folder `extension/`.
-
-1. Buka `chrome://extensions`, aktifkan **Mode developer**, lalu pilih **Load unpacked** dan pilih folder `extension`.
-2. Buka music.youtube.com dan putar lagu.
-3. Di panel, kartu **Musik** > **Sumber musik**, pilih **YouTube Music**.
-
-Extension mengirim ke `http://127.0.0.1:3000`. Kalau `PORT` diubah, ubah juga `SERVER` di `extension/background.js` dan `host_permissions` di `extension/manifest.json`.
-
 ## Pakai di OBS
 
 1. Di panel kontrol, isi username TikTok (tanpa @) lalu klik **Hubungkan**.
@@ -55,6 +45,34 @@ Extension mengirim ke `http://127.0.0.1:3000`. Kalau `PORT` diubah, ubah juga `S
 4. Background overlay sudah transparan. Tidak perlu Chroma Key.
 
 Link juga bisa disalin langsung dari panel kontrol.
+
+## Pasang di VPS (Linux) untuk https://streamover.khincreator.com
+
+Cara ini untuk server sendiri, bukan komputer lokal. Asumsi: Ubuntu/Debian dengan akses sudo, dan DNS `streamover.khincreator.com` sudah mengarah ke IP server.
+
+1. Pasang Node.js 20 atau lebih baru, dan Caddy (ikuti dokumentasi resmi masing-masing untuk distro Anda).
+2. Buat user dan folder aplikasi:
+   ```
+   sudo useradd --system --create-home --shell /usr/sbin/nologin streamover
+   sudo git clone https://github.com/khincc00/streamover.git /opt/streamover
+   sudo chown -R streamover:streamover /opt/streamover
+   ```
+3. Pasang dependency sebagai user itu: `cd /opt/streamover && sudo -u streamover npm ci --omit=dev`.
+4. Buat `/opt/streamover/.env` dengan isi berikut, lalu batasi aksesnya (`sudo chmod 600 /opt/streamover/.env`):
+   ```
+   PORT=3000
+   HOST=127.0.0.1
+   PUBLIC_URL=https://streamover.khincreator.com
+   ```
+5. Pasang service: salin `deploy/streamover.service` ke `/etc/systemd/system/`, sesuaikan lokasi `node` (cek dengan `which node`), lalu jalankan `sudo systemctl daemon-reload && sudo systemctl enable --now streamover`.
+6. Pasang Caddy dengan config `deploy/Caddyfile`: salin ke `/etc/caddy/Caddyfile`, lalu `sudo systemctl reload caddy`. Caddy mengambil sertifikat HTTPS sendiri.
+7. Cek: `systemctl status streamover` dan `journalctl -u streamover -f`. Lalu buka https://streamover.khincreator.com/login.
+8. Di dashboard Spotify, tambahkan redirect `https://streamover.khincreator.com/api/spotify/callback`.
+
+Catatan:
+- Data akun, pengaturan, dan token Spotify ada di `/opt/streamover/data/`. Kalau sebelumnya dijalankan di komputer lain dan ingin dibawa, salin folder `data/` itu ke server, lalu jaga agar akun yang sama tidak aktif di dua tempat sekaligus.
+- Update aplikasi: `cd /opt/streamover && sudo -u streamover git pull && sudo -u streamover npm ci --omit=dev && sudo systemctl restart streamover`.
+- Pendaftaran akun terbuka untuk siapa pun. Daftarkan akun Anda segera setelah server jalan, lalu pertimbangkan membatasi pendaftaran.
 
 ## Menjalankan di server (Botkeep atau host lain)
 
@@ -74,8 +92,23 @@ Catatan:
 - Pendaftaran terbuka untuk siapa pun. Setiap orang hanya boleh menyambungkan akun TikTok yang ia kelola atau yang sudah memberi izin.
 - Tombol **Keluar** mencabut sesi di server, jadi sesi itu tidak bisa dipakai lagi dari perangkat mana pun.
 - Pengaturan dan token setiap akun disimpan di folder `data/`. Folder itu tidak ikut di-commit.
-- Extension YouTube Music mengirim ke `127.0.0.1` dan tidak membawa kunci overlay, jadi sumber YouTube Music hanya bekerja kalau server dijalankan di komputer Anda.
 - Satu akun TikTok hanya boleh terhubung di satu server pada satu waktu. Jangan jalankan di komputer dan di server bersamaan untuk akun yang sama.
+
+### Contoh: https://streamover.khincreator.com
+
+Cara ini memakai Caddy, yang mengurus HTTPS dan sertifikatnya sendiri. Streamover tetap jalan di komputer atau server yang sama, dan hanya bisa diakses lewat Caddy.
+
+1. Arahkan DNS `streamover.khincreator.com` (record A atau AAAA) ke IP komputer atau server ini. Pastikan port 80 dan 443 terbuka.
+2. Isi `.env` (lihat contoh di `.env.example`): `HOST=127.0.0.1`, `PORT=3000`, `PUBLIC_URL=https://streamover.khincreator.com`.
+3. Jalankan Streamover: `npm start`.
+4. Di terminal lain, jalankan Caddy: `caddy run --config deploy/Caddyfile`. Caddy mengambil sertifikat otomatis saat pertama kali dijalankan.
+5. Di dashboard Spotify, tambahkan redirect `https://streamover.khincreator.com/api/spotify/callback`.
+6. Buka https://streamover.khincreator.com/login, lalu daftar akun.
+
+Catatan untuk domain publik:
+- Karena pendaftaran terbuka, siapa pun bisa membuat akun di server ini. Kalau hanya Anda yang memakainya, pertimbangkan membatasi pendaftaran sebelum dibuka ke internet.
+- Jalankan Streamover dengan proses yang tetap hidup setelah terminal ditutup, misalnya dengan pm2 atau layanan sistem.
+- Backup folder `data/` secara berkala. Di sana tersimpan akun, pengaturan, dan token Spotify.
 
 ## Struktur
 

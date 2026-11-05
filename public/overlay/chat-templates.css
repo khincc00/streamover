@@ -129,6 +129,254 @@
 .tpl-light .name { color: var(--chat-accent, #0071e3); font-weight: 600; }
 .tpl-light .avatar { display: none; }
 
+/* Template tambahan dari Template Studio. Font memakai font yang ada di komputer (tanpa Google Fonts),
+   supaya overlay tidak mengambil apa pun dari server luar. */
+
+/* 7. Liquid Glass: kaca cair dengan blur tebal, gaya Apple */
+.tpl-apple .msg {
+  background: var(--chat-bg, rgba(255, 255, 255, 0.72));
+  color: var(--chat-text, #1d1d1f);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
+  padding: 0.5em 0.9em;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: blur(24px) saturate(1.6);
+}
+.tpl-apple .name { color: var(--chat-accent, #0a84ff); font-weight: 600; }
+.tpl-apple .avatar { background: #ffffff; color: #1d1d1f; box-shadow: 0 0 0 1px #ffffff; }
+
+/* 8. Cyberpunk: HUD bersudut dengan huruf tebal dan garis pemindai */
+.tpl-cyberpunk .msg {
+  position: relative;
+  background: var(--chat-bg, #0a0a0f);
+  color: var(--chat-text, #ffffff);
+  border: 1px solid #00fff0;
+  padding: 0.4em 1em;
+  clip-path: polygon(4% 0, 100% 0, 96% 100%, 0 100%);
+  font-family: Menlo, Consolas, "Courier New", monospace;
+  font-size: 0.85em;
+  letter-spacing: 0.02em;
+  text-shadow: 1px 0 #ff00e5, -1px 0 #00fff0;
+}
+.tpl-cyberpunk .msg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(0, 255, 240, 0.12) 2px 4px);
+}
+.tpl-cyberpunk .name {
+  color: var(--chat-accent, #ffe600);
+  font-family: "Arial Black", Impact, sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow: none;
+}
+.tpl-cyberpunk .avatar { display: none; }
+
+/* 9. Y2K: gelembung krom 3D dengan kilau pastel */
+.tpl-y2k .msg {
+  background: var(--chat-bg, linear-gradient(180deg, #ffffff 0%, #c7d2fe 48%, #e9d5ff 52%, #fbcfe8 100%));
+  color: #1e1b4b;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  padding: 0.25em 1em 0.25em 0.3em;
+  box-shadow: inset 0 2px 0 #ffffff, inset 0 -3px 6px rgba(99, 102, 241, 0.35), 0 6px 14px rgba(99, 102, 241, 0.3);
+}
+.tpl-y2k .name { color: #db2777; font-weight: 800; }
+.tpl-y2k .avatar {
+  width: 1.8em;
+  height: 1.8em;
+  border: 2px solid #ffffff;
+  background: radial-gradient(circle at 30% 30%, #ffffff, #a5b4fc 55%, #6366f1);
+  box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.25);
+}
+
+/* 10. Kawaii: sudut sangat membulat dengan telinga kucing */
+.tpl-kawaii .msg {
+  position: relative;
+  background: var(--chat-bg, #ffffff);
+  color: var(--chat-text, #5a3a4a);
+  border: 2px solid #ffd6e8;
+  border-radius: 22px;
+  padding: 0.45em 1em;
+  box-shadow: 0 8px 20px rgba(255, 214, 232, 0.5);
+}
+.tpl-kawaii .msg::before,
+.tpl-kawaii .msg::after {
+  content: "";
+  position: absolute;
+  top: -0.5em;
+  width: 0.6em;
+  height: 0.7em;
+  background: #ffffff;
+  border: 2px solid #ffd6e8;
+  border-radius: 50% 50% 30% 30%;
+}
+.tpl-kawaii .msg::before { left: 0.6em; transform: rotate(-18deg); }
+.tpl-kawaii .msg::after { right: 0.6em; transform: rotate(18deg); }
+.tpl-kawaii .name { color: var(--chat-accent, #c65a8a); font-weight: 700; }
+.tpl-kawaii .avatar { background: #ffd6e8; color: #c65a8a; }
+
+/* 11. Minimalis Putih: kartu putih polos, nama kecil huruf kapital, garis tipis */
+.tpl-minimalis .msg {
+  background: var(--chat-bg, #ffffff);
+  color: var(--chat-text, #111111);
+  border-bottom: 1px solid #111111;
+  border-radius: 0;
+  padding: 0.4em 0.8em;
+}
+.tpl-minimalis .text { display: flex; flex-direction: column; }
+.tpl-minimalis .name {
+  display: block;
+  margin: 0 0 0.1em;
+  font-size: 0.6em;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--chat-accent, #111111);
+}
+.tpl-minimalis .avatar { display: none; }
+
+/* 12. Vaporwave: latar ungu gelap dengan bingkai gradien pink-ungu-cyan */
+.tpl-vaporwave .msg {
+  background: var(--chat-bg, #1a0b2e);
+  color: var(--chat-text, #ffffff);
+  border: 2px solid;
+  border-image: linear-gradient(90deg, #ff6b9d, #7b61ff, #2ee6ff) 1;
+  padding: 0.4em 0.9em;
+  box-shadow: 0 0 16px rgba(123, 97, 255, 0.45);
+}
+.tpl-vaporwave .name {
+  color: var(--chat-accent, #2ee6ff);
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 0.8em;
+}
+.tpl-vaporwave .name::before { content: "＊ "; }
+.tpl-vaporwave .name::after { content: " ＊"; }
+.tpl-vaporwave .avatar { background: #1a0b2e; border: 1px solid #ff6b9d; }
+
+/* 13. Grunge: kertas sobek dengan selotip kuning dan huruf tebal, sedikit miring */
+.tpl-grunge .msg {
+  position: relative;
+  background: var(--chat-bg, #fffef8);
+  color: #121212;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  padding: 0.5em 0.9em 0.4em;
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.25);
+  rotate: -1deg;
+}
+.tpl-grunge .msg:nth-child(even) { rotate: 1deg; }
+.tpl-grunge .msg::before {
+  content: "";
+  position: absolute;
+  top: -0.45em;
+  left: 50%;
+  width: 3em;
+  height: 1em;
+  margin-left: -1.5em;
+  background: rgba(255, 230, 0, 0.85);
+  rotate: 3deg;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.tpl-grunge .name {
+  font-family: Impact, "Arial Black", sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #121212;
+}
+.tpl-grunge .avatar { display: none; }
+
+/* 14. Esports: HUD taktis dengan garis hijau, huruf sempit, nama dalam kurung */
+.tpl-esports .msg {
+  background: var(--chat-bg, rgba(14, 14, 16, 0.92));
+  color: var(--chat-text, #ffffff);
+  border-left: 3px solid var(--chat-accent, #00ff88);
+  border-radius: 0;
+  padding: 0.3em 0.8em 0.3em 0.6em;
+  font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.85em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.tpl-esports .name {
+  color: var(--chat-accent, #00ff88);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.tpl-esports .name::before { content: "["; }
+.tpl-esports .name::after { content: "]"; }
+.tpl-esports .avatar { display: none; }
+
+/* 15. Pixel: kotak tegas dengan bayangan piksel, gaya 8-bit */
+.tpl-pixel .msg {
+  background: var(--chat-bg, #ffffff);
+  color: var(--chat-text, #000000);
+  border: 4px solid #000000;
+  border-radius: 0;
+  padding: 0.4em 0.6em;
+  box-shadow: 4px 4px 0 #000000;
+  font-family: Menlo, Consolas, "Courier New", monospace;
+  font-size: 0.8em;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.tpl-pixel .name { color: var(--chat-accent, #0058f8); font-weight: 900; }
+.tpl-pixel .avatar { width: 1.2em; height: 1.2em; border-radius: 0; background: #000000; }
+
+/* 16. Cottagecore: kertas krem dengan sudut lembut dan nuansa botani */
+.tpl-cottage .msg {
+  background: var(--chat-bg, #fdf6e3);
+  color: var(--chat-text, #4a4a3f);
+  border: 1px solid rgba(138, 154, 123, 0.5);
+  border-radius: 14px;
+  padding: 0.45em 0.9em;
+  box-shadow: 0 4px 12px rgba(138, 154, 123, 0.2);
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+}
+.tpl-cottage .name { color: var(--chat-accent, #c67b5c); font-style: italic; font-weight: 700; }
+.tpl-cottage .avatar { background: #8a9a7b; color: #fdf6e3; }
+
+/* 17. Komik: balon komik dengan garis tebal, bayangan keras, dan titik halftone */
+.tpl-comic .msg {
+  position: relative;
+  isolation: isolate;
+  background: var(--chat-bg, #ffffff);
+  color: var(--chat-text, #111111);
+  border: 4px solid #000000;
+  border-radius: 14px;
+  padding: 0.4em 0.8em;
+  box-shadow: 5px 5px 0 #000000;
+  font-weight: 700;
+}
+.tpl-comic .msg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.14) 1px, transparent 1.5px);
+  background-size: 6px 6px;
+}
+.tpl-comic .name {
+  color: var(--chat-accent, #ff0000);
+  font-family: Impact, "Arial Black", sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 1.05em;
+}
+.tpl-comic .avatar { border: 3px solid #000000; background: #ffea00; color: #000000; }
+
 /* Alert (follow, share, gift): kartu yang sama dengan chat, dengan judul dan keterangan di atas-bawah.
    Selector dibuat lebih spesifik supaya mengalahkan padding dan avatar dari template. */
 .chat .msg.alert {

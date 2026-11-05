@@ -1,0 +1,7 @@
+# Caddy mengurus HTTPS (sertifikat otomatis) dan meneruskan ke Streamover di komputer ini.
+# Pakai dengan: caddy run --config deploy/Caddyfile
+# Server Streamover harus jalan di 127.0.0.1:3000 (HOST=127.0.0.1, PORT=3000).
+streamover.khincreator.com {
+	encode gzip
+	reverse_proxy 127.0.0.1:3000
+}

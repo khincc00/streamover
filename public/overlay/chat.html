@@ -30,6 +30,10 @@
 
     const params = new URLSearchParams(location.search);
     const max = Number(params.get('max')) || 15;
+    // 'latest' shows only the newest message, for `hold` ms. 'history' keeps the last `max` messages.
+    const latestOnly = params.get('mode') === 'latest';
+    const hold = Number(params.get('hold')) || 6000;
+    let hideTimer = null;
     const size = Number(params.get('size')) || 22;
     const template = isChatTemplate(params.get('template')) ? params.get('template') : DEFAULT_CHAT_TEMPLATE;
     document.documentElement.style.setProperty('--size', `${size}px`);
@@ -42,7 +46,15 @@
     connectHub((msg) => {
       if (msg.type !== 'chat') return;
 
-      list.append(chatRow({ nickname: msg.user.nickname, avatar: msg.user.avatar, text: msg.text }));
+      const row = chatRow({ nickname: msg.user.nickname, avatar: msg.user.avatar, text: msg.text });
+      if (latestOnly) {
+        // A new message replaces the old one and restarts the timer.
+        list.replaceChildren(row);
+        clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => row.remove(), hold);
+        return;
+      }
+      list.append(row);
       while (list.children.length > max) list.firstElementChild.remove();
     });
   </script>
