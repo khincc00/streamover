@@ -1,10 +1,11 @@
 import { connectHub } from '/shared/ws.js';
+import { startYouTubePlayer } from '/shared/ytPlayer.js';
 import { chatRow } from '/shared/chatRow.js';
 import { CHAT_TEMPLATES, DEFAULT_CHAT_TEMPLATE, isChatTemplate } from '/shared/chatTemplates.js';
 import { CHAT_ANIMATIONS, CHAT_GRADIENTS, DEFAULT_CHAT_STYLE, applyStyle, normalizeStyle } from '/shared/chatStyle.js';
 import { NOWPLAYING_TEMPLATES, DEFAULT_NOWPLAYING_TEMPLATE, isNowPlayingTemplate } from '/shared/nowplayingTemplates.js';
 import { DEFAULT_PERSPECTIVE, PERSPECTIVE_LIMITS } from '/shared/perspective.js';
-import { RUNNING_TEXT_TEMPLATES, DEFAULT_RUNNING_TEXT_TEMPLATE, isRunningTextTemplate } from '/shared/runningTextTemplates.js';
+import { RUNNING_TEXT_TEMPLATES, DEFAULT_RUNNING_TEXT_TEMPLATE, isRunningTextTemplate, RUNNING_TEXT_FONTS, DEFAULT_RUNNING_TEXT_FONT, isRunningTextFont, runningTextFontStyle } from '/shared/runningTextTemplates.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -12,15 +13,22 @@ const PREVIEW_WIDTH = 1920;
 const FEED_MAX = 60;
 const SETTINGS_KEY = 'streamover.settings';
 
+// Spotify dan YT Music punya overlay sendiri. Keduanya memakai nowplaying.html, dan ?source= memilih sumbernya.
 const OVERLAYS = {
   chat: { label: 'Chat', file: 'chat.html' },
   alerts: { label: 'Alert', file: 'alerts.html' },
-  nowplaying: { label: 'Musik', file: 'nowplaying.html' },
+  nowplaying: { label: 'Spotify', file: 'nowplaying.html', source: 'spotify' },
+  youtube: { label: 'YT Music', file: 'nowplaying.html', source: 'youtube' },
   runningtext: { label: 'Running text', file: 'running-text.html' },
 };
 
-// Halaman sesuai menu sidebar: Dashboard, Template Studio, Spotify Studio, Overlay Lab, Settings.
-const VIEW_NAMES = ['home', 'chat', 'musik', 'alert', 'running', 'lab', 'settings'];
+// Halaman sesuai menu sidebar: Dashboard, Template Studio, Spotify Studio, YT Music Studio, Alert, Running text, Overlay Lab, Settings.
+const VIEW_NAMES = ['home', 'chat', 'musik', 'ytmusic', 'alert', 'running', 'lab', 'settings'];
+
+// Batas overlay running text. Tiap overlay punya link OBS sendiri.
+const RUNNING_MAX = 6;
+// Kunci running text versi lama (satu overlay). Dipindahkan ke runningTexts lalu dihapus.
+const LEGACY_RUNNING_KEYS = ['runningWords', 'runningHold', 'runningSize', 'runningColor', 'runningTemplate'];
 
 const STATE_LABEL = {
   idle: 'Belum terhubung',
@@ -46,18 +54,19 @@ const settings = {
   duration: 4,
   template: DEFAULT_CHAT_TEMPLATE,
   spotifyTemplate: DEFAULT_NOWPLAYING_TEMPLATE,
-  runningWords: 'Photography,Videography,Streaming,Tutorial',
-  runningTemplate: DEFAULT_RUNNING_TEXT_TEMPLATE,
-  runningHold: 1.4, // detik tiap kata tampil
-  runningSize: 96,
-  runningColor: '#ffffff',
+  youtubeTemplate: DEFAULT_NOWPLAYING_TEMPLATE,
+  npFit: 'content', // overlay lagu: 'content' (sesuai lagu) or 'fixed' (ukuran tetap)
+  npAlign: 'left', // 'left', 'center', or 'right'
+  npWidth: 560, // width in px for fixed size
   username: '',
   ...DEFAULT_CHAT_STYLE,
   ...readJson(SETTINGS_KEY),
 };
 
 // Perspektif per overlay. Saved values are clamped so a bad saved value can't break the overlay.
-const PERSP_KEYS = ['chat', 'alerts', 'nowplaying', 'runningtext'];
+// Running text punya perspektif sendiri di tiap overlay, jadi tidak ada di sini.
+const PERSP_KEYS = ['chat', 'alerts', 'nowplaying', 'youtube'];
+const PERSP_TARGETS = [...PERSP_KEYS, 'runningtext'];
 
 // Makes sure every setting has a valid value, whether it came from this browser or the server.
 const CHAT_MODES = [
@@ -68,17 +77,81 @@ const CHAT_MODES = [
 function sanitizeSettings() {
   if (!isChatTemplate(settings.template)) settings.template = DEFAULT_CHAT_TEMPLATE;
   if (!isNowPlayingTemplate(settings.spotifyTemplate)) settings.spotifyTemplate = DEFAULT_NOWPLAYING_TEMPLATE;
+  if (!isNowPlayingTemplate(settings.youtubeTemplate)) settings.youtubeTemplate = DEFAULT_NOWPLAYING_TEMPLATE;
+  if (!['content', 'fixed'].includes(settings.npFit)) settings.npFit = 'content';
+  if (!['left', 'center', 'right'].includes(settings.npAlign)) settings.npAlign = 'left';
+  settings.npWidth = clampTo(Number(settings.npWidth) || 560, { min: 300, max: 1000 });
   if (!CHAT_MODES.some((m) => m.id === settings.chatMode)) settings.chatMode = 'history';
   settings.chatHold = clampTo(Number(settings.chatHold) || 6, { min: 2, max: 60 });
-  if (!isRunningTextTemplate(settings.runningTemplate)) settings.runningTemplate = DEFAULT_RUNNING_TEXT_TEMPLATE;
-  settings.runningWords = String(settings.runningWords ?? '').slice(0, 400);
-  settings.runningHold = clampTo(Number(settings.runningHold) || 1.4, { min: 0.5, max: 10 });
-  settings.runningSize = clampTo(Number(settings.runningSize) || 96, { min: 16, max: 300 });
-  if (!/^#[0-9a-f]{6}$/i.test(settings.runningColor)) settings.runningColor = '#ffffff';
+  sanitizeRunningTexts();
   Object.assign(settings, normalizeStyle(settings));
   settings.persp = normalizePersp(settings.persp);
 }
 sanitizeSettings();
+
+// Setiap overlay running text: nama, template, font, kata, lama, ukuran, warna, dan perspektif.
+function newRunningText(name) {
+  return {
+    id: Math.random().toString(36).slice(2, 10),
+    name,
+    template: DEFAULT_RUNNING_TEXT_TEMPLATE,
+    font: DEFAULT_RUNNING_TEXT_FONT,
+    words: 'Photography,Videography,Streaming,Tutorial',
+    hold: 1.4, // detik tiap kata tampil
+    size: 96,
+    color: '#ffffff',
+    persp: { ...DEFAULT_PERSPECTIVE },
+  };
+}
+
+// Memastikan daftar overlay ada dan valid. Versi lama hanya punya satu running text di kunci terpisah,
+// jadi itu dipindah menjadi overlay pertama.
+function sanitizeRunningTexts() {
+  if (!Array.isArray(settings.runningTexts) || !settings.runningTexts.length) {
+    const first = newRunningText('Running text 1');
+    const legacy = {
+      words: settings.runningWords,
+      template: settings.runningTemplate,
+      hold: settings.runningHold,
+      size: settings.runningSize,
+      color: settings.runningColor,
+      persp: settings.persp?.runningtext,
+    };
+    for (const [key, value] of Object.entries(legacy)) {
+      if (value !== undefined) first[key] = value;
+    }
+    settings.runningTexts = [first];
+  }
+  for (const key of LEGACY_RUNNING_KEYS) delete settings[key];
+  settings.runningTexts = settings.runningTexts.slice(0, RUNNING_MAX).map(cleanRunningText);
+  if (!settings.runningTexts.some((t) => t.id === settings.runningSelected)) {
+    settings.runningSelected = settings.runningTexts[0].id;
+  }
+}
+
+function cleanRunningText(item, index) {
+  const id = typeof item.id === 'string' && item.id ? item.id.slice(0, 40) : newRunningText('').id;
+  return {
+    id,
+    name: String(item.name ?? '').slice(0, 30) || `Running text ${index + 1}`,
+    template: isRunningTextTemplate(item.template) ? item.template : DEFAULT_RUNNING_TEXT_TEMPLATE,
+    font: isRunningTextFont(item.font) ? item.font : DEFAULT_RUNNING_TEXT_FONT,
+    words: String(item.words ?? '').slice(0, 400),
+    hold: clampTo(Number(item.hold) || 1.4, { min: 0.5, max: 10 }),
+    size: clampTo(Number(item.size) || 96, { min: 16, max: 300 }),
+    color: /^#[0-9a-f]{6}$/i.test(item.color) ? item.color : '#ffffff',
+    persp: normalizeAxes(item.persp),
+  };
+}
+
+function selectedRunningText() {
+  return settings.runningTexts.find((t) => t.id === settings.runningSelected) ?? settings.runningTexts[0];
+}
+
+// Perspektif untuk satu overlay. Running text mengambil dari overlay yang sedang dipilih.
+function perspOf(key) {
+  return key === 'runningtext' ? selectedRunningText().persp : settings.persp[key];
+}
 
 function chatStyle() {
   return normalizeStyle(settings);
@@ -95,6 +168,10 @@ let dashboardShown = false;
 let previousState = 'idle';
 let previewTimer = null;
 let spotifyStatus = null;
+let youtubeStatus = null;
+let dockPlayer = null; // the YT Music player in the bottom dock
+let ytMode = 'player'; // 'player' (YouTube player in the dock) or 'extension' (YT Music tab)
+let playOrder = 'playlist'; // 'playlist' (in order) or 'shuffle'
 const counts = { chat: 0, gift: 0, follow: 0, share: 0 };
 
 // localStorage is only used for per-browser conveniences, so every access is guarded.
@@ -156,6 +233,8 @@ async function loadSettings() {
   try {
     const saved = await api('/api/settings');
     if (Object.keys(saved).length) {
+      // Daftar default dari startup tidak boleh menutupi running text versi lama di server.
+      if (!Array.isArray(saved.runningTexts)) delete settings.runningTexts;
       Object.assign(settings, saved);
       sanitizeSettings();
     } else {
@@ -202,7 +281,8 @@ function addStyleParams(params) {
 }
 
 // Overlay URLs carry the current settings so OBS and the preview match.
-function overlayUrl(key) {
+// Item running text dikirim sendiri, jadi tiap overlay punya link sendiri. Untuk overlay lain item diabaikan.
+function overlayUrl(key, item = selectedRunningText()) {
   const params = new URLSearchParams();
   if (key === 'chat') {
     params.set('size', settings.size);
@@ -216,14 +296,22 @@ function overlayUrl(key) {
     addStyleParams(params);
   }
   if (key === 'nowplaying') params.set('template', settings.spotifyTemplate);
-  if (key === 'runningtext') {
-    params.set('template', settings.runningTemplate);
-    params.set('words', settings.runningWords);
-    params.set('hold', Math.round(settings.runningHold * 1000));
-    params.set('size', settings.runningSize);
-    params.set('color', settings.runningColor);
+  if (key === 'youtube') params.set('template', settings.youtubeTemplate);
+  if (key === 'nowplaying' || key === 'youtube') {
+    params.set('fit', settings.npFit);
+    params.set('align', settings.npAlign);
+    params.set('width', settings.npWidth);
   }
-  const persp = settings.persp[key];
+  if (OVERLAYS[key].source) params.set('source', OVERLAYS[key].source);
+  if (key === 'runningtext') {
+    params.set('template', item.template);
+    params.set('font', item.font);
+    params.set('words', item.words);
+    params.set('hold', Math.round(item.hold * 1000));
+    params.set('size', item.size);
+    params.set('color', item.color);
+  }
+  const persp = key === 'runningtext' ? item.persp : settings.persp[key];
   params.set('rx', persp.rx);
   params.set('ry', persp.ry);
   params.set('pd', persp.depth);
@@ -240,6 +328,13 @@ async function loadSession() {
   try {
     const session = await api('/api/session');
     overlayKey = session.overlayKey || '';
+    $('ytPlayerUrl').textContent = `${location.origin}/overlay/player.html${overlayKey ? `?key=${overlayKey}` : ''}`;
+    // The player runs in the dock below the panel, so its sound comes from this browser.
+    if (overlayKey) {
+      dockPlayer = startYouTubePlayer({ element: $('ytDockPlayer'), key: overlayKey, onStatus: renderDock });
+      setInterval(updateDockProgress, 500);
+    }
+    renderYtMode();
     $('logout').hidden = !session.authEnabled;
     // Show the redirect exactly as the server sends it, so it can be copied into Spotify's dashboard.
     publicUrl = session.publicUrl || '';
@@ -346,10 +441,541 @@ function renderSpotify(status) {
   renderSummaries();
 }
 
+// ---- YT Music (lewat extension Chrome) ----
+
+// Shows the track and the player's state in the dock. Called by the player module on every change.
+function renderDock({ state, lastError, needsClick, current }) {
+  $('dockNow').textContent = current ? `${current.title}${current.artist ? ` — ${current.artist}` : ''}` : 'Belum ada lagu';
+  $('dockStatus').textContent = [lastError, `Status: ${state}`].filter(Boolean).join(' — ');
+  $('dockStart').hidden = !needsClick;
+  // The thumbnail of the video that is playing, set only when it changes.
+  const thumb = $('dockThumb');
+  const src = current?.videoId ? `https://i.ytimg.com/vi/${current.videoId}/mqdefault.jpg` : '';
+  if (thumb.dataset.src !== src) {
+    thumb.dataset.src = src;
+    thumb.src = src;
+  }
+  thumb.hidden = !src;
+}
+
+// Progress bar and time in the dock. While the bar is being dragged it isn't moved by the player.
+let dockSeeking = false;
+const clock = (seconds) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+
+function updateDockProgress() {
+  if (!dockPlayer) return;
+  const { current, duration } = dockPlayer.progress();
+  $('dockTime').textContent = `${clock(current)} / ${clock(duration)}`;
+  if (!dockSeeking && duration) $('dockSeek').value = String(Math.round((current / duration) * 1000));
+}
+
+// Shows the chosen way of playing: the chooser, its hint, the setup steps, and the dock (player mode only).
+function renderYtMode() {
+  const extension = ytMode === 'extension';
+  for (const [id, active] of [['ytModePlayer', !extension], ['ytModeExtension', extension]]) {
+    $(id).setAttribute('aria-checked', String(active));
+    $(id).setAttribute('aria-selected', String(active));
+  }
+  $('ytModeHint').textContent = extension
+    ? 'Lagu dicari dan diputar di tab music.youtube.com yang terbuka di Chrome. Cukup isi judul dan artis, link tidak perlu.'
+    : 'Lagu diputar di player YouTube, di dock bawah panel. Audionya keluar dari browser ini. Tiap lagu di playlist perlu link YouTube.';
+  $('ytExtensionSteps').hidden = !extension;
+  for (const [id, order] of [['ytOrderPlaylist', 'playlist'], ['ytOrderShuffle', 'shuffle']]) {
+    const on = playOrder === order;
+    $(id).setAttribute('aria-checked', String(on));
+    $(id).setAttribute('aria-selected', String(on));
+  }
+  $('ytOrderHint').textContent = playOrder === 'shuffle'
+    ? 'Lagu diputar acak. Setiap lagu diputar sekali dulu sebelum ada yang diulang. Kalau playlist kosong, acak mengambil dari semua lagu.'
+    : 'Lagu diputar dari atas playlist.';
+  $('ytPlayerRow').hidden = extension;
+  $('dock').hidden = extension || !overlayKey;
+  document.body.classList.toggle('has-dock', !$('dock').hidden);
+  renderYouTube(youtubeStatus ?? { connected: false, nowPlaying: null });
+}
+
+function renderYouTube(status) {
+  youtubeStatus = status;
+  const track = status.nowPlaying;
+  const name = ytMode === 'extension' ? 'Tab YT Music' : 'Player';
+  let text = `${name} belum terhubung`;
+  if (track) text = `${track.playing ? 'Diputar' : 'Dijeda'}: ${track.title}${track.artist ? ` — ${track.artist}` : ''}`;
+  else if (status.connected) text = `${name} aktif, belum ada lagu`;
+  $('youtubeText').textContent = text;
+  $('settingsYouTube').textContent = status.connected ? 'Terhubung' : 'Belum terhubung';
+  renderSummaries();
+}
+
+// ---- YT Music: playlist, antrian, dan blacklist ----
+
+// Isi library dari server. Setiap perubahan dijawab dengan library lengkap, jadi tampilan sama dengan yang tersimpan.
+let library = { playlists: [], blacklist: { songs: [], users: [] } };
+let selectedPlaylistId = null;
+
+function selectedPlaylist() {
+  return library.playlists.find((playlist) => playlist.id === selectedPlaylistId) ?? null;
+}
+
+function setLibrary(data) {
+  library = data;
+  if (!selectedPlaylist()) selectedPlaylistId = library.playlists[0]?.id ?? null;
+  renderLibrary();
+}
+
+// Mengirim perubahan ke server. Error ditampilkan lewat toast, dan hasilnya true kalau berhasil.
+async function changeLibrary(path, body) {
+  try {
+    setLibrary(await api(path, body));
+    return true;
+  } catch (err) {
+    toast(err.message);
+    return false;
+  }
+}
+
+function songLabel(song) {
+  return song.artist ? `${song.title} — ${song.artist}` : song.title;
+}
+
+// Opens the song in YT Music in a new tab: the exact video when the song has a link, otherwise a search.
+function songOpenUrl(song) {
+  if (song.videoId) return `https://music.youtube.com/watch?v=${song.videoId}`;
+  const query = [song.title, song.artist].filter(Boolean).join(' ');
+  return `https://music.youtube.com/search?q=${encodeURIComponent(query)}`;
+}
+
+// ---- YouTube API di Settings ----
+
+function renderYouTubeKey(info) {
+  const from = info.source === 'panel' ? 'dari panel' : 'dari .env';
+  $('ytKeyStatus').textContent = info.connected
+    ? `Terhubung (${from}): ${info.masked}`
+    : 'Belum terhubung. Pencarian request dan import playlist tidak aktif.';
+  // Only a key connected here can be removed here; a key in .env belongs to the server.
+  $('ytKeyDisconnect').disabled = info.source !== 'panel';
+}
+
+api('/api/youtube/key').then(renderYouTubeKey).catch(() => {});
+
+$('ytKeyConnect').addEventListener('click', async () => {
+  const key = $('ytKeyInput').value.trim();
+  if (!key) {
+    toast('Tempel key dulu');
+    return;
+  }
+  $('ytKeyConnect').disabled = true;
+  try {
+    renderYouTubeKey(await api('/api/youtube/key', { key }));
+    $('ytKeyInput').value = '';
+    toast('YouTube API terhubung');
+  } catch (err) {
+    toast(err.message);
+  } finally {
+    $('ytKeyConnect').disabled = false;
+  }
+});
+
+$('ytKeyDisconnect').addEventListener('click', async () => {
+  if (!window.confirm('Putuskan YouTube API? Pencarian request dan import playlist berhenti.')) return;
+  try {
+    renderYouTubeKey(await api('/api/youtube/key/delete', {}));
+    toast('YouTube API diputuskan');
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+// Imports a YouTube playlist link into the open playlist. The server skips songs that can't be played outside YouTube.
+async function importPlaylist() {
+  const playlist = selectedPlaylist();
+  if (!playlist) return;
+  const input = $('plImportLink');
+  const button = $('plImport');
+  button.disabled = true;
+  button.textContent = 'Mengimpor…';
+  try {
+    const data = await api(`/api/library/playlists/${playlist.id}/import`, { link: input.value.trim() });
+    setLibrary(data);
+    input.value = '';
+    const { added, replaced, skipped } = data.summary;
+    const parts = [`${added} lagu ditambahkan`];
+    if (replaced) parts.push(`${replaced} diganti versi lain`);
+    if (skipped) parts.push(`${skipped} dilewati`);
+    toast(parts.join(', '));
+  } catch (err) {
+    toast(err.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Import playlist';
+  }
+}
+
+// Plays a playlist song on the player page. Errors (such as the player page not being open) show in a toast.
+async function playSong(playlistId, songId) {
+  try {
+    await api('/api/player/play', { playlistId, songId });
+    toast('Lagu diputar di player');
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
+async function playerControl(action) {
+  try {
+    await api('/api/player/control', { action });
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
+async function playNextFromQueue() {
+  try {
+    renderQueue(await api('/api/queue/play-next', {}));
+    toast('Lagu berikutnya dikirim ke YT Music');
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
+function emptyItem(text) {
+  const li = document.createElement('li');
+  li.className = 'empty';
+  li.textContent = text;
+  return li;
+}
+
+// Satu baris lagu. openHref, onPlay, onQueue, dan onRemove boleh kosong, supaya tombolnya tidak muncul.
+function libRow(label, { openHref, onPlay, onQueue, onRemove }) {
+  const li = document.createElement('li');
+  li.className = 'lib-item';
+  const text = document.createElement('span');
+  text.className = 'lib-text';
+  text.textContent = label;
+  const actions = document.createElement('div');
+  actions.className = 'lib-actions';
+  if (openHref) {
+    const open = document.createElement('a');
+    open.className = 'btn ghost small';
+    open.href = openHref;
+    open.target = '_blank';
+    open.rel = 'noopener';
+    open.textContent = 'Buka di YT Music';
+    actions.append(open);
+  }
+  if (onPlay) {
+    const play = document.createElement('button');
+    play.className = 'btn small';
+    play.type = 'button';
+    play.textContent = 'Putar';
+    play.addEventListener('click', onPlay);
+    actions.append(play);
+  }
+  if (onQueue) {
+    const queue = document.createElement('button');
+    queue.className = 'btn small';
+    queue.type = 'button';
+    queue.textContent = 'Antrikan';
+    queue.addEventListener('click', onQueue);
+    actions.append(queue);
+  }
+  if (onRemove) {
+    const remove = document.createElement('button');
+    remove.className = 'btn ghost danger small';
+    remove.type = 'button';
+    remove.textContent = 'Hapus';
+    remove.addEventListener('click', onRemove);
+    actions.append(remove);
+  }
+  li.append(text, actions);
+  return li;
+}
+
+function renderLibrary() {
+  renderPlaylistList();
+  renderPlaylistDetail();
+  renderSearch();
+  renderBlacklist();
+}
+
+function renderPlaylistList() {
+  const list = $('plList');
+  list.replaceChildren();
+  if (!library.playlists.length) {
+    list.append(emptyItem('Belum ada playlist.'));
+    return;
+  }
+  for (const playlist of library.playlists) {
+    const li = document.createElement('li');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'lib-item';
+    button.setAttribute('aria-current', String(playlist.id === selectedPlaylistId));
+    const name = document.createElement('span');
+    name.className = 'lib-text';
+    name.textContent = playlist.name;
+    const count = document.createElement('small');
+    count.textContent = `${playlist.songs.length} lagu`;
+    button.append(name, count);
+    button.addEventListener('click', () => {
+      selectedPlaylistId = playlist.id;
+      renderLibrary();
+    });
+    li.append(button);
+    list.append(li);
+  }
+}
+
+function renderPlaylistDetail() {
+  const playlist = selectedPlaylist();
+  $('plEmpty').hidden = Boolean(playlist);
+  $('plDetail').hidden = !playlist;
+  if (!playlist) return;
+  $('plName').textContent = playlist.name;
+  $('plCount').textContent = `${playlist.songs.length} lagu`;
+  $('plQueueAll').disabled = playlist.songs.length === 0;
+  const list = $('plSongs');
+  list.replaceChildren();
+  if (!playlist.songs.length) {
+    list.append(emptyItem('Belum ada lagu di playlist ini.'));
+    return;
+  }
+  playlist.songs.forEach((song, index) => {
+    list.append(libRow(`${index + 1}. ${songLabel(song)}`, {
+      openHref: songOpenUrl(song),
+      onPlay: () => playSong(playlist.id, song.id),
+      onQueue: () => queueSong(playlist.id, song.id),
+      onRemove: () => changeLibrary(`/api/library/playlists/${playlist.id}/songs/${song.id}/delete`, {}),
+    }));
+  });
+}
+
+// Pencarian di semua playlist. Hasilnya muncul di atas daftar lagu.
+function renderSearch() {
+  const query = $('plSearch').value.trim().toLowerCase();
+  const list = $('plResults');
+  list.hidden = !query;
+  list.replaceChildren();
+  if (!query) return;
+  const matches = library.playlists.flatMap((playlist) => playlist.songs
+    .filter((song) => songLabel(song).toLowerCase().includes(query))
+    .map((song) => ({ playlist, song })));
+  if (!matches.length) {
+    list.append(emptyItem('Tidak ada lagu yang cocok.'));
+    return;
+  }
+  for (const { playlist, song } of matches) {
+    list.append(libRow(`${songLabel(song)} · ${playlist.name}`, {
+      openHref: songOpenUrl(song),
+      onPlay: () => playSong(playlist.id, song.id),
+      onQueue: () => queueSong(playlist.id, song.id),
+    }));
+  }
+}
+
+function renderBlacklist() {
+  renderBlockList($('blSongs'), library.blacklist.songs, 'song');
+  renderBlockList($('blUsers'), library.blacklist.users, 'user');
+}
+
+function renderBlockList(list, entries, type) {
+  list.replaceChildren();
+  if (!entries.length) {
+    list.append(emptyItem('Kosong.'));
+    return;
+  }
+  for (const value of entries) {
+    list.append(libRow(value, {
+      onRemove: () => changeLibrary('/api/library/blacklist/delete', { type, value }),
+    }));
+  }
+}
+
+async function createPlaylist() {
+  const input = $('plNewName');
+  if (!await changeLibrary('/api/library/playlists', { name: input.value.trim() })) return;
+  input.value = '';
+  selectedPlaylistId = library.playlists.at(-1).id;
+  renderLibrary();
+}
+
+async function renamePlaylist() {
+  const playlist = selectedPlaylist();
+  if (!playlist) return;
+  const name = window.prompt('Nama baru untuk playlist', playlist.name);
+  if (name === null) return;
+  await changeLibrary(`/api/library/playlists/${playlist.id}/rename`, { name: name.trim() });
+}
+
+async function deletePlaylist() {
+  const playlist = selectedPlaylist();
+  if (!playlist) return;
+  if (!window.confirm(`Hapus playlist "${playlist.name}" beserta isinya?`)) return;
+  await changeLibrary(`/api/library/playlists/${playlist.id}/delete`, {});
+}
+
+async function addSong() {
+  const playlist = selectedPlaylist();
+  if (!playlist) return;
+  const title = $('plTitle').value.trim();
+  const artist = $('plArtist').value.trim();
+  const link = $('plLink').value.trim();
+  let data;
+  try {
+    data = await api(`/api/library/playlists/${playlist.id}/songs`, { title, artist, link });
+  } catch (err) {
+    toast(err.message);
+    return;
+  }
+  setLibrary(data);
+  // The pasted link was blocked by its owner, so the server saved another upload of the song.
+  if (data.replaced) toast(`Link asli diblokir pemiliknya, diganti: ${data.replaced.title}`);
+  $('plTitle').value = '';
+  $('plArtist').value = '';
+  $('plLink').value = '';
+  $('plTitle').focus();
+}
+
+// Satu lagu dari playlist masuk ke antrean, sama seperti request dari chat.
+async function queueSong(playlistId, songId) {
+  try {
+    renderQueue(await api(`/api/library/playlists/${playlistId}/songs/${songId}/queue`, {}));
+    toast('Lagu masuk antrean');
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
+async function queuePlaylist() {
+  const playlist = selectedPlaylist();
+  if (!playlist) return;
+  try {
+    renderQueue(await api(`/api/library/playlists/${playlist.id}/queue`, {}));
+    toast(`${playlist.songs.length} lagu masuk antrean`);
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
+async function addBlocked(type, inputId) {
+  const input = $(inputId);
+  if (!await changeLibrary('/api/library/blacklist', { type, value: input.value.trim() })) return;
+  input.value = '';
+}
+
+// Tiga bagian di kartu YT Music: Playlist, Song Requests, dan Blacklist.
+function bindYouTubeTabs() {
+  const tabs = document.querySelectorAll('.js-yt-tab');
+  const show = (name) => {
+    for (const tab of tabs) tab.setAttribute('aria-selected', String(tab.dataset.tab === name));
+    for (const pane of document.querySelectorAll('[data-ytpane]')) pane.hidden = pane.dataset.ytpane !== name;
+  };
+  for (const tab of tabs) tab.addEventListener('click', () => show(tab.dataset.tab));
+}
+
+function bindLibrary() {
+  bindYouTubeTabs();
+  $('plCreate').addEventListener('click', createPlaylist);
+  $('plNewName').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') createPlaylist();
+  });
+  $('plSearch').addEventListener('input', renderSearch);
+  $('plQueueAll').addEventListener('click', queuePlaylist);
+  $('plRename').addEventListener('click', renamePlaylist);
+  $('plDelete').addEventListener('click', deletePlaylist);
+  $('plAddSong').addEventListener('click', addSong);
+  $('plImport').addEventListener('click', importPlaylist);
+  $('plImportLink').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') importPlaylist();
+  });
+  for (const id of ['plTitle', 'plArtist', 'plLink']) {
+    $(id).addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') addSong();
+    });
+  }
+  $('blSongAdd').addEventListener('click', () => addBlocked('song', 'blSongInput'));
+  $('blSongInput').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') addBlocked('song', 'blSongInput');
+  });
+  $('blUserAdd').addEventListener('click', () => addBlocked('user', 'blUserInput'));
+  $('blUserInput').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') addBlocked('user', 'blUserInput');
+  });
+  $('dockStart').addEventListener('click', () => dockPlayer?.unlock());
+  for (const [id, order] of [['ytOrderPlaylist', 'playlist'], ['ytOrderShuffle', 'shuffle']]) {
+    $(id).addEventListener('click', async () => {
+      try {
+        const data = await api('/api/music/playorder', { order });
+        playOrder = data.playOrder;
+        renderYtMode();
+      } catch (err) {
+        toast(err.message);
+      }
+    });
+  }
+  $('plPlayAll').addEventListener('click', async () => {
+    const playlist = selectedPlaylist();
+    if (!playlist) return;
+    try {
+      await api('/api/player/start-playlist', { playlistId: playlist.id });
+      toast(`Playlist ${playlist.name} mulai diputar`);
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+  $('dockSeek').addEventListener('input', () => {
+    dockSeeking = true;
+  });
+  $('dockSeek').addEventListener('change', () => {
+    dockPlayer?.seek(Number($('dockSeek').value) / 1000);
+    dockSeeking = false;
+  });
+  $('dockVolume').addEventListener('input', () => dockPlayer?.setVolume(Number($('dockVolume').value)));
+  $('dockVideoToggle').addEventListener('click', () => $('dockVideo').classList.toggle('quiet'));
+  for (const [id, mode] of [['ytModePlayer', 'player'], ['ytModeExtension', 'extension']]) {
+    $(id).addEventListener('click', async () => {
+      try {
+        const data = await api('/api/music/ytmode', { mode });
+        ytMode = data.ytMode;
+        playOrder = data.playOrder;
+        renderYtMode();
+        toast(ytMode === 'extension' ? 'Lagu diputar lewat tab YT Music' : 'Lagu diputar lewat player YouTube');
+      } catch (err) {
+        toast(err.message);
+      }
+    });
+  }
+  $('ytPlayerCopy').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText($('ytPlayerUrl').textContent);
+      toast('Link player disalin');
+    } catch {
+      toast('Gagal menyalin, salin manual dari teks di atas');
+    }
+  });
+  $('ytPrev').addEventListener('click', () => playerControl('prev'));
+  $('ytToggle').addEventListener('click', () => playerControl('toggle'));
+  $('ytNext').addEventListener('click', () => playerControl('next'));
+  $('ytPlayNext').addEventListener('click', playNextFromQueue);
+  $('dockPrev').addEventListener('click', () => playerControl('prev'));
+  $('dockToggle').addEventListener('click', () => playerControl('toggle'));
+  $('dockNext').addEventListener('click', () => playerControl('next'));
+  $('ytQueueClear').addEventListener('click', async () => {
+    try {
+      renderQueue(await api('/api/queue/clear', {}));
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+}
+
 // ---- Antrean request dari chat ----
 
+// Antrean dipakai bersama, jadi halaman Spotify dan YT Music menampilkan daftar yang sama.
 function renderQueue(items) {
-  const list = $('queueList');
+  for (const list of [$('queueList'), $('ytQueueList')]) fillQueue(list, items);
+}
+
+function fillQueue(list, items) {
   list.replaceChildren();
   if (!items.length) {
     const empty = document.createElement('li');
@@ -443,8 +1069,10 @@ function addFeed(msg) {
 
 function renderSummaries() {
   renderActiveTemplate();
-  const connected = spotifyStatus?.connected;
-  $('spotifySummary').textContent = `Sumber: Spotify · ${connected ? 'Spotify terhubung' : 'Spotify belum terhubung'}`;
+  const spotifyOn = spotifyStatus?.connected;
+  $('spotifySummary').textContent = `Sumber: Spotify · ${spotifyOn ? 'Spotify terhubung' : 'Spotify belum terhubung'}`;
+  const youtubeOn = youtubeStatus?.connected;
+  $('youtubeSummary').textContent = `Sumber: YT Music · ${youtubeOn ? 'YT Music terhubung' : 'YT Music belum terhubung'}`;
 }
 
 // Nama, deskripsi, warna, dan gambar template yang dipilih diambil dari kartu di Template Studio,
@@ -456,7 +1084,7 @@ function renderActiveTemplate() {
     ?? CHAT_TEMPLATES.find((t) => t.id === settings.template)?.label
     ?? 'Template lama';
   const desc = info?.querySelector('.opacity-50')?.textContent ?? '';
-  for (const id of ['activeTemplateName', 'dashTemplateName', 'detailName', 'crumbTemplate', 'spotifyChatName']) {
+  for (const id of ['activeTemplateName', 'dashTemplateName', 'detailName', 'crumbTemplate', 'spotifyChatName', 'youtubeChatName']) {
     $(id).textContent = name;
   }
   for (const id of ['dashTemplateDesc', 'featuredDesc']) $(id).textContent = desc;
@@ -468,53 +1096,60 @@ function renderActiveTemplate() {
 
 // ---- Link dan pratinjau ----
 
+// Running text punya satu kartu per overlay. Overlay lain hanya punya satu kartu.
 function renderLinks() {
   for (const wrap of document.querySelectorAll('[data-link]')) {
     wrap.replaceChildren();
     const key = wrap.dataset.link;
-    const overlay = OVERLAYS[key];
-    const url = overlayUrl(key);
+    const targets = key === 'runningtext'
+      ? settings.runningTexts.map((item) => ({ item, label: item.name.trim() || 'Running text' }))
+      : [{ item: null, label: OVERLAYS[key].label }];
 
-    const card = document.createElement('div');
-    card.className = 'link';
+    for (const { item, label: name } of targets) {
+      const url = overlayUrl(key, item);
 
-    const top = document.createElement('div');
-    top.className = 'link-top';
-    const label = document.createElement('b');
-    label.textContent = overlay.label;
+      const card = document.createElement('div');
+      card.className = 'link';
 
-    const actions = document.createElement('div');
-    actions.className = 'link-actions';
-    const copy = document.createElement('button');
-    copy.className = 'btn small';
-    copy.type = 'button';
-    copy.textContent = 'Salin';
-    copy.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(url);
-        toast(`Link ${overlay.label} disalin`);
-      } catch {
-        toast('Gagal menyalin, salin manual dari teks di bawah');
-      }
-    });
-    const open = document.createElement('a');
-    open.className = 'btn small';
-    open.href = url;
-    open.target = '_blank';
-    open.rel = 'noopener';
-    open.textContent = 'Buka';
-    actions.append(copy, open);
-    top.append(label, actions);
+      const top = document.createElement('div');
+      top.className = 'link-top';
+      const label = document.createElement('b');
+      label.textContent = name;
 
-    const code = document.createElement('code');
-    code.textContent = url;
+      const actions = document.createElement('div');
+      actions.className = 'link-actions';
+      const copy = document.createElement('button');
+      copy.className = 'btn small';
+      copy.type = 'button';
+      copy.textContent = 'Salin';
+      copy.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(url);
+          toast(`Link ${name} disalin`);
+        } catch {
+          toast('Gagal menyalin, salin manual dari teks di bawah');
+        }
+      });
+      const open = document.createElement('a');
+      open.className = 'btn small';
+      open.href = url;
+      open.target = '_blank';
+      open.rel = 'noopener';
+      open.textContent = 'Buka';
+      actions.append(copy, open);
+      top.append(label, actions);
 
-    card.append(top, code);
-    wrap.append(card);
+      const code = document.createElement('code');
+      code.textContent = url;
+
+      card.append(top, code);
+      wrap.append(card);
+    }
   }
 }
 
 // Setiap pratinjau di halaman yang sedang terbuka dimuat ulang dengan pengaturan terbaru.
+// Pratinjau running text menampilkan overlay yang sedang dipilih.
 function refreshPreview() {
   for (const frame of document.querySelectorAll('[data-view]:not([hidden]) [data-frame]')) {
     frame.src = overlayUrl(frame.dataset.frame);
@@ -591,12 +1226,13 @@ function bindSetting(id, key, outputId) {
 
 // ---- Running text: template, daftar kata, dan warna. Lama dan ukuran memakai bindSetting. ----
 
-// Kartu template dibuat dari daftar bersama. Contoh teks memakai warna yang sedang dipilih.
+// Kartu template dibuat dari daftar bersama. Contoh teks memakai warna dan font overlay yang dipilih.
 function renderRunningTemplates() {
   const grid = $('runningGrid');
   grid.replaceChildren();
+  const item = selectedRunningText();
   for (const template of RUNNING_TEXT_TEMPLATES) {
-    const on = settings.runningTemplate === template.id;
+    const on = item.template === template.id;
     const card = document.createElement('button');
     card.className = `text-left rounded-[14px] border p-3 bg-white/70 dark:bg-white/5 ${on ? 'border-black ring-1 ring-black dark:border-white dark:ring-white' : 'border-black/10 dark:border-white/10'}`;
     card.type = 'button';
@@ -609,7 +1245,9 @@ function renderRunningTemplates() {
     const sample = document.createElement('span');
     sample.className = `rt-word rt-${template.id}`;
     sample.style.fontSize = '26px';
-    sample.style.setProperty('--rt-color', settings.runningColor);
+    sample.style.setProperty('--rt-color', item.color);
+    const fontStyle = runningTextFontStyle(item.font);
+    if (fontStyle) Object.assign(sample.style, fontStyle);
     sample.textContent = 'Giveaway';
     thumb.append(sample);
 
@@ -626,48 +1264,192 @@ function renderRunningTemplates() {
   }
 }
 
+// Mengubah satu overlay yang dipilih, lalu menyimpan dan memperbarui link serta pratinjau.
+function updateRunningText(patch) {
+  Object.assign(selectedRunningText(), patch);
+  saveSettings();
+  renderLinks();
+  refreshPreviewSoon();
+}
+
 function selectRunningTemplate(id) {
   const template = RUNNING_TEXT_TEMPLATES.find((t) => t.id === id);
-  settings.runningTemplate = id;
-  saveSettings();
+  updateRunningText({ template: id });
   renderRunningTemplates();
-  renderLinks();
   refreshPreview();
   toast(`Template ${template.label} dipakai`);
 }
 
+// Daftar overlay: satu tombol per overlay. Yang dipilih menentukan isi form dan pratinjau.
+function renderRunningList() {
+  const list = $('runningList');
+  list.replaceChildren();
+  for (const item of settings.runningTexts) {
+    const on = item.id === settings.runningSelected;
+    const chip = document.createElement('button');
+    chip.className = `h-8 px-3 rounded-full border text-[12px] font-bold ${on ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white' : 'bg-white/70 border-black/10 dark:bg-white/5 dark:border-white/10'}`;
+    chip.type = 'button';
+    chip.setAttribute('role', 'radio');
+    chip.setAttribute('aria-checked', String(on));
+    chip.textContent = item.name.trim() || 'Running text';
+    chip.addEventListener('click', () => selectRunningText(item.id));
+    list.append(chip);
+  }
+  $('runningAdd').disabled = settings.runningTexts.length >= RUNNING_MAX;
+  $('runningRemove').disabled = settings.runningTexts.length <= 1;
+}
+
+// Mengisi semua kontrol running text dari overlay yang dipilih.
+function renderRunningText() {
+  const item = selectedRunningText();
+  $('runningName').value = item.name;
+  $('runningFont').value = item.font;
+  $('runningWords').value = item.words;
+  $('runningHold').value = item.hold;
+  $('runningHoldOut').textContent = item.hold;
+  $('runningSize').value = item.size;
+  $('runningSizeOut').textContent = item.size;
+  $('runningColor').value = item.color;
+  renderPerspective('runningtext');
+  renderRunningTemplates();
+  renderRunningList();
+}
+
+function selectRunningText(id) {
+  settings.runningSelected = id;
+  saveSettings();
+  renderRunningText();
+  refreshPreview();
+}
+
+function addRunningText() {
+  if (settings.runningTexts.length >= RUNNING_MAX) return;
+  const item = newRunningText(`Running text ${settings.runningTexts.length + 1}`);
+  settings.runningTexts.push(item);
+  settings.runningSelected = item.id;
+  saveSettings();
+  renderRunningText();
+  renderLinks();
+  refreshPreview();
+  toast('Overlay running text baru dibuat');
+}
+
+// Link OBS overlay yang dihapus berhenti bekerja, jadi minta konfirmasi dulu.
+function removeRunningText() {
+  if (settings.runningTexts.length <= 1) return;
+  const item = selectedRunningText();
+  if (!window.confirm(`Hapus overlay "${item.name}"? Browser Source di OBS yang memakai linknya akan berhenti.`)) return;
+  const index = settings.runningTexts.indexOf(item);
+  settings.runningTexts.splice(index, 1);
+  settings.runningSelected = settings.runningTexts[Math.max(0, index - 1)].id;
+  saveSettings();
+  renderRunningText();
+  renderLinks();
+  refreshPreview();
+  toast('Overlay running text dihapus');
+}
+
 function bindRunningText() {
-  const words = $('runningWords');
-  words.value = settings.runningWords;
-  words.addEventListener('input', () => {
-    settings.runningWords = words.value;
+  const font = $('runningFont');
+  for (const f of RUNNING_TEXT_FONTS) font.append(new Option(f.label, f.id));
+  font.addEventListener('change', () => {
+    updateRunningText({ font: font.value });
+    renderRunningTemplates();
+  });
+
+  const name = $('runningName');
+  name.addEventListener('input', () => {
+    selectedRunningText().name = name.value;
     saveSettings();
+    renderRunningList();
     renderLinks();
-    refreshPreviewSoon();
+  });
+
+  const words = $('runningWords');
+  words.addEventListener('input', () => updateRunningText({ words: words.value }));
+
+  const hold = $('runningHold');
+  hold.addEventListener('input', () => {
+    $('runningHoldOut').textContent = hold.value;
+    updateRunningText({ hold: Number(hold.value) });
+  });
+
+  const size = $('runningSize');
+  size.addEventListener('input', () => {
+    $('runningSizeOut').textContent = size.value;
+    updateRunningText({ size: Number(size.value) });
   });
 
   const color = $('runningColor');
-  color.value = settings.runningColor;
   color.addEventListener('input', () => {
-    settings.runningColor = color.value;
-    saveSettings();
+    updateRunningText({ color: color.value });
     renderRunningTemplates();
-    renderLinks();
-    refreshPreviewSoon();
   });
 
-  renderRunningTemplates();
+  $('runningAdd').addEventListener('click', addRunningText);
+  $('runningRemove').addEventListener('click', removeRunningText);
+
+  renderRunningText();
+}
+
+// ---- Ukuran dan rata teks overlay lagu (Spotify dan YT Music) ----
+
+// The same choice is on both studio pages, so every control is found by class and kept in sync.
+function renderNpOptions() {
+  for (const [selector, key] of [['.js-np-fit', 'npFit'], ['.js-np-align', 'npAlign']]) {
+    for (const button of document.querySelectorAll(selector)) {
+      const on = button.dataset.value === settings[key];
+      button.setAttribute('aria-checked', String(on));
+      button.setAttribute('aria-selected', String(on));
+    }
+  }
+  for (const input of document.querySelectorAll('.js-np-width')) input.value = settings.npWidth;
+  for (const output of document.querySelectorAll('.js-np-width-out')) output.textContent = `${settings.npWidth} px`;
+}
+
+function setNpOption(key, value) {
+  settings[key] = value;
+  saveSettings();
+  renderNpOptions();
+  renderLinks();
+  refreshPreview();
+}
+
+function bindNpOptions() {
+  for (const button of document.querySelectorAll('.js-np-fit')) {
+    button.addEventListener('click', () => setNpOption('npFit', button.dataset.value));
+  }
+  for (const button of document.querySelectorAll('.js-np-align')) {
+    button.addEventListener('click', () => setNpOption('npAlign', button.dataset.value));
+  }
+  for (const input of document.querySelectorAll('.js-np-width')) {
+    input.addEventListener('input', () => {
+      settings.npWidth = Number(input.value);
+      saveSettings();
+      renderNpOptions();
+      renderLinks();
+      refreshPreviewSoon();
+    });
+  }
+  renderNpOptions();
 }
 
 // ---- Template Spotify ----
 
 // Kartu template Spotify dibuat dari daftar yang sama dengan overlay, dengan kelas np-* yang sama.
 // Semua ukuran .np memakai em, jadi font-size yang kecil membuat kartu contoh ini ikut mengecil.
-function renderSpotifyTemplates() {
-  const grid = $('spotifyGrid');
+// Spotify dan YT Music masing-masing punya grid dan pilihan template sendiri.
+const NOWPLAYING_SOURCES = {
+  nowplaying: { grid: 'spotifyGrid', templateKey: 'spotifyTemplate' },
+  youtube: { grid: 'ytGrid', templateKey: 'youtubeTemplate' },
+};
+
+function renderNowPlayingTemplates(key) {
+  const { grid: gridId, templateKey } = NOWPLAYING_SOURCES[key];
+  const grid = $(gridId);
   grid.replaceChildren();
   for (const template of NOWPLAYING_TEMPLATES) {
-    const on = settings.spotifyTemplate === template.id;
+    const on = settings[templateKey] === template.id;
     const card = document.createElement('button');
     card.className = `text-left rounded-[14px] border p-3 bg-white/70 dark:bg-white/5 ${on ? 'border-black ring-1 ring-black dark:border-white dark:ring-white' : 'border-black/10 dark:border-white/10'}`;
     card.type = 'button';
@@ -705,19 +1487,19 @@ function renderSpotifyTemplates() {
     hint.textContent = template.hint;
 
     card.append(thumb, name, hint);
-    card.addEventListener('click', () => selectSpotifyTemplate(template.id));
+    card.addEventListener('click', () => selectNowPlayingTemplate(key, template.id));
     grid.append(card);
   }
 }
 
-function selectSpotifyTemplate(id) {
+function selectNowPlayingTemplate(key, id) {
   const template = NOWPLAYING_TEMPLATES.find((t) => t.id === id);
-  settings.spotifyTemplate = id;
+  settings[NOWPLAYING_SOURCES[key].templateKey] = id;
   saveSettings();
-  renderSpotifyTemplates();
+  renderNowPlayingTemplates(key);
   renderLinks();
   refreshPreview();
-  toast(`Template Spotify ${template.label} dipakai`);
+  toast(`Template ${OVERLAYS[key].label} ${template.label} dipakai`);
 }
 
 // ---- Animasi dan warna (chat dan alert) ----
@@ -852,16 +1634,17 @@ function clampTo(value, { min, max }) {
   return Math.min(max, Math.max(min, value));
 }
 
+function normalizeAxes(value = {}) {
+  return {
+    rx: clampTo(Number(value?.rx) || 0, PERSPECTIVE_LIMITS.tilt),
+    ry: clampTo(Number(value?.ry) || 0, PERSPECTIVE_LIMITS.tilt),
+    depth: clampTo(Number(value?.depth) || DEFAULT_PERSPECTIVE.depth, PERSPECTIVE_LIMITS.depth),
+  };
+}
+
 function normalizePersp(saved = {}) {
   const result = {};
-  for (const key of PERSP_KEYS) {
-    const value = saved?.[key] ?? {};
-    result[key] = {
-      rx: clampTo(Number(value.rx) || 0, PERSPECTIVE_LIMITS.tilt),
-      ry: clampTo(Number(value.ry) || 0, PERSPECTIVE_LIMITS.tilt),
-      depth: clampTo(Number(value.depth) || DEFAULT_PERSPECTIVE.depth, PERSPECTIVE_LIMITS.depth),
-    };
-  }
+  for (const key of PERSP_KEYS) result[key] = normalizeAxes(saved?.[key]);
   return result;
 }
 
@@ -870,7 +1653,7 @@ function perspOutput(axis, value) {
 }
 
 function renderPerspective(key) {
-  const persp = settings.persp[key];
+  const persp = perspOf(key);
   for (const input of document.querySelectorAll(`.js-persp[data-persp="${key}"]`)) {
     const axis = input.dataset.axis;
     input.value = persp[axis];
@@ -885,13 +1668,13 @@ function refreshPerspective(key) {
 }
 
 function bindPerspective() {
-  for (const key of PERSP_KEYS) renderPerspective(key);
+  for (const key of PERSP_TARGETS) renderPerspective(key);
 
   for (const input of document.querySelectorAll('.js-persp')) {
     input.addEventListener('input', () => {
       const key = input.dataset.persp;
       const axis = input.dataset.axis;
-      settings.persp[key][axis] = Number(input.value);
+      perspOf(key)[axis] = Number(input.value);
       input.closest('.field').querySelector('.js-persp-out').textContent = perspOutput(axis, Number(input.value));
       refreshPerspective(key);
     });
@@ -900,7 +1683,7 @@ function bindPerspective() {
   for (const button of document.querySelectorAll('.js-persp-reset')) {
     button.addEventListener('click', () => {
       const key = button.dataset.persp;
-      settings.persp[key] = { ...DEFAULT_PERSPECTIVE };
+      Object.assign(perspOf(key), DEFAULT_PERSPECTIVE);
       renderPerspective(key);
       refreshPerspective(key);
     });
@@ -1056,6 +1839,10 @@ connectHub((msg) => {
       return;
     case 'spotify':
       return renderSpotify(msg);
+    case 'youtube':
+      return renderYouTube(msg);
+    case 'player':
+      return dockPlayer?.command(msg);
     case 'queue':
       return renderQueue(msg.items);
     case 'chat':
@@ -1117,11 +1904,11 @@ bindSetting('max', 'max', 'maxOut');
 bindSetting('chatHold', 'chatHold', 'chatHoldOut');
 renderChatMode();
 bindSetting('duration', 'duration', 'durOut');
-bindSetting('runningHold', 'runningHold', 'runningHoldOut');
-bindSetting('runningSize', 'runningSize', 'runningSizeOut');
 bindRunningText();
 bindAnimDur();
 bindPerspective();
+bindLibrary();
+bindNpOptions();
 
 renderAnims();
 renderGradients();
@@ -1132,7 +1919,8 @@ $('welcomeUsername').value = $('username').value;
 renderCounts();
 bindChatCards();
 markChatCards();
-renderSpotifyTemplates();
+renderNowPlayingTemplates('nowplaying');
+renderNowPlayingTemplates('youtube');
 renderSample();
 renderLinks();
 renderSummaries();
@@ -1155,11 +1943,20 @@ api('/api/spotify/status')
   .then((status) => renderSpotify(spotifyError ? { ...status, error: spotifyError } : status))
   .catch(() => {});
 
-api('/api/music/status')
-  .then((status) => {
-    $('autoQueue').checked = status.autoQueue === true;
-  })
-  .catch(() => {});
+// The chosen way of playing and the play order, as the server has them.
+function loadMusicStatus() {
+  api('/api/music/status')
+    .then((status) => {
+      $('autoQueue').checked = status.autoQueue === true;
+      ytMode = status.ytMode === 'extension' ? 'extension' : 'player';
+      playOrder = status.playOrder === 'shuffle' ? 'shuffle' : 'playlist';
+      renderYtMode();
+    })
+    .catch(() => {});
+}
+loadMusicStatus();
+
+api('/api/library').then(setLibrary).catch(() => {});
 
 // Recent activity from earlier visits. The server returns newest first; the list shows the
 // newest at the top, so the oldest one is added first.

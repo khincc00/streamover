@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="/overlay/chat-templates.css">
   <link rel="stylesheet" href="/overlay/nowplaying-templates.css">
   <link rel="stylesheet" href="/overlay/running-text-templates.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mr+Dafoe&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mr+Dafoe:wght@400&family=Pacifico:wght@400&family=Lobster:wght@400&family=Dancing+Script:wght@700&family=Bebas+Neue:wght@400&family=Anton:wght@400&family=Bangers:wght@400&family=Righteous:wght@400&family=Playfair+Display:wght@800&family=Montserrat:wght@800&display=swap">
 </head>
 <body class="mesh-bg">
 <div class="min-h-screen w-full overflow-x-clip">
@@ -30,6 +30,7 @@
         <a href="#/" data-nav="home" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">◧</span>Dashboard</a>
         <a href="#/chat" data-nav="chat" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">⬙</span>Template Studio<span class="ml-auto text-[10px] bg-black/10 px-1.5 py-0.5 rounded-full">11</span></a>
         <a href="#/musik" data-nav="musik" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">♫</span>Spotify Studio</a>
+        <a href="#/ytmusic" data-nav="ytmusic" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">▶</span>YT Music Studio</a>
         <a href="#/alert" data-nav="alert" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">★</span>Alert Studio</a>
         <a href="#/running" data-nav="running" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">A</span>Running Text</a>
         <a href="#/lab" data-nav="lab" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">⧉</span>Overlay Lab</a>
@@ -76,6 +77,7 @@
         <a href="#/" data-nav="home" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">dashboard</a>
         <a href="#/chat" data-nav="chat" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">templates</a>
         <a href="#/musik" data-nav="musik" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">spotify</a>
+        <a href="#/ytmusic" data-nav="ytmusic" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">yt music</a>
         <a href="#/alert" data-nav="alert" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">alert</a>
         <a href="#/running" data-nav="running" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">running</a>
         <a href="#/lab" data-nav="lab" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">lab</a>
@@ -175,11 +177,12 @@
           </div>
 
           <div class="glass-strong rounded-[24px] p-5">
-            <h3 class="font-bold text-[14px] tracking-tight">OBS Browser Source URLs — 4 Sumber (Copy &amp; Paste ke OBS)</h3>
-            <div class="mt-4 grid md:grid-cols-2 xl:grid-cols-4 gap-3">
+            <h3 class="font-bold text-[14px] tracking-tight">OBS Browser Source URLs — 5 Sumber (Copy &amp; Paste ke OBS)</h3>
+            <div class="mt-4 grid md:grid-cols-2 xl:grid-cols-3 gap-3">
               <div data-link="chat"></div>
               <div data-link="alerts"></div>
               <div data-link="nowplaying"></div>
+              <div data-link="youtube"></div>
               <div data-link="runningtext"></div>
             </div>
             <div class="mt-4 text-[11px] opacity-60">Tip: Width 1920 Height 1080, FPS 30, Shutdown source when not visible. Template yang dipilih otomatis ikut di semua URL.</div>
@@ -301,7 +304,7 @@
         <div class="space-y-5">
           <div class="flex items-end justify-between gap-3 flex-wrap">
             <h1 class="text-[26px] font-black tracking-[-0.02em]">SPOTIFY STUDIO</h1>
-            <div class="text-[11px] opacity-60">9 template Spotify • <span id="musicSourceLabel">Spotify</span></div>
+            <div class="text-[11px] opacity-60">9 template Spotify</div>
           </div>
 
           <div class="grid md:grid-cols-3 gap-4">
@@ -320,6 +323,24 @@
               <a href="#/lab" class="mt-4 block text-center w-full h-9 leading-9 rounded-full bg-black text-white text-[11px] font-bold">Lihat di Overlay Lab →</a>
               <div class="mt-3 text-[10px] opacity-60" id="spotifySummary">Sumber: Spotify</div>
             </div>
+          </div>
+
+          <div class="glass-strong rounded-[24px] p-5 space-y-3">
+            <div class="text-[12px] font-bold tracking-widest">UKURAN & RATA TEKS</div>
+            <div class="yt-tabs" role="radiogroup" aria-label="Ukuran overlay">
+              <button class="yt-tab js-np-fit" type="button" role="radio" data-value="content" aria-checked="true" aria-selected="true">Sesuai lagu</button>
+              <button class="yt-tab js-np-fit" type="button" role="radio" data-value="fixed" aria-checked="false" aria-selected="false">Ukuran tetap</button>
+            </div>
+            <div class="yt-tabs" role="radiogroup" aria-label="Rata teks">
+              <button class="yt-tab js-np-align" type="button" role="radio" data-value="left" aria-checked="true" aria-selected="true">Kiri</button>
+              <button class="yt-tab js-np-align" type="button" role="radio" data-value="center" aria-checked="false" aria-selected="false">Tengah</button>
+              <button class="yt-tab js-np-align" type="button" role="radio" data-value="right" aria-checked="false" aria-selected="false">Kanan</button>
+            </div>
+            <div class="field">
+              <div class="field-head"><label>Lebar untuk ukuran tetap</label><output class="js-np-width-out">560 px</output></div>
+              <input type="range" class="js-np-width" min="300" max="1000" step="10" value="560" aria-label="Lebar overlay">
+            </div>
+            <p class="hint">Ukuran tetap: judul dan penyanyi mengecil supaya muat, dan yang masih tidak muat dipotong dengan …. Sesuai lagu: kotak mengikuti panjang judul.</p>
           </div>
 
           <div class="grid md:grid-cols-2 gap-4">
@@ -382,6 +403,195 @@
                   <input type="range" id="depth-nowplaying" class="js-persp" data-persp="nowplaying" data-axis="depth" min="300" max="3000" step="50" value="1200">
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ============ YT MUSIC STUDIO ============ -->
+    <section data-view="ytmusic" class="min-w-0" hidden>
+      <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
+        <div class="space-y-5">
+          <div class="flex items-end justify-between gap-3 flex-wrap">
+            <h1 class="text-[26px] font-black tracking-[-0.02em]">YT MUSIC STUDIO</h1>
+            <div class="text-[11px] opacity-60">9 template YT Music</div>
+          </div>
+
+          <div class="grid md:grid-cols-3 gap-4">
+            <div class="md:col-span-2 glass-strong rounded-[24px] p-5">
+              <div class="text-[12px] font-bold tracking-widest">PILIH YT MUSIC TEMPLATE</div>
+              <div id="ytGrid" class="mt-3 grid grid-cols-2 lg:grid-cols-3 gap-2" role="radiogroup" aria-label="Template YT Music"></div>
+            </div>
+            <div class="glass rounded-[24px] p-5">
+              <div class="text-[12px] font-bold">Adaptasi Warna</div>
+              <div class="mt-2 text-[11px] opacity-70">Template YT Music ikut warna template chat yang dipilih: <span id="youtubeChatName" class="font-bold">—</span>.</div>
+              <div class="mt-3 flex gap-2">
+                <div class="flex-1 h-8 rounded-[8px] border border-black/10" style="background: #E8D5FF"></div>
+                <div class="flex-1 h-8 rounded-[8px] border border-black/10" style="background: #D5E8FF"></div>
+                <div class="flex-1 h-8 rounded-[8px] border border-black/10" style="background: #FFD6E8"></div>
+              </div>
+              <a href="#/lab" class="mt-4 block text-center w-full h-9 leading-9 rounded-full bg-black text-white text-[11px] font-bold">Lihat di Overlay Lab →</a>
+              <div class="mt-3 text-[10px] opacity-60" id="youtubeSummary">Sumber: YT Music</div>
+            </div>
+          </div>
+
+          <div class="glass-strong rounded-[24px] p-5 space-y-3">
+            <div class="text-[12px] font-bold tracking-widest">UKURAN & RATA TEKS</div>
+            <div class="yt-tabs" role="radiogroup" aria-label="Ukuran overlay">
+              <button class="yt-tab js-np-fit" type="button" role="radio" data-value="content" aria-checked="true" aria-selected="true">Sesuai lagu</button>
+              <button class="yt-tab js-np-fit" type="button" role="radio" data-value="fixed" aria-checked="false" aria-selected="false">Ukuran tetap</button>
+            </div>
+            <div class="yt-tabs" role="radiogroup" aria-label="Rata teks">
+              <button class="yt-tab js-np-align" type="button" role="radio" data-value="left" aria-checked="true" aria-selected="true">Kiri</button>
+              <button class="yt-tab js-np-align" type="button" role="radio" data-value="center" aria-checked="false" aria-selected="false">Tengah</button>
+              <button class="yt-tab js-np-align" type="button" role="radio" data-value="right" aria-checked="false" aria-selected="false">Kanan</button>
+            </div>
+            <div class="field">
+              <div class="field-head"><label>Lebar untuk ukuran tetap</label><output class="js-np-width-out">560 px</output></div>
+              <input type="range" class="js-np-width" min="300" max="1000" step="10" value="560" aria-label="Lebar overlay">
+            </div>
+            <p class="hint">Ukuran tetap: judul dan penyanyi mengecil supaya muat, dan yang masih tidak muat dipotong dengan …. Sesuai lagu: kotak mengikuti panjang judul.</p>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="glass-strong rounded-[24px] p-5 space-y-4">
+              <h2 class="text-[16px] font-bold tracking-tight">YT Music</h2>
+              <div class="yt-tabs" role="radiogroup" aria-label="Cara memutar lagu">
+                <button id="ytModePlayer" class="yt-tab" type="button" role="radio" aria-checked="true" aria-selected="true">Player YouTube</button>
+                <button id="ytModeExtension" class="yt-tab" type="button" role="radio" aria-checked="false" aria-selected="false">Tab YT Music (extension)</button>
+              </div>
+              <p id="ytModeHint" class="hint"></p>
+              <div class="yt-tabs" role="radiogroup" aria-label="Urutan putar">
+                <button id="ytOrderPlaylist" class="yt-tab" type="button" role="radio" aria-checked="true" aria-selected="true">Berurutan</button>
+                <button id="ytOrderShuffle" class="yt-tab" type="button" role="radio" aria-checked="false" aria-selected="false">Acak</button>
+              </div>
+              <p id="ytOrderHint" class="hint"></p>
+              <ol id="ytExtensionSteps" class="hint space-y-1" hidden>
+                <li>1. Buka <code>chrome://extensions</code>, aktifkan Mode developer, lalu pilih Load unpacked dan pilih folder <code>extension</code>.</li>
+                <li>2. Buka panel ini di <code>127.0.0.1:3000</code> sekali, supaya kunci tersimpan di extension.</li>
+                <li>3. Buka music.youtube.com di Chrome dan biarkan tab itu terbuka.</li>
+              </ol>
+              <div id="ytPlayerRow" class="lib-row">
+                <code id="ytPlayerUrl" class="hint" style="overflow-wrap: anywhere; flex: 1">—</code>
+                <button id="ytPlayerCopy" class="btn small" type="button">Salin</button>
+              </div>
+              <p id="youtubeText" class="hint" role="status">Player belum terbuka</p>
+              <div class="lib-row" role="group" aria-label="Kontrol pemutar YT Music">
+                <button id="ytPrev" class="btn ghost small" type="button">⏮ Sebelumnya</button>
+                <button id="ytToggle" class="btn small" type="button">⏯ Putar / Jeda</button>
+                <button id="ytNext" class="btn ghost small" type="button">⏭ Berikutnya</button>
+              </div>
+              <button id="ytPlayNext" class="btn ghost small" type="button">Putar lagu berikutnya dari antrean</button>
+            </div>
+
+            <div class="glass-strong rounded-[24px] p-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <h2 class="text-[16px] font-bold tracking-tight">Pratinjau YT Music</h2>
+                <button class="h-7 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold js-reload" type="button">Muat ulang</button>
+              </div>
+              <div class="stage" style="--scale: 0.4">
+                <iframe data-frame="youtube" title="Pratinjau YT Music" tabindex="-1"></iframe>
+                <span class="stage-label">MUSIK</span>
+              </div>
+              <div class="field">
+                <div class="field-head"><span class="field-label">Perspektif YT Music</span><button class="btn ghost small js-persp-reset" type="button" data-persp="youtube">Reset</button></div>
+                <div class="field">
+                  <div class="field-head"><label for="rx-youtube">Miring kiri-kanan</label><output class="js-persp-out" data-axis="rx">0°</output></div>
+                  <input type="range" id="rx-youtube" class="js-persp" data-persp="youtube" data-axis="rx" min="-60" max="60" value="0">
+                </div>
+                <div class="field">
+                  <div class="field-head"><label for="ry-youtube">Miring atas-bawah</label><output class="js-persp-out" data-axis="ry">0°</output></div>
+                  <input type="range" id="ry-youtube" class="js-persp" data-persp="youtube" data-axis="ry" min="-60" max="60" value="0">
+                </div>
+                <div class="field">
+                  <div class="field-head"><label for="depth-youtube">Kedalaman perspektif</label><output class="js-persp-out" data-axis="depth">1200 px</output></div>
+                  <input type="range" id="depth-youtube" class="js-persp" data-persp="youtube" data-axis="depth" min="300" max="3000" step="50" value="1200">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Playlist, antrian request, dan blacklist -->
+        <div class="glass-strong rounded-[24px] p-5 space-y-4">
+          <div class="lib-head">
+            <h3>Playlist &amp; antrian</h3>
+            <div class="yt-tabs" role="tablist" aria-label="Bagian YT Music">
+              <button class="yt-tab js-yt-tab" type="button" role="tab" data-tab="playlists" aria-selected="true">Playlists</button>
+              <button class="yt-tab js-yt-tab" type="button" role="tab" data-tab="requests" aria-selected="false">Song Requests</button>
+              <button class="yt-tab js-yt-tab" type="button" role="tab" data-tab="blacklist" aria-selected="false">Blacklists</button>
+            </div>
+          </div>
+
+          <div data-ytpane="playlists" class="lib-grid">
+            <div class="lib-col">
+              <div class="lib-row">
+                <input id="plNewName" placeholder="Nama playlist baru" aria-label="Nama playlist baru" maxlength="60">
+                <button id="plCreate" class="btn small" type="button">Playlist Baru</button>
+              </div>
+              <ul id="plList" class="lib-list"></ul>
+            </div>
+            <div class="lib-col">
+              <div class="lib-row">
+                <input id="plSearch" type="search" placeholder="Cari lagu di semua playlist..." aria-label="Cari lagu di semua playlist">
+              </div>
+              <ul id="plResults" class="lib-list" hidden></ul>
+              <div id="plDetail" class="lib-col" hidden>
+                <div class="lib-head">
+                  <div>
+                    <h3 id="plName">—</h3>
+                    <p class="hint" id="plCount">0 lagu</p>
+                  </div>
+                  <div class="lib-actions">
+                    <button id="plPlayAll" class="btn small" type="button">Putar semua</button>
+                    <button id="plQueueAll" class="btn small" type="button">Tambah semua ke antrian</button>
+                    <button id="plRename" class="btn ghost small" type="button">Ganti nama</button>
+                    <button id="plDelete" class="btn ghost danger small" type="button">Hapus playlist</button>
+                  </div>
+                </div>
+                <div class="lib-row">
+                  <input id="plTitle" placeholder="Judul lagu" aria-label="Judul lagu">
+                  <input id="plArtist" placeholder="Artis" aria-label="Artis">
+                  <input id="plLink" placeholder="Link YouTube (player)" aria-label="Link YouTube lagu">
+                  <button id="plAddSong" class="btn small" type="button">Tambah lagu</button>
+                </div>
+                <div class="lib-row">
+                  <input id="plImportLink" placeholder="Link playlist YouTube (…?list=…)" aria-label="Link playlist YouTube">
+                  <button id="plImport" class="btn small" type="button">Import playlist</button>
+                </div>
+                <ol id="plSongs" class="lib-list"></ol>
+              </div>
+              <p id="plEmpty" class="hint">Buat playlist dulu, lalu tambahkan lagu di dalamnya.</p>
+            </div>
+          </div>
+
+          <div data-ytpane="requests" class="lib-col" hidden>
+            <div class="lib-head">
+              <p class="hint">Permintaan dari chat (<code>!req judul lagu</code>) dan lagu dari playlist yang diantrikan.</p>
+              <button id="ytQueueClear" class="btn ghost small" type="button">Bersihkan</button>
+            </div>
+            <ol id="ytQueueList" class="queue">
+              <li class="empty">Belum ada permintaan.</li>
+            </ol>
+          </div>
+
+          <div data-ytpane="blacklist" class="lib-grid" hidden>
+            <div class="lib-col">
+              <p class="hint">Permintaan yang mengandung judul atau kata ini tidak masuk antrean.</p>
+              <div class="lib-row">
+                <input id="blSongInput" placeholder="Judul atau kata" aria-label="Judul atau kata yang diblokir">
+                <button id="blSongAdd" class="btn small" type="button">Tambah</button>
+              </div>
+              <ul id="blSongs" class="lib-list"></ul>
+            </div>
+            <div class="lib-col">
+              <p class="hint">Penonton yang diblokir tidak bisa membuat permintaan lagi.</p>
+              <div class="lib-row">
+                <input id="blUserInput" placeholder="Nama penonton" aria-label="Nama penonton yang diblokir">
+                <button id="blUserAdd" class="btn small" type="button">Tambah</button>
+              </div>
+              <ul id="blUsers" class="lib-list"></ul>
             </div>
           </div>
         </div>
@@ -474,6 +684,24 @@
             <div class="text-[11px] opacity-60">5 template • kata tampil bergantian</div>
           </div>
 
+          <div class="glass-strong rounded-[24px] p-5 space-y-3">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <h2 class="text-[16px] font-bold tracking-tight">Daftar overlay</h2>
+                <div class="text-[11px] opacity-60">Tiap overlay punya template, font, dan link OBS sendiri. Maksimal 6.</div>
+              </div>
+              <button class="btn small" type="button" id="runningAdd">+ Tambah overlay</button>
+            </div>
+            <div id="runningList" class="flex flex-wrap gap-2" role="radiogroup" aria-label="Pilih overlay running text"></div>
+            <div class="flex flex-wrap items-end gap-3">
+              <div class="field flex-1 min-w-[200px]">
+                <div class="field-head"><label for="runningName">Nama overlay</label></div>
+                <input type="text" id="runningName" maxlength="30" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none">
+              </div>
+              <button class="btn ghost small" type="button" id="runningRemove">Hapus overlay ini</button>
+            </div>
+          </div>
+
           <div class="grid md:grid-cols-3 gap-4">
             <div class="md:col-span-2 glass-strong rounded-[24px] p-5">
               <div class="text-[12px] font-bold tracking-widest">PILIH TEMPLATE</div>
@@ -505,6 +733,11 @@
                 <div class="field-head"><label for="runningWords">Daftar kata</label></div>
                 <input type="text" id="runningWords" maxlength="400" placeholder="Photography,Videography,Streaming,Tutorial" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none">
                 <div class="text-[10px] opacity-60">Pisahkan tiap kata dengan koma. Kosong berarti pakai kata default.</div>
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="runningFont">Jenis huruf</label></div>
+                <select id="runningFont" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none"></select>
+                <div class="text-[10px] opacity-60">Mengganti huruf bawaan template. Efeknya (bayangan, garis, kapsul) tetap dipakai.</div>
               </div>
               <div class="field">
                 <div class="field-head"><label for="runningHold">Lama tiap kata (detik)</label><output id="runningHoldOut">1.4</output></div>
@@ -563,6 +796,12 @@
                   <div class="stage" style="--scale: 0.3"><iframe data-frame="nowplaying" title="Pratinjau Spotify" tabindex="-1"></iframe></div>
                 </div>
               </div>
+              <div class="absolute" style="left: 2%; top: 60%; width: 26%">
+                <div class="rounded-[12px] border border-black/20 bg-white/90 p-2 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+                  <div class="text-[10px] font-bold tracking-widest opacity-60 flex items-center justify-between mb-1"><span>YT MUSIC • LIVE</span><span class="w-2 h-2 rounded-full" style="background: #FF0000"></span></div>
+                  <div class="stage" style="--scale: 0.2"><iframe data-frame="youtube" title="Pratinjau YT Music" tabindex="-1"></iframe></div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -575,6 +814,7 @@
                 <div data-link="chat"></div>
                 <div data-link="alerts"></div>
                 <div data-link="nowplaying"></div>
+                <div data-link="youtube"></div>
                 <div data-link="runningtext"></div>
               </div>
             </div>
@@ -593,10 +833,21 @@
             <div class="flex justify-between py-2 border-b border-black/5"><span>Akun Streamover</span><span id="accountName" class="opacity-60">—</span></div>
             <div class="flex justify-between py-2 border-b border-black/5"><span>TikTok</span><span id="settingsTikTok" class="opacity-60">Belum terhubung</span></div>
             <div class="flex justify-between py-2 border-b border-black/5"><span>Spotify</span><span id="settingsSpotify" class="opacity-60">Belum terhubung</span></div>
-            <div class="flex justify-between py-2"><span>Musik</span><span id="settingsMusic" class="opacity-60">Spotify</span></div>
+            <div class="flex justify-between py-2"><span>YT Music</span><span id="settingsYouTube" class="opacity-60">Belum terhubung</span></div>
           </div>
           <div class="mt-6">
             <button id="logout" class="h-9 px-4 rounded-full bg-black text-white text-[11px] font-bold" type="button" hidden>Keluar</button>
+          </div>
+        </div>
+
+        <div class="glass-strong rounded-[24px] p-6 max-w-[720px] space-y-3">
+          <h2 class="text-[16px] font-bold tracking-tight">YouTube API</h2>
+          <p class="text-[12px] opacity-60">Dipakai untuk mencari request dari chat dan mengimpor playlist YouTube. Tanpa key, playlist dengan link tetap bisa diputar.</p>
+          <p id="ytKeyStatus" class="hint" role="status">Belum terhubung</p>
+          <div class="lib-row">
+            <input id="ytKeyInput" type="password" autocomplete="off" placeholder="Tempel API key dari Google Cloud" aria-label="YouTube API key">
+            <button id="ytKeyConnect" class="btn small" type="button">Hubungkan</button>
+            <button id="ytKeyDisconnect" class="btn ghost danger small" type="button">Putuskan</button>
           </div>
         </div>
 
@@ -617,6 +868,28 @@
 </div>
 </div>
 
+<!-- Dock pemutar YT Music di bawah panel. Audionya keluar dari browser ini, dan tetap jalan saat pindah halaman. -->
+<div id="dock" class="dock" hidden>
+  <input id="dockSeek" class="dock-seek" type="range" min="0" max="1000" value="0" aria-label="Posisi lagu">
+  <div class="dock-video" id="dockVideo"><div id="ytDockPlayer"></div></div>
+  <img id="dockThumb" class="dock-thumb" alt="" hidden>
+  <div class="dock-info">
+    <div id="dockNow" class="dock-now">Belum ada lagu</div>
+    <div id="dockStatus" class="dock-status">Player belum terbuka</div>
+  </div>
+  <span id="dockTime" class="dock-time">0:00 / 0:00</span>
+  <div class="dock-controls" role="group" aria-label="Kontrol pemutar">
+    <button id="dockPrev" class="dock-btn" type="button" aria-label="Sebelumnya">⏮</button>
+    <button id="dockToggle" class="dock-btn" type="button" aria-label="Putar atau jeda">⏯</button>
+    <button id="dockNext" class="dock-btn" type="button" aria-label="Berikutnya">⏭</button>
+  </div>
+  <label class="dock-volume">
+    <span aria-hidden="true">🔊</span>
+    <input id="dockVolume" type="range" min="0" max="100" value="100" aria-label="Volume">
+  </label>
+  <button id="dockVideoToggle" class="dock-btn" type="button" aria-label="Tampilkan atau sembunyikan video" title="Tampilkan atau sembunyikan video">▣</button>
+  <button id="dockStart" class="dock-start" type="button" hidden>Mulai</button>
+</div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script type="module" src="/panel.js"></script>

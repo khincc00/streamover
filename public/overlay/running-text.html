@@ -6,7 +6,7 @@
   <title>Overlay Running Text</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mr+Dafoe&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mr+Dafoe:wght@400&family=Pacifico:wght@400&family=Lobster:wght@400&family=Dancing+Script:wght@700&family=Bebas+Neue:wght@400&family=Anton:wght@400&family=Bangers:wght@400&family=Righteous:wght@400&family=Playfair+Display:wght@800&family=Montserrat:wght@800&display=swap">
   <link rel="stylesheet" href="/overlay/running-text-templates.css">
   <style>
     html, body {
@@ -34,7 +34,7 @@
   </div>
   <script type="module">
     import { perspectiveFromParams, applyPerspective } from '/shared/perspective.js';
-    import { DEFAULT_RUNNING_TEXT_TEMPLATE, isRunningTextTemplate } from '/shared/runningTextTemplates.js';
+    import { DEFAULT_RUNNING_TEXT_TEMPLATE, DEFAULT_RUNNING_TEXT_FONT, isRunningTextTemplate, runningTextFontStyle } from '/shared/runningTextTemplates.js';
 
     const DEFAULT_WORDS = ['Photography', 'Videography', 'Streaming', 'Tutorial'];
     const DEFAULT_HOLD = 1400;
@@ -70,6 +70,9 @@
     const word = document.getElementById('word');
     word.classList.add('rt-word', `rt-${template}`);
     word.style.fontSize = `${size}px`;
+    // A chosen font replaces the template's font; the template's effects (shadow, stroke, pill) stay.
+    const fontStyle = runningTextFontStyle(params.get('font') || DEFAULT_RUNNING_TEXT_FONT);
+    if (fontStyle) Object.assign(word.style, fontStyle);
     // The color is a variable on the stage, so the template CSS can use it for text, stroke and glow.
     stage.style.setProperty('--rt-color', color);
     // The perspective goes on the stage, not the word: the word's own animation sets its transform.

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Player YT Music</title>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; background: #111114; color: #f5f5f7; font-family: system-ui, sans-serif; }
+    body { min-height: 100vh; display: grid; place-items: center; padding: 16px; box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    .card { width: min(640px, 100%); display: grid; gap: 12px; }
+    #video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; }
+    #video.quiet { position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    .now { font-size: 14px; font-weight: 700; }
+    .now small { display: block; font-weight: 400; opacity: 0.6; margin-top: 4px; }
+    button { height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: #f5f5f7; color: #111114; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .hint { font-size: 12px; opacity: 0.6; margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="video"><div id="player"></div></div>
+    <div class="now" id="now">Belum ada lagu. Putar dari Streamover, lalu lagunya muncul di sini.</div>
+    <button id="start" type="button" hidden>Mulai (klik sekali agar audio bisa keluar)</button>
+    <p class="hint" id="status">Menunggu server…</p>
+  </div>
+  <script type="module">
+    import { connectHub } from '/shared/ws.js';
+    import { startYouTubePlayer } from '/shared/ytPlayer.js';
+
+    const params = new URLSearchParams(location.search);
+    const key = params.get('key');
+    // The picture is shown by default so it's clear what is playing. video=0 keeps it tiny; only the audio plays then.
+    if (params.get('video') === '0') document.getElementById('video').classList.add('quiet');
+
+    const now = document.getElementById('now');
+    const start = document.getElementById('start');
+    const status = document.getElementById('status');
+    // Without a key in the link the page can't report, so the panel would never see it.
+    const warning = key ? '' : 'Link ini tidak punya kunci. Salin ulang link player dari panel.';
+
+    const player = startYouTubePlayer({
+      element: document.getElementById('player'),
+      key,
+      onStatus: ({ state, lastError, needsClick, current }) => {
+        now.textContent = current?.title || 'Belum ada lagu. Putar dari Streamover, lalu lagunya muncul di sini.';
+        if (current?.artist) {
+          const small = document.createElement('small');
+          small.textContent = current.artist;
+          now.append(small);
+        }
+        start.hidden = !needsClick;
+        status.textContent = [warning, lastError, `Status: ${state}${needsClick ? ' · klik Mulai dulu' : ''}`].filter(Boolean).join(' — ');
+      },
+    });
+
+    start.addEventListener('click', () => player.unlock());
+    connectHub((msg) => {
+      if (msg.type === 'player') player.command(msg);
+    });
+  </script>
+</body>
+</html>

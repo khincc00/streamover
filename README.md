@@ -28,11 +28,20 @@ Menampilkan lagu yang sedang diputar di Spotify sebagai overlay.
 
 Catatan: mode development Spotify membatasi 5 pengguna per Client ID, dan pemilik aplikasi harus punya akun Spotify Premium. Tambahkan akun yang akan dipakai di bagian User Management pada dashboard. Client ID dan token disimpan di `.spotify.json` dan tidak ikut ter-commit.
 
-Overlay: `http://127.0.0.1:3000/overlay/nowplaying.html`
+Overlay: `http://127.0.0.1:3000/overlay/nowplaying.html` (sama dengan `?source=spotify`)
 
 Permintaan lagu dari chat (`!req judul lagu`) masuk ke daftar, maksimal 5 permintaan dengan satu permintaan per penonton. Lagu dihapus dari daftar saat mulai diputar. Permintaan hanya masuk ke daftar kecuali opsi **Masukkan otomatis ke antrean Spotify** dinyalakan. Opsi itu butuh:
 - Akun Spotify yang Premium, dan Spotify sedang aktif di salah satu perangkat.
 - Izin antrean. Akun yang sudah terhubung sebelum fitur ini harus klik **Hubungkan Spotify** sekali lagi.
+
+## YT Music (opsional)
+
+YT Music punya halaman sendiri, **YT Music Studio**, terpisah dari Spotify. Ada dua cara memutar lagu, dan bisa dipilih di kartu **YT Music**:
+
+- **Player YouTube** (bawaan). Lagu diputar di dock bawah panel dengan player YouTube. Audionya keluar dari browser yang membuka panel. Tiap lagu di playlist perlu link YouTube. Kalau mau disiarkan, tangkap audio browser di OBS.
+- **Tab YT Music (extension)**. Lagu dicari dan diputar di tab `music.youtube.com` yang terbuka di Chrome. Cukup isi judul dan artis. Pasang extension dari folder `extension/` lewat `chrome://extensions` (Mode developer, Load unpacked). Buka panel di `http://127.0.0.1:3000` sekali agar kunci tersimpan, lalu biarkan tab YT Music terbuka. Kontrolnya bergantung pada struktur halaman YT Music, jadi bisa berhenti kalau YouTube mengubah halamannya. Extension ini mengirim ke `127.0.0.1:3000`, jadi mode ini hanya untuk server yang jalan di komputer sendiri. Di server publik seperti streamover.khincreator.com, pakai **Player YouTube**.
+
+Request dari chat (`!req judul lagu`) dicari di YouTube, dan import playlist juga memakai YouTube API. Hubungkan key di halaman **Settings** panel, atau isi `YOUTUBE_API_KEY` di `.env`. Video yang dibatasi umur atau diblokir di wilayah siaran tidak dipilih; wilayahnya Indonesia, atau isi `YOUTUBE_REGION` (kode negara) di `.env`. Tanpa key, request tetap masuk ke daftar, tapi tidak bisa diputar otomatis. Lagu dari playlist tidak memerlukan key.
 
 ## Pakai di OBS
 
@@ -41,6 +50,7 @@ Permintaan lagu dari chat (`!req judul lagu`) masuk ke daftar, maksimal 5 permin
    - Chat: `http://127.0.0.1:3000/overlay/chat.html?size=22&max=15&template=classic&anim=up&dur=250` (template: `classic`, `glass`, `modern`, `vision`, `pill`, `light`; animasi: `up`, `fade`, `left`, `zoom`, `bounce`, `none`; semua bisa diatur di panel kontrol)
    - Warna sendiri (opsional, tambahkan `custom=1` lalu `accent`, `text`, `bg` berisi 6 digit heks tanpa `#`, misalnya `accent=6ee7ff`)
    - Alert: `http://127.0.0.1:3000/overlay/alerts.html?duration=4000` (follow, share, dan gift; memakai template, animasi, dan warna yang sama dengan chat)
+   - Spotify dan YT Music: link `nowplaying.html` dengan `?source=spotify` atau `?source=youtube`, masing-masing dari kartu di YT Music Studio atau Spotify Studio
 3. Ukuran yang disarankan: chat 500×700, alert 1280×720 (sesuaikan dengan kanvas).
 4. Background overlay sudah transparan. Tidak perlu Chroma Key.
 

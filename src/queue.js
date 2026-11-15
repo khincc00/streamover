@@ -41,6 +41,25 @@ export class RequestQueue {
     return this.items.slice();
   }
 
+  // Songs the streamer puts in from the panel, such as a whole playlist. They skip the chat limits,
+  // since the streamer picks them, and they have no viewer to be unique to.
+  // videoId and videoTitle come with playlist songs, which already have their YouTube link.
+  addFromPanel({ nickname, song, videoId = null, videoTitle = null, channel = '' }) {
+    const item = {
+      id: crypto.randomUUID(),
+      uniqueId: crypto.randomUUID(),
+      nickname,
+      song,
+      videoId,
+      videoTitle,
+      channel,
+      at: Date.now(),
+    };
+    this.items.push(item);
+    this.save();
+    return item;
+  }
+
   // Returns { item } when added, or { error } with the reason.
   add({ uniqueId, nickname, song }) {
     if (this.items.length >= QUEUE_LIMIT) return { error: 'full' };
