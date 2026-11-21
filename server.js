@@ -8,7 +8,7 @@ import { LiveSession } from './src/liveSession.js';
 import { createHub } from './src/hub.js';
 import { SAMPLES } from './src/samples.js';
 import { SpotifySession } from './src/spotify.js';
-import { lyricsFor } from './src/lyrics.js';
+import { lyricsFor, lyricsById, searchLyrics } from './src/lyrics.js';
 import { YouTubeMusicBridge } from './src/ytmusic.js';
 import { UserStore } from './src/users.js';
 import { FeedBuffer } from './src/feed.js';
@@ -172,34 +172,68 @@ function broadcastNowPlaying(ctx, source) {
   const message = nowPlayingMessage(ctx, source);
   hub.broadcast(ctx.userId, message);
   removePlayedRequests(ctx, source, message.nowPlaying);
-  if (source === 'spotify') trackLyrics(ctx, message.nowPlaying);
+  trackLyrics(ctx, source, message.nowPlaying);
 }
 
-// The lyrics for the Spotify song that is playing. The overlay gets the lines once per song,
-// and keeps its place from the progress in the nowplaying messages.
-function lyricsMessage(ctx) {
-  return { type: 'lyrics', source: 'spotify', uri: ctx.lyrics.uri, lines: ctx.lyrics.lines };
+// The lyrics for the song playing in one source ('spotify' or 'youtube'). The overlay gets the lines once per song,
+// and keeps its place from the progress in the nowplaying messages. key says which song the lines belong to.
+function lyricsMessage(ctx, source) {
+  const { key, lines } = ctx.lyrics[source];
+  return { type: 'lyrics', source, key, lines };
 }
 
 // A new song asks LRCLIB once. Polls for the same song do nothing, so a missing lyric isn't retried every few seconds.
-function trackLyrics(ctx, nowPlaying) {
-  const uri = nowPlaying?.uri || '';
-  if (!uri || uri === ctx.lyrics.uri) return;
-  ctx.lyrics = { uri, lines: null };
-  hub.broadcast(ctx.userId, lyricsMessage(ctx));
+// A pick made by hand in the panel wins over the automatic search.
+function trackLyrics(ctx, source, track) {
+  const key = track?.key || '';
+  if (!key || key === ctx.lyrics[source].key) return;
+  ctx.lyrics[source] = { key, lines: null };
+  hub.broadcast(ctx.userId, lyricsMessage(ctx, source));
 
   const finish = (lines) => {
     // The song may have changed while LRCLIB was answering. Then this answer is already out of date.
-    if (ctx.lyrics.uri !== uri) return;
-    ctx.lyrics.lines = lines;
-    hub.broadcast(ctx.userId, lyricsMessage(ctx));
+    if (ctx.lyrics[source].key !== key) return;
+    ctx.lyrics[source].lines = lines;
+    hub.broadcast(ctx.userId, lyricsMessage(ctx, source));
   };
   // Podcast episodes have no synced lyrics on LRCLIB, so they are not looked up.
-  if (nowPlaying.kind !== 'track') return finish([]);
-  lyricsFor(nowPlaying).then(finish, (err) => {
+  if (track.kind !== 'track') return finish([]);
+
+  const override = ctx.lyricOverrides[key];
+  // Spotify can help find a YouTube song, if the account is connected.
+  const lookup = source === 'youtube' && ctx.spotify.status().connected
+    ? (t) => ctx.spotify.searchTrack(`${t.title} ${t.artist}`)
+    : null;
+  const work = override ? lyricsById(override.id) : lyricsFor(key, track, lookup);
+  work.then(finish, (err) => {
     console.warn(`[lirik] ${err.message}`);
     finish([]);
   });
+}
+
+// Reads the saved lyric picks of one account. A missing or broken file means no picks.
+function readLyricOverrides(file) {
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function saveLyricOverrides(ctx) {
+  const tmp = `${ctx.lyricsFile}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(ctx.lyricOverrides, null, 2));
+  fs.renameSync(tmp, ctx.lyricsFile);
+}
+
+// After a pick changes, the song playing now (if it is that song) gets its lyrics again.
+function refreshLyrics(ctx, key) {
+  for (const source of ['spotify', 'youtube']) {
+    const track = nowPlayingMessage(ctx, source).nowPlaying;
+    if (track?.key !== key || ctx.lyrics[source].key !== key) continue;
+    ctx.lyrics[source] = { key: '', lines: null };
+    trackLyrics(ctx, source, track);
+  }
 }
 
 // When a new song starts, the requests for it leave the list. The same song playing on and on
@@ -287,7 +321,10 @@ function contextFor(userId) {
     playOrder: music.playOrder, // 'playlist' (in order) or 'shuffle'
     youtubeCommands: [], // extension mode: commands waiting for the YT Music tab
     lastTrackKey: {},
-    lyrics: { uri: '', lines: null }, // Spotify song the lyrics are for. lines: null while loading, [] when none exist
+    // Per source: the song (key) the lyrics are for. lines is null while loading, [] when none exist.
+    lyrics: { spotify: { key: '', lines: null }, youtube: { key: '', lines: null } },
+    lyricsFile: path.join(dir, 'lyrics.json'),
+    lyricOverrides: readLyricOverrides(path.join(dir, 'lyrics.json')), // song key -> { id } of the LRCLIB lyrics picked by hand
     youtubeKey: readYouTubeKey(dir), // connected in the panel; empty means use .env
     player: { current: null, history: [], cursor: null, bag: null }, // what the player page is playing, and its playlist position
     feed: new FeedBuffer(path.join(dir, 'feed.json')),
@@ -924,6 +961,35 @@ app.post('/api/settings', (req, res) => {
   res.json({ ok: true });
 });
 
+// ---- Lirik: cari dan pilih lirik per lagu ----
+
+app.get('/api/lyrics/search', async (req, res) => {
+  const query = String(req.query.q || '').trim().slice(0, 200);
+  if (!query) return res.json({ results: [] });
+  try {
+    res.json({ results: await searchLyrics(query) });
+  } catch {
+    res.status(502).json({ error: 'Pencarian lirik gagal, coba lagi' });
+  }
+});
+
+// id null removes the pick, so the song goes back to automatic lyrics.
+app.post('/api/lyrics/override', (req, res) => {
+  const key = String(req.body?.key || '').slice(0, 300);
+  const id = req.body?.id ?? null;
+  if (!key) return res.status(400).json({ error: 'Belum ada lagu yang diputar' });
+  if (id === null) {
+    delete req.ctx.lyricOverrides[key];
+  } else if (Number.isInteger(Number(id)) && Number(id) > 0) {
+    req.ctx.lyricOverrides[key] = { id: Number(id) };
+  } else {
+    return res.status(400).json({ error: 'Pilihan lirik tidak valid' });
+  }
+  saveLyricOverrides(req.ctx);
+  refreshLyrics(req.ctx, key);
+  res.json({ ok: true });
+});
+
 // ---- Live channel ----
 
 // An overlay key identifies the account for OBS. A logged-in panel identifies it by cookie.
@@ -943,7 +1009,8 @@ const hub = createHub(server, {
       { type: 'status', ...ctx.live.status() },
       nowPlayingMessage(ctx, 'spotify'),
       nowPlayingMessage(ctx, 'youtube'),
-      lyricsMessage(ctx),
+      lyricsMessage(ctx, 'spotify'),
+      lyricsMessage(ctx, 'youtube'),
     ];
   },
 });

@@ -454,6 +454,7 @@
                 <div data-link="alerts"></div>
                 <div data-link="nowplaying"></div>
                 <div data-link="lyrics"></div>
+              <div data-link="lyricsyt"></div>
                 <div data-link="youtube"></div>
                 <div data-link="runningtext"></div>
               </div>
@@ -582,6 +583,7 @@
               </div>
               <p class="hint">Lirik tersinkron dari LRCLIB, tanpa perlu login. Baris yang sedang dinyanyikan disorot dengan kilau. Lagu tanpa lirik tersinkron tidak menampilkan apa-apa. Podcast tidak punya lirik.</p>
               <div data-link="lyrics"></div>
+              <div data-link="lyricsyt"></div>
               <div class="stage" style="--scale: 0.4">
                 <iframe data-frame="lyrics" title="Pratinjau lirik" tabindex="-1"></iframe>
                 <span class="stage-label">LIRIK</span>
@@ -606,6 +608,20 @@
                   <input type="range" id="depth-lyrics" class="js-persp" data-persp="lyrics" data-axis="depth" min="300" max="3000" step="50" value="1200">
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="glass-strong rounded-[24px] p-5 space-y-3">
+              <h2 class="text-[16px] font-bold tracking-tight">Pilih lirik lagu</h2>
+              <p class="hint">Kalau lirik otomatis salah atau tidak ditemukan, cari lagu yang benar lalu pilih. Pilihan disimpan untuk lagu itu, jadi lagu yang sama berikutnya memakai lirik yang sama. Lagu harus sedang diputar dulu, dari Spotify atau YT Music.</p>
+              <div id="lyricsNow" class="text-[13px] font-bold">Belum ada lagu yang diputar</div>
+              <div class="flex gap-2">
+                <input id="lyricsQuery" class="flex-1 min-w-0 rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none" placeholder="Judul dan artis" aria-label="Cari lirik" autocomplete="off">
+                <button id="lyricsSearch" class="h-9 px-4 rounded-full bg-black text-white text-[11px] font-bold" type="button">Cari</button>
+              </div>
+              <ol id="lyricsResults" class="queue mt-3"></ol>
+              <button id="lyricsAuto" class="btn ghost small" type="button">Kembali ke lirik otomatis</button>
             </div>
           </div>
         </div>

@@ -19,7 +19,8 @@ const OVERLAYS = {
   alerts: { label: 'Alert', file: 'alerts.html' },
   nowplaying: { label: 'Spotify', file: 'nowplaying.html', source: 'spotify' },
   youtube: { label: 'YT Music', file: 'nowplaying.html', source: 'youtube' },
-  lyrics: { label: 'Lirik Spotify', file: 'lyrics.html' },
+  lyrics: { label: 'Lirik Spotify', file: 'lyrics.html', source: 'spotify' },
+  lyricsyt: { label: 'Lirik YT Music', file: 'lyrics.html', source: 'youtube' },
   tts: { label: 'Pembaca komentar', file: 'tts.html' },
   runningtext: { label: 'Running text', file: 'running-text.html' },
 };
@@ -329,7 +330,9 @@ function overlayUrl(key, item = selectedRunningText()) {
     params.set('size', item.size);
     params.set('color', item.color);
   }
-  if (key === 'lyrics') {
+  // Lirik YT Music memakai font, warna, dan perspektif yang sama dengan lirik Spotify.
+  const styleKey = key === 'lyricsyt' ? 'lyrics' : key;
+  if (styleKey === 'lyrics') {
     params.set('font', settings.lyricsFont);
     params.set('color', settings.lyricsColor.slice(1));
   }
@@ -342,7 +345,7 @@ function overlayUrl(key, item = selectedRunningText()) {
   }
   // Pembaca komentar tidak tampil di layar, jadi tidak ada perspektif.
   if (key !== 'tts') {
-    const persp = key === 'runningtext' ? item.persp : settings.persp[key];
+    const persp = key === 'runningtext' ? item.persp : settings.persp[styleKey];
     params.set('rx', persp.rx);
     params.set('ry', persp.ry);
     params.set('pd', persp.depth);
@@ -1559,6 +1562,85 @@ function bindTts() {
   });
 }
 
+// ---- Pilih lirik lagu: cari di LRCLIB dan simpan pilihan untuk lagu itu ----
+
+// The last song each source reported. The hub sends these to the panel as nowplaying messages.
+const latestTrack = { spotify: null, youtube: null };
+
+// The song the picker works on: the one playing now, YT Music first if both are.
+function lyricsTrack() {
+  return [latestTrack.youtube, latestTrack.spotify].find((t) => t?.playing) || latestTrack.youtube || latestTrack.spotify || null;
+}
+
+function renderLyricsNow() {
+  const track = lyricsTrack();
+  $('lyricsNow').textContent = track?.key ? `Sedang diputar: ${track.title} — ${track.artist}` : 'Belum ada lagu yang diputar';
+  // The search box follows the song. A new song fills it again and clears the old results.
+  const input = $('lyricsQuery');
+  if (track?.key && input.dataset.key !== track.key) {
+    input.dataset.key = track.key;
+    input.value = `${track.title} ${track.artist}`.trim();
+    $('lyricsResults').replaceChildren();
+  }
+}
+
+function renderLyricsResults(results) {
+  const list = $('lyricsResults');
+  list.replaceChildren();
+  if (results.length === 0) {
+    const empty = document.createElement('li');
+    empty.className = 'empty';
+    empty.textContent = 'Tidak ada lirik tersinkron yang cocok.';
+    list.append(empty);
+    return;
+  }
+  for (const r of results) {
+    const li = document.createElement('li');
+    const info = document.createElement('span');
+    const length = `${Math.floor(r.duration / 60)}:${String(r.duration % 60).padStart(2, '0')}`;
+    info.textContent = `${r.title} — ${r.artist}${r.album ? ` · ${r.album}` : ''} · ${length}`;
+    const pick = document.createElement('button');
+    pick.className = 'btn small';
+    pick.type = 'button';
+    pick.textContent = 'Pakai';
+    pick.addEventListener('click', () => chooseLyrics(r.id));
+    li.append(info, pick);
+    list.append(li);
+  }
+}
+
+async function searchLyricsFor() {
+  const query = $('lyricsQuery').value.trim();
+  if (!query) return toast('Isi judul atau artis dulu');
+  try {
+    const { results } = await api(`/api/lyrics/search?q=${encodeURIComponent(query)}`);
+    renderLyricsResults(results);
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
+// id null removes the pick, so the song goes back to automatic lyrics.
+async function chooseLyrics(id) {
+  const track = lyricsTrack();
+  if (!track?.key) return toast('Putar lagu dulu, lalu pilih liriknya');
+  try {
+    await api('/api/lyrics/override', { key: track.key, id });
+    toast(id === null ? 'Kembali ke lirik otomatis' : 'Lirik dipilih untuk lagu ini');
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
+function bindLyricsPicker() {
+  $('lyricsSearch').addEventListener('click', searchLyricsFor);
+  $('lyricsQuery').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') searchLyricsFor();
+  });
+  $('lyricsAuto').addEventListener('click', () => chooseLyrics(null));
+  renderLyricsNow();
+}
+
 // ---- Template Spotify ----
 
 // Kartu template Spotify dibuat dari daftar yang sama dengan overlay, dengan kelas np-* yang sama.
@@ -1964,6 +2046,9 @@ connectHub((msg) => {
       return;
     case 'spotify':
       return renderSpotify(msg);
+    case 'nowplaying':
+      latestTrack[msg.source] = msg.nowPlaying;
+      return renderLyricsNow();
     case 'youtube':
       return renderYouTube(msg);
     case 'player':
@@ -2035,6 +2120,7 @@ bindPerspective();
 bindLibrary();
 bindNpOptions();
 bindLyricsStyle();
+bindLyricsPicker();
 bindTts();
 
 renderAnims();

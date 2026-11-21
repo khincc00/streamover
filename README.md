@@ -32,6 +32,8 @@ Overlay: `http://127.0.0.1:3000/overlay/nowplaying.html` (sama dengan `?source=s
 
 Lirik: `http://127.0.0.1:3000/overlay/lyrics.html`. Lirik tersinkron diambil dari [LRCLIB](https://lrclib.net) setiap lagu berganti, tanpa login dan tanpa cookie Spotify. Lagu yang tidak punya lirik tersinkron di LRCLIB hanya menampilkan pesan kosong, dan podcast tidak punya lirik. Untuk menggeser waktu lirik, tambahkan `&offset=<ms>` (positif = lirik muncul lebih lambat, negatif = lebih cepat). Ukuran baris aktif bisa diubah dengan `&size=<px>` (bawaan 56).
 
+Lirik YT Music: `http://127.0.0.1:3000/overlay/lyrics.html?source=youtube`. Judul YouTube dibersihkan dulu (keterangan seperti "(Official Video)" dibuang). Kalau LRCLIB tidak menemukan lirik dan akun Spotify sudah terhubung, judul dicari lewat Spotify untuk dicocokkan ulang. Kalau masih salah, pilih lirik yang benar di kartu **Pilih lirik lagu** di Spotify Studio. Pilihan itu disimpan per lagu. Untuk mode extension, posisi lagu dikirim oleh extension, jadi extension perlu di-reload di `chrome://extensions` setelah update ini.
+
 Permintaan lagu dari chat (`!req judul lagu`) masuk ke daftar, maksimal 5 permintaan dengan satu permintaan per penonton. Lagu dihapus dari daftar saat mulai diputar. Permintaan hanya masuk ke daftar kecuali opsi **Masukkan otomatis ke antrean Spotify** dinyalakan. Opsi itu butuh:
 - Akun Spotify yang Premium, dan Spotify sedang aktif di salah satu perangkat.
 - Izin antrean. Akun yang sudah terhubung sebelum fitur ini harus klik **Hubungkan Spotify** sekali lagi.
