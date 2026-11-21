@@ -8,6 +8,7 @@ import { LiveSession } from './src/liveSession.js';
 import { createHub } from './src/hub.js';
 import { SAMPLES } from './src/samples.js';
 import { SpotifySession } from './src/spotify.js';
+import { lyricsFor } from './src/lyrics.js';
 import { YouTubeMusicBridge } from './src/ytmusic.js';
 import { UserStore } from './src/users.js';
 import { FeedBuffer } from './src/feed.js';
@@ -27,7 +28,8 @@ const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || '';
 const PANEL_SETTING_KEYS = [
   'size', 'max', 'chatMode', 'chatHold', 'duration', 'template', 'spotifyTemplate', 'youtubeTemplate', 'anim', 'dur',
   'custom', 'accent', 'text', 'bg', 'gradient', 'persp', 'username',
-  'runningTexts', 'runningSelected', 'npFit', 'npAlign', 'npWidth',
+  'runningTexts', 'runningSelected', 'npFit', 'npAlign', 'npWidth', 'lyricsFont', 'lyricsColor',
+  'ttsChat', 'ttsAlert', 'ttsPrefix', 'ttsRate', 'ttsVoice',
 ];
 
 // The events kept in each account's activity history.
@@ -170,6 +172,34 @@ function broadcastNowPlaying(ctx, source) {
   const message = nowPlayingMessage(ctx, source);
   hub.broadcast(ctx.userId, message);
   removePlayedRequests(ctx, source, message.nowPlaying);
+  if (source === 'spotify') trackLyrics(ctx, message.nowPlaying);
+}
+
+// The lyrics for the Spotify song that is playing. The overlay gets the lines once per song,
+// and keeps its place from the progress in the nowplaying messages.
+function lyricsMessage(ctx) {
+  return { type: 'lyrics', source: 'spotify', uri: ctx.lyrics.uri, lines: ctx.lyrics.lines };
+}
+
+// A new song asks LRCLIB once. Polls for the same song do nothing, so a missing lyric isn't retried every few seconds.
+function trackLyrics(ctx, nowPlaying) {
+  const uri = nowPlaying?.uri || '';
+  if (!uri || uri === ctx.lyrics.uri) return;
+  ctx.lyrics = { uri, lines: null };
+  hub.broadcast(ctx.userId, lyricsMessage(ctx));
+
+  const finish = (lines) => {
+    // The song may have changed while LRCLIB was answering. Then this answer is already out of date.
+    if (ctx.lyrics.uri !== uri) return;
+    ctx.lyrics.lines = lines;
+    hub.broadcast(ctx.userId, lyricsMessage(ctx));
+  };
+  // Podcast episodes have no synced lyrics on LRCLIB, so they are not looked up.
+  if (nowPlaying.kind !== 'track') return finish([]);
+  lyricsFor(nowPlaying).then(finish, (err) => {
+    console.warn(`[lirik] ${err.message}`);
+    finish([]);
+  });
 }
 
 // When a new song starts, the requests for it leave the list. The same song playing on and on
@@ -257,6 +287,7 @@ function contextFor(userId) {
     playOrder: music.playOrder, // 'playlist' (in order) or 'shuffle'
     youtubeCommands: [], // extension mode: commands waiting for the YT Music tab
     lastTrackKey: {},
+    lyrics: { uri: '', lines: null }, // Spotify song the lyrics are for. lines: null while loading, [] when none exist
     youtubeKey: readYouTubeKey(dir), // connected in the panel; empty means use .env
     player: { current: null, history: [], cursor: null, bag: null }, // what the player page is playing, and its playlist position
     feed: new FeedBuffer(path.join(dir, 'feed.json')),
@@ -912,6 +943,7 @@ const hub = createHub(server, {
       { type: 'status', ...ctx.live.status() },
       nowPlayingMessage(ctx, 'spotify'),
       nowPlayingMessage(ctx, 'youtube'),
+      lyricsMessage(ctx),
     ];
   },
 });

@@ -19,11 +19,15 @@ const OVERLAYS = {
   alerts: { label: 'Alert', file: 'alerts.html' },
   nowplaying: { label: 'Spotify', file: 'nowplaying.html', source: 'spotify' },
   youtube: { label: 'YT Music', file: 'nowplaying.html', source: 'youtube' },
+  lyrics: { label: 'Lirik Spotify', file: 'lyrics.html' },
+  tts: { label: 'Pembaca komentar', file: 'tts.html' },
   runningtext: { label: 'Running text', file: 'running-text.html' },
 };
 
 // Halaman sesuai menu sidebar: Dashboard, Template Studio, Spotify Studio, YT Music Studio, Alert, Running text, Overlay Lab, Settings.
-const VIEW_NAMES = ['home', 'chat', 'musik', 'ytmusic', 'alert', 'running', 'lab', 'settings'];
+const VIEW_NAMES = ['home', 'musik', 'ytmusic', 'running', 'settings'];
+// Template chat, alert, dan Overlay Lab ada di satu halaman dengan tab. Link lama (#/chat, #/alert, #/lab) tetap membuka tab yang sama.
+const STUDIO_TABS = { studio: 'chat', chat: 'chat', alert: 'alert', lab: 'lab' };
 
 // Batas overlay running text. Tiap overlay punya link OBS sendiri.
 const RUNNING_MAX = 6;
@@ -58,6 +62,13 @@ const settings = {
   npFit: 'content', // overlay lagu: 'content' (sesuai lagu) or 'fixed' (ukuran tetap)
   npAlign: 'left', // 'left', 'center', or 'right'
   npWidth: 560, // width in px for fixed size
+  lyricsFont: 'default', // jenis huruf lirik: id dari RUNNING_TEXT_FONTS, 'default' memakai huruf sistem
+  lyricsColor: '#ffffff', // warna teks lirik
+  ttsChat: false, // baca komentar chat
+  ttsAlert: false, // baca alert gift, follow, dan share
+  ttsPrefix: false, // kalau aktif, hanya komentar yang diawali !tts yang dibaca
+  ttsRate: 1, // kecepatan bicara, 0.5 sampai 2
+  ttsVoice: '', // nama suara. Kosong berarti otomatis, suara bahasa Indonesia kalau ada
   username: '',
   ...DEFAULT_CHAT_STYLE,
   ...readJson(SETTINGS_KEY),
@@ -65,7 +76,7 @@ const settings = {
 
 // Perspektif per overlay. Saved values are clamped so a bad saved value can't break the overlay.
 // Running text punya perspektif sendiri di tiap overlay, jadi tidak ada di sini.
-const PERSP_KEYS = ['chat', 'alerts', 'nowplaying', 'youtube'];
+const PERSP_KEYS = ['chat', 'alerts', 'nowplaying', 'youtube', 'lyrics'];
 const PERSP_TARGETS = [...PERSP_KEYS, 'runningtext'];
 
 // Makes sure every setting has a valid value, whether it came from this browser or the server.
@@ -80,6 +91,13 @@ function sanitizeSettings() {
   if (!isNowPlayingTemplate(settings.youtubeTemplate)) settings.youtubeTemplate = DEFAULT_NOWPLAYING_TEMPLATE;
   if (!['content', 'fixed'].includes(settings.npFit)) settings.npFit = 'content';
   if (!['left', 'center', 'right'].includes(settings.npAlign)) settings.npAlign = 'left';
+  if (!isRunningTextFont(settings.lyricsFont)) settings.lyricsFont = 'default';
+  if (!/^#[0-9a-f]{6}$/i.test(settings.lyricsColor)) settings.lyricsColor = '#ffffff';
+  settings.ttsChat = Boolean(settings.ttsChat);
+  settings.ttsAlert = Boolean(settings.ttsAlert);
+  settings.ttsPrefix = Boolean(settings.ttsPrefix);
+  settings.ttsRate = clampTo(Number(settings.ttsRate) || 1, { min: 0.5, max: 2 });
+  settings.ttsVoice = typeof settings.ttsVoice === 'string' ? settings.ttsVoice.slice(0, 100) : '';
   settings.npWidth = clampTo(Number(settings.npWidth) || 560, { min: 300, max: 1000 });
   if (!CHAT_MODES.some((m) => m.id === settings.chatMode)) settings.chatMode = 'history';
   settings.chatHold = clampTo(Number(settings.chatHold) || 6, { min: 2, max: 60 });
@@ -311,10 +329,24 @@ function overlayUrl(key, item = selectedRunningText()) {
     params.set('size', item.size);
     params.set('color', item.color);
   }
-  const persp = key === 'runningtext' ? item.persp : settings.persp[key];
-  params.set('rx', persp.rx);
-  params.set('ry', persp.ry);
-  params.set('pd', persp.depth);
+  if (key === 'lyrics') {
+    params.set('font', settings.lyricsFont);
+    params.set('color', settings.lyricsColor.slice(1));
+  }
+  if (key === 'tts') {
+    params.set('chat', settings.ttsChat ? '1' : '0');
+    params.set('alert', settings.ttsAlert ? '1' : '0');
+    params.set('prefix', settings.ttsPrefix ? '1' : '0');
+    params.set('rate', settings.ttsRate);
+    if (settings.ttsVoice) params.set('voice', settings.ttsVoice);
+  }
+  // Pembaca komentar tidak tampil di layar, jadi tidak ada perspektif.
+  if (key !== 'tts') {
+    const persp = key === 'runningtext' ? item.persp : settings.persp[key];
+    params.set('rx', persp.rx);
+    params.set('ry', persp.ry);
+    params.set('pd', persp.depth);
+  }
   // Only set when the server has a password, so OBS can open the overlay without logging in.
   if (overlayKey) params.set('key', overlayKey);
   const query = params.toString();
@@ -353,15 +385,32 @@ $('logout').addEventListener('click', async () => {
 
 // ---- Routing: beranda dan satu halaman per kustomisasi ----
 
+function currentRouteName() {
+  return location.hash.replace(/^#\/?/, '');
+}
+
 function currentView() {
-  const name = location.hash.replace(/^#\/?/, '');
+  const name = currentRouteName();
+  if (Object.hasOwn(STUDIO_TABS, name)) return 'studio';
   return VIEW_NAMES.includes(name) ? name : 'home';
+}
+
+function currentStudioTab() {
+  return STUDIO_TABS[currentRouteName()] || 'chat';
 }
 
 function route() {
   const view = currentView();
   for (const section of document.querySelectorAll('[data-view]')) {
     section.hidden = section.dataset.view !== view;
+  }
+  // Di halaman gabungan, hanya satu tab yang tampil.
+  const tab = currentStudioTab();
+  for (const sub of document.querySelectorAll('[data-subview]')) {
+    sub.hidden = sub.dataset.subview !== tab;
+  }
+  for (const link of document.querySelectorAll('[data-studio-tab]')) {
+    link.setAttribute('aria-selected', String(link.dataset.studioTab === tab));
   }
   for (const link of document.querySelectorAll('[data-nav]')) {
     if (link.dataset.nav === view) link.setAttribute('aria-current', 'page');
@@ -1152,6 +1201,8 @@ function renderLinks() {
 // Pratinjau running text menampilkan overlay yang sedang dipilih.
 function refreshPreview() {
   for (const frame of document.querySelectorAll('[data-view]:not([hidden]) [data-frame]')) {
+    // Pratinjau di tab yang tidak tampil tidak perlu dimuat. Tab itu dimuat saat dibuka.
+    if (frame.closest('[data-subview][hidden]')) continue;
     frame.src = overlayUrl(frame.dataset.frame);
   }
 }
@@ -1432,6 +1483,80 @@ function bindNpOptions() {
     });
   }
   renderNpOptions();
+}
+
+// ---- Lirik Spotify: jenis huruf dan warna. Perspektif memakai bindPerspective seperti overlay lain. ----
+
+function bindLyricsStyle() {
+  const font = $('lyricsFont');
+  for (const f of RUNNING_TEXT_FONTS) font.append(new Option(f.label, f.id));
+  font.value = settings.lyricsFont;
+  font.addEventListener('change', () => {
+    settings.lyricsFont = font.value;
+    saveSettings();
+    renderLinks();
+    refreshPreviewSoon();
+  });
+
+  const color = $('lyricsColor');
+  color.value = settings.lyricsColor;
+  color.addEventListener('input', () => {
+    settings.lyricsColor = color.value;
+    saveSettings();
+    renderLinks();
+    refreshPreviewSoon();
+  });
+}
+
+// ---- Pembaca komentar dan alert. Suaranya dibuat di overlay (OBS), jadi pilihan suara dibaca dari browser panel ----
+
+function bindTts() {
+  for (const [id, key] of [['ttsChat', 'ttsChat'], ['ttsAlert', 'ttsAlert'], ['ttsPrefix', 'ttsPrefix']]) {
+    const input = $(id);
+    input.checked = settings[key];
+    input.addEventListener('change', () => {
+      settings[key] = input.checked;
+      saveSettings();
+      renderLinks();
+    });
+  }
+
+  const rate = $('ttsRate');
+  rate.value = settings.ttsRate;
+  $('ttsRateOut').textContent = `${settings.ttsRate}×`;
+  rate.addEventListener('input', () => {
+    settings.ttsRate = Number(rate.value);
+    $('ttsRateOut').textContent = `${settings.ttsRate}×`;
+    saveSettings();
+    renderLinks();
+  });
+
+  // Daftar suara ada di browser ini, dan kadang baru terisi setelah event voiceschanged.
+  const voice = $('ttsVoice');
+  const fillVoices = () => {
+    voice.replaceChildren(new Option('Otomatis (Bahasa Indonesia)', ''));
+    const voices = speechSynthesis.getVoices().slice().sort((a, b) => a.lang.localeCompare(b.lang) || a.name.localeCompare(b.name));
+    for (const v of voices) voice.append(new Option(`${v.name} (${v.lang})`, v.name));
+    voice.value = voices.some((v) => v.name === settings.ttsVoice) ? settings.ttsVoice : '';
+  };
+  fillVoices();
+  speechSynthesis.addEventListener('voiceschanged', fillVoices);
+  voice.addEventListener('change', () => {
+    settings.ttsVoice = voice.value;
+    saveSettings();
+    renderLinks();
+  });
+
+  // Coba suara di browser ini. Bunyinya hanya terdengar di komputer ini, bukan di siaran.
+  $('ttsTest').addEventListener('click', () => {
+    speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance('Halo, ini contoh suara pembaca komentar.');
+    const picked = speechSynthesis.getVoices().find((v) => v.name === settings.ttsVoice);
+    utterance.lang = picked?.lang || 'id-ID';
+    if (picked) utterance.voice = picked;
+    utterance.rate = settings.ttsRate;
+    speechSynthesis.speak(utterance);
+  });
 }
 
 // ---- Template Spotify ----
@@ -1909,6 +2034,8 @@ bindAnimDur();
 bindPerspective();
 bindLibrary();
 bindNpOptions();
+bindLyricsStyle();
+bindTts();
 
 renderAnims();
 renderGradients();

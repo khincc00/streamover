@@ -27,9 +27,14 @@ function toNowPlaying(data) {
   return {
     playing: Boolean(data.is_playing),
     uri: item.uri || '',
+    kind: isEpisode ? 'episode' : 'track',
     title: item.name || '',
     artist: isEpisode ? item.show?.name || '' : (item.artists || []).map((a) => a.name).join(', '),
+    album: isEpisode ? '' : item.album?.name || '',
     image: safeUrl(item.album?.images?.[0]?.url ?? item.images?.[0]?.url),
+    // Where the song is right now, so the lyrics overlay can keep its line in step between polls.
+    progressMs: Number(data.progress_ms) || 0,
+    durationMs: Number(item.duration_ms) || 0,
   };
 }
 

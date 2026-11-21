@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pembaca Komentar</title>
+  <style>
+    /* Tidak ada tampilan. Overlay ini hanya memutar suara, jadi layarnya dibiarkan transparan. */
+    html, body {
+      margin: 0;
+      background: transparent;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <script type="module">
+    import { connectHub } from '/shared/ws.js';
+
+    // Pengaturan dari panel lewat URL. Setiap pilihan bisa dimatikan sendiri.
+    const params = new URLSearchParams(location.search);
+    const options = {
+      chat: params.get('chat') === '1',
+      alert: params.get('alert') === '1',
+      // Kalau aktif, hanya komentar yang diawali !tts yang dibacakan.
+      prefix: params.get('prefix') === '1',
+      rate: Math.min(2, Math.max(0.5, Number(params.get('rate')) || 1)),
+      voice: (params.get('voice') || '').slice(0, 100),
+    };
+
+    const PREFIX = '!tts';
+    const MAX_CHARS = 200; // Komentar yang lebih panjang dipotong, supaya tidak berbicara terlalu lama
+    const QUEUE_MAX = 6; // Komentar baru dibuang kalau antrean penuh
+    const USER_COOLDOWN_MS = 3000; // Satu penonton hanya bisa masuk antrean sesekali
+    const lastSpoken = new Map(); // id penonton -> waktu komentarnya diterima terakhir
+
+    const queue = [];
+    let speaking = false;
+    let token = 0; // Mengenali pembicaraan yang sedang berjalan. Callback dari yang lama diabaikan.
+    let voice = null;
+
+    // Membersihkan teks sebelum dibacakan: tautan diganti kata "tautan", spasi dirapikan.
+    function cleanText(text) {
+      return String(text || '').replace(/https?:\/\/\S+/gi, 'tautan').replace(/\s+/g, ' ').trim().slice(0, MAX_CHARS);
+    }
+
+    function pickVoice() {
+      const voices = speechSynthesis.getVoices();
+      voice = voices.find((v) => v.name === options.voice)
+        || voices.find((v) => v.lang.toLowerCase().startsWith('id'))
+        || null;
+    }
+    pickVoice();
+    speechSynthesis.onvoiceschanged = pickVoice;
+
+    function speakNext() {
+      if (speaking || queue.length === 0) return;
+      const text = queue.shift();
+      const id = ++token;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = voice?.lang || 'id-ID';
+      if (voice) utterance.voice = voice;
+      utterance.rate = options.rate;
+
+      const done = () => {
+        if (id !== token) return;
+        token++;
+        speaking = false;
+        speakNext();
+      };
+      utterance.onend = done;
+      utterance.onerror = done;
+      // Kalau browser tidak pernah mengabari selesai, antrean tetap jalan setelah perkiraan waktu bicara.
+      setTimeout(done, 4000 + text.length * 150);
+
+      speaking = true;
+      speechSynthesis.speak(utterance);
+    }
+
+    function say(text) {
+      if (queue.length >= QUEUE_MAX) return;
+      queue.push(text);
+      speakNext();
+    }
+
+    // Komentar chat jadi kalimat "Nama bilang pesan". Null berarti komentar ini dilewati.
+    function chatSentence(msg) {
+      let text = msg.text || '';
+      if (options.prefix) {
+        if (!text.toLowerCase().startsWith(PREFIX)) return null;
+        text = text.slice(PREFIX.length);
+      }
+      text = cleanText(text);
+      if (!text) return null;
+
+      const id = msg.user?.uniqueId || msg.user?.nickname || 'penonton';
+      const now = Date.now();
+      if (now - (lastSpoken.get(id) || 0) < USER_COOLDOWN_MS) return null;
+      lastSpoken.set(id, now);
+      return `${cleanText(msg.user?.nickname) || 'Penonton'} bilang ${text}`;
+    }
+
+    // Alert gift, follow, dan share. Null untuk jenis lain.
+    function alertSentence(msg) {
+      const name = cleanText(msg.user?.nickname) || 'Penonton';
+      if (msg.type === 'gift') return `${name} mengirim ${cleanText(msg.gift?.name) || 'gift'} sebanyak ${msg.gift?.count || 1} kali`;
+      if (msg.type === 'follow') return `${name} mulai mengikuti kamu`;
+      if (msg.type === 'share') return `${name} membagikan live ini`;
+      return null;
+    }
+
+    connectHub((msg) => {
+      if (msg.type === 'chat') {
+        if (!options.chat) return;
+        const sentence = chatSentence(msg);
+        if (sentence) say(sentence);
+      } else if (options.alert && ['gift', 'follow', 'share'].includes(msg.type)) {
+        const sentence = alertSentence(msg);
+        if (sentence) say(sentence);
+      }
+    });
+  </script>
+</body>
+</html>

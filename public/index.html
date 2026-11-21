@@ -28,12 +28,10 @@
     <div class="glass rounded-[20px] p-2 flex-1 flex flex-col">
       <nav class="space-y-1">
         <a href="#/" data-nav="home" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">◧</span>Dashboard</a>
-        <a href="#/chat" data-nav="chat" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">⬙</span>Template Studio<span class="ml-auto text-[10px] bg-black/10 px-1.5 py-0.5 rounded-full">11</span></a>
+        <a href="#/studio" data-nav="studio" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">⬙</span>Template &amp; Alert<span class="ml-auto text-[10px] bg-black/10 px-1.5 py-0.5 rounded-full">11</span></a>
         <a href="#/musik" data-nav="musik" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">♫</span>Spotify Studio</a>
         <a href="#/ytmusic" data-nav="ytmusic" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">▶</span>YT Music Studio</a>
-        <a href="#/alert" data-nav="alert" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">★</span>Alert Studio</a>
         <a href="#/running" data-nav="running" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">A</span>Running Text</a>
-        <a href="#/lab" data-nav="lab" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">⧉</span>Overlay Lab</a>
         <a href="#/settings" data-nav="settings" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">⚙</span>Settings</a>
       </nav>
       <div class="mt-auto p-3 rounded-[14px] bg-black text-white">
@@ -75,12 +73,10 @@
       </div>
       <div class="md:hidden px-2 pb-2 flex gap-1 overflow-x-auto scrollbar-thin">
         <a href="#/" data-nav="home" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">dashboard</a>
-        <a href="#/chat" data-nav="chat" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">templates</a>
+        <a href="#/studio" data-nav="studio" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">template &amp; alert</a>
         <a href="#/musik" data-nav="musik" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">spotify</a>
         <a href="#/ytmusic" data-nav="ytmusic" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">yt music</a>
-        <a href="#/alert" data-nav="alert" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">alert</a>
         <a href="#/running" data-nav="running" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">running</a>
-        <a href="#/lab" data-nav="lab" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">lab</a>
         <a href="#/settings" data-nav="settings" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">settings</a>
       </div>
     </header>
@@ -191,9 +187,19 @@
       </main>
     </section>
 
+    <!-- ============ TEMPLATE & ALERT STUDIO (Template chat, Alert, dan Overlay Lab dalam satu halaman) ============ -->
+    <section data-view="studio" class="min-w-0" hidden>
+      <div class="px-4 md:px-6 pt-6 max-w-[1280px] mx-auto">
+        <nav class="yt-tabs" aria-label="Pilih halaman template dan alert">
+          <a href="#/chat" class="yt-tab" data-studio-tab="chat" aria-selected="true">Template chat</a>
+          <a href="#/alert" class="yt-tab" data-studio-tab="alert" aria-selected="false">Alert</a>
+          <a href="#/lab" class="yt-tab" data-studio-tab="lab" aria-selected="false">Overlay Lab</a>
+        </nav>
+      </div>
+
     <!-- ============ TEMPLATE STUDIO ============ -->
-    <section data-view="chat" class="min-w-0" hidden>
-      <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
+    <div data-subview="chat" class="min-w-0" hidden>
+      <div class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
         <div class="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 class="text-[28px] font-black tracking-[-0.03em] leading-none">TEMPLATE STUDIO • 11</h1>
@@ -295,7 +301,169 @@
             </div>
           </div>
         </div>
-      </main>
+      </div>
+    </div>
+
+    <!-- ============ ALERT STUDIO ============ -->
+    <div data-subview="alert" class="min-w-0" hidden>
+      <div class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
+        <div class="space-y-5">
+          <div class="flex items-end justify-between gap-3 flex-wrap">
+            <h1 class="text-[26px] font-black tracking-[-0.02em]">ALERT STUDIO</h1>
+            <div class="text-[11px] opacity-60">Gift • Follow • Share</div>
+          </div>
+
+          <div class="grid md:grid-cols-3 gap-4">
+            <div class="md:col-span-2 glass-strong rounded-[24px] p-5 space-y-3">
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <h2 class="text-[16px] font-bold tracking-tight">Pratinjau</h2>
+                <button class="h-7 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold js-reload" type="button">Muat ulang</button>
+              </div>
+              <div class="stage" style="--scale: 0.4">
+                <iframe data-frame="alerts" title="Pratinjau alert" tabindex="-1"></iframe>
+                <span class="stage-label">ALERT</span>
+              </div>
+              <div class="flex gap-2 flex-wrap">
+                <button data-test="gift" class="h-8 px-3 rounded-full bg-black text-white text-[11px] font-bold" type="button">Tes gift</button>
+                <button data-test="follow" class="h-8 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold" type="button">Tes follow</button>
+                <button data-test="share" class="h-8 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold" type="button">Tes share</button>
+              </div>
+              <div class="text-[10px] opacity-60">Alert hanya tampil saat ada event. Pratinjau kosong sampai tombol tes ditekan atau ada event sungguhan dari live.</div>
+            </div>
+            <div class="glass rounded-[24px] p-5">
+              <div class="text-[12px] font-bold">Pakai di OBS</div>
+              <div class="mt-2 text-[11px] opacity-70">Salin link lalu tempel sebagai Browser Source. Setiap perubahan menghasilkan link baru, jadi salin ulang setelah mengedit.</div>
+              <div class="mt-3" data-link="alerts"></div>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="glass-strong rounded-[24px] p-5">
+              <h2 class="text-[16px] font-bold tracking-tight">Tampilan alert</h2>
+              <div class="mt-4 space-y-4">
+                <div class="field">
+                  <div class="field-head"><label for="duration">Lama tampil</label><output id="durOut">4</output></div>
+                  <input type="range" id="duration" min="2" max="10" value="4">
+                </div>
+                <div class="field">
+                  <div class="field-label">Animasi</div>
+                  <div class="chips js-anims"></div>
+                </div>
+                <div class="field">
+                  <div class="field-head"><label for="animDurAlert">Durasi animasi</label><output class="js-animdur-out">250 ms</output></div>
+                  <input type="range" class="js-animdur" id="animDurAlert" min="100" max="1000" step="50" value="250">
+                </div>
+              </div>
+            </div>
+
+            <div class="glass-strong rounded-[24px] p-5">
+              <h2 class="text-[16px] font-bold tracking-tight">Perspektif</h2>
+              <div class="mt-4 space-y-4">
+                <div class="field">
+                  <div class="field-head"><span class="field-label">Perspektif alert</span><button class="btn ghost small js-persp-reset" type="button" data-persp="alerts">Reset</button></div>
+                  <div class="field">
+                    <div class="field-head"><label for="rx-alerts">Miring kiri-kanan</label><output class="js-persp-out" data-axis="rx">0°</output></div>
+                    <input type="range" id="rx-alerts" class="js-persp" data-persp="alerts" data-axis="rx" min="-60" max="60" value="0">
+                  </div>
+                  <div class="field">
+                    <div class="field-head"><label for="ry-alerts">Miring atas-bawah</label><output class="js-persp-out" data-axis="ry">0°</output></div>
+                    <input type="range" id="ry-alerts" class="js-persp" data-persp="alerts" data-axis="ry" min="-60" max="60" value="0">
+                  </div>
+                  <div class="field">
+                    <div class="field-head"><label for="depth-alerts">Kedalaman perspektif</label><output class="js-persp-out" data-axis="depth">1200 px</output></div>
+                    <input type="range" id="depth-alerts" class="js-persp" data-persp="alerts" data-axis="depth" min="300" max="3000" step="50" value="1200">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="glass-strong rounded-[24px] p-5 space-y-4">
+              <div>
+                <h2 class="text-[16px] font-bold tracking-tight">Pembaca komentar</h2>
+                <p class="hint mt-1">Suara dibuat oleh browser di komputer OBS, jadi pastikan Browser Source ikut menangkap audionya. Gunakan suara yang ada di komputer itu.</p>
+              </div>
+              <label class="check"><input type="checkbox" id="ttsChat"> Baca komentar chat</label>
+              <label class="check"><input type="checkbox" id="ttsAlert"> Baca alert gift, follow, dan share</label>
+              <label class="check"><input type="checkbox" id="ttsPrefix"> Hanya komentar yang diawali <code>!tts</code></label>
+              <div class="field">
+                <div class="field-head"><label for="ttsRate">Kecepatan bicara</label><output id="ttsRateOut">1×</output></div>
+                <input type="range" id="ttsRate" min="0.5" max="2" step="0.1" value="1">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="ttsVoice">Suara</label></div>
+                <select id="ttsVoice" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none"></select>
+              </div>
+              <div class="flex gap-2 flex-wrap">
+                <button id="ttsTest" class="h-8 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold" type="button">Coba suara</button>
+              </div>
+              <p class="hint">Komentar dipotong 200 karakter, tautan dibacakan sebagai "tautan", dan satu penonton hanya bisa masuk antrean sekali setiap 3 detik. Antrean berisi maksimal 6 pesan.</p>
+            </div>
+            <div class="glass-strong rounded-[24px] p-5 space-y-3">
+              <h2 class="text-[16px] font-bold tracking-tight">Pakai di OBS</h2>
+              <p class="hint">Pembaca komentar tidak tampil di layar. Tambahkan sebagai Browser Source, lalu pastikan audionya tidak dimatikan (ukuran bebas, misalnya 1×1).</p>
+              <div data-link="tts"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ OVERLAY LAB ============ -->
+    <div data-subview="lab" class="min-w-0" hidden>
+      <div class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
+        <div class="space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h1 class="text-[26px] font-black">OVERLAY LAB • 1920x1080 Canvas</h1>
+            <div class="flex gap-2">
+              <button class="h-8 px-3 rounded-full bg-black text-white text-[11px] font-bold js-reload" type="button">Muat ulang pratinjau</button>
+            </div>
+          </div>
+
+          <div class="glass rounded-[24px] p-3">
+            <div class="relative w-full aspect-[16/9] rounded-[16px] overflow-hidden border border-black/10 bg-white checker">
+              <div class="absolute" style="left: 2%; top: 4%; width: 26%">
+                <div class="rounded-[12px] border border-black/20 bg-white/90 p-2 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+                  <div class="text-[10px] font-bold tracking-widest opacity-60 flex items-center justify-between mb-1"><span>CHAT • LIVE</span><span class="w-2 h-2 rounded-full bg-[#00FF88]"></span></div>
+                  <div class="stage" style="--scale: 0.2"><iframe data-frame="chat" title="Pratinjau chat" tabindex="-1"></iframe></div>
+                </div>
+              </div>
+              <div class="absolute" style="left: 62%; top: 6%; width: 34%">
+                <div class="rounded-[12px] border border-black/20 bg-white/90 p-2 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+                  <div class="text-[10px] font-bold tracking-widest opacity-60 flex items-center justify-between mb-1"><span>SPOTIFY • LIVE</span><span class="w-2 h-2 rounded-full bg-[#00FF88]"></span></div>
+                  <div class="stage" style="--scale: 0.3"><iframe data-frame="nowplaying" title="Pratinjau Spotify" tabindex="-1"></iframe></div>
+                </div>
+              </div>
+              <div class="absolute" style="left: 2%; top: 60%; width: 26%">
+                <div class="rounded-[12px] border border-black/20 bg-white/90 p-2 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+                  <div class="text-[10px] font-bold tracking-widest opacity-60 flex items-center justify-between mb-1"><span>YT MUSIC • LIVE</span><span class="w-2 h-2 rounded-full" style="background: #FF0000"></span></div>
+                  <div class="stage" style="--scale: 0.2"><iframe data-frame="youtube" title="Pratinjau YT Music" tabindex="-1"></iframe></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid lg:grid-cols-2 gap-4">
+
+            <div class="glass-strong rounded-[24px] p-5">
+              <h3 class="font-bold text-[14px] tracking-tight">Link untuk OBS</h3>
+              <p class="mt-1 text-[11px] opacity-60">Tambahkan sebagai Browser Source. Background sudah transparan.</p>
+              <div class="mt-4 grid gap-3">
+                <div data-link="chat"></div>
+                <div data-link="alerts"></div>
+                <div data-link="nowplaying"></div>
+                <div data-link="lyrics"></div>
+                <div data-link="youtube"></div>
+                <div data-link="runningtext"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
     </section>
 
     <!-- ============ SPOTIFY STUDIO ============ -->
@@ -401,6 +569,41 @@
                 <div class="field">
                   <div class="field-head"><label for="depth-nowplaying">Kedalaman perspektif</label><output class="js-persp-out" data-axis="depth">1200 px</output></div>
                   <input type="range" id="depth-nowplaying" class="js-persp" data-persp="nowplaying" data-axis="depth" min="300" max="3000" step="50" value="1200">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="glass-strong rounded-[24px] p-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <h2 class="text-[16px] font-bold tracking-tight">Lirik Spotify</h2>
+                <button class="h-7 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold js-reload" type="button">Muat ulang</button>
+              </div>
+              <p class="hint">Lirik tersinkron dari LRCLIB, tanpa perlu login. Baris yang sedang dinyanyikan disorot dengan kilau. Lagu tanpa lirik tersinkron tidak menampilkan apa-apa. Podcast tidak punya lirik.</p>
+              <div data-link="lyrics"></div>
+              <div class="stage" style="--scale: 0.4">
+                <iframe data-frame="lyrics" title="Pratinjau lirik" tabindex="-1"></iframe>
+                <span class="stage-label">LIRIK</span>
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="lyricsFont">Jenis huruf</label></div>
+                <select id="lyricsFont" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none"></select>
+              </div>
+              <label class="color">Warna teks<input type="color" id="lyricsColor" value="#ffffff"></label>
+              <div class="field">
+                <div class="field-head"><span class="field-label">Perspektif lirik</span><button class="btn ghost small js-persp-reset" type="button" data-persp="lyrics">Reset</button></div>
+                <div class="field">
+                  <div class="field-head"><label for="rx-lyrics">Miring kiri-kanan</label><output class="js-persp-out" data-axis="rx">0°</output></div>
+                  <input type="range" id="rx-lyrics" class="js-persp" data-persp="lyrics" data-axis="rx" min="-60" max="60" value="0">
+                </div>
+                <div class="field">
+                  <div class="field-head"><label for="ry-lyrics">Miring atas-bawah</label><output class="js-persp-out" data-axis="ry">0°</output></div>
+                  <input type="range" id="ry-lyrics" class="js-persp" data-persp="lyrics" data-axis="ry" min="-60" max="60" value="0">
+                </div>
+                <div class="field">
+                  <div class="field-head"><label for="depth-lyrics">Kedalaman perspektif</label><output class="js-persp-out" data-axis="depth">1200 px</output></div>
+                  <input type="range" id="depth-lyrics" class="js-persp" data-persp="lyrics" data-axis="depth" min="300" max="3000" step="50" value="1200">
                 </div>
               </div>
             </div>
@@ -598,83 +801,6 @@
       </main>
     </section>
 
-    <!-- ============ ALERT STUDIO ============ -->
-    <section data-view="alert" class="min-w-0" hidden>
-      <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
-        <div class="space-y-5">
-          <div class="flex items-end justify-between gap-3 flex-wrap">
-            <h1 class="text-[26px] font-black tracking-[-0.02em]">ALERT STUDIO</h1>
-            <div class="text-[11px] opacity-60">Gift • Follow • Share</div>
-          </div>
-
-          <div class="grid md:grid-cols-3 gap-4">
-            <div class="md:col-span-2 glass-strong rounded-[24px] p-5 space-y-3">
-              <div class="flex items-center justify-between gap-2 flex-wrap">
-                <h2 class="text-[16px] font-bold tracking-tight">Pratinjau</h2>
-                <button class="h-7 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold js-reload" type="button">Muat ulang</button>
-              </div>
-              <div class="stage" style="--scale: 0.4">
-                <iframe data-frame="alerts" title="Pratinjau alert" tabindex="-1"></iframe>
-                <span class="stage-label">ALERT</span>
-              </div>
-              <div class="flex gap-2 flex-wrap">
-                <button data-test="gift" class="h-8 px-3 rounded-full bg-black text-white text-[11px] font-bold" type="button">Tes gift</button>
-                <button data-test="follow" class="h-8 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold" type="button">Tes follow</button>
-                <button data-test="share" class="h-8 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold" type="button">Tes share</button>
-              </div>
-              <div class="text-[10px] opacity-60">Alert hanya tampil saat ada event. Pratinjau kosong sampai tombol tes ditekan atau ada event sungguhan dari live.</div>
-            </div>
-            <div class="glass rounded-[24px] p-5">
-              <div class="text-[12px] font-bold">Pakai di OBS</div>
-              <div class="mt-2 text-[11px] opacity-70">Salin link lalu tempel sebagai Browser Source. Setiap perubahan menghasilkan link baru, jadi salin ulang setelah mengedit.</div>
-              <div class="mt-3" data-link="alerts"></div>
-            </div>
-          </div>
-
-          <div class="grid md:grid-cols-2 gap-4">
-            <div class="glass-strong rounded-[24px] p-5">
-              <h2 class="text-[16px] font-bold tracking-tight">Tampilan alert</h2>
-              <div class="mt-4 space-y-4">
-                <div class="field">
-                  <div class="field-head"><label for="duration">Lama tampil</label><output id="durOut">4</output></div>
-                  <input type="range" id="duration" min="2" max="10" value="4">
-                </div>
-                <div class="field">
-                  <div class="field-label">Animasi</div>
-                  <div class="chips js-anims"></div>
-                </div>
-                <div class="field">
-                  <div class="field-head"><label for="animDurAlert">Durasi animasi</label><output class="js-animdur-out">250 ms</output></div>
-                  <input type="range" class="js-animdur" id="animDurAlert" min="100" max="1000" step="50" value="250">
-                </div>
-              </div>
-            </div>
-
-            <div class="glass-strong rounded-[24px] p-5">
-              <h2 class="text-[16px] font-bold tracking-tight">Perspektif</h2>
-              <div class="mt-4 space-y-4">
-                <div class="field">
-                  <div class="field-head"><span class="field-label">Perspektif alert</span><button class="btn ghost small js-persp-reset" type="button" data-persp="alerts">Reset</button></div>
-                  <div class="field">
-                    <div class="field-head"><label for="rx-alerts">Miring kiri-kanan</label><output class="js-persp-out" data-axis="rx">0°</output></div>
-                    <input type="range" id="rx-alerts" class="js-persp" data-persp="alerts" data-axis="rx" min="-60" max="60" value="0">
-                  </div>
-                  <div class="field">
-                    <div class="field-head"><label for="ry-alerts">Miring atas-bawah</label><output class="js-persp-out" data-axis="ry">0°</output></div>
-                    <input type="range" id="ry-alerts" class="js-persp" data-persp="alerts" data-axis="ry" min="-60" max="60" value="0">
-                  </div>
-                  <div class="field">
-                    <div class="field-head"><label for="depth-alerts">Kedalaman perspektif</label><output class="js-persp-out" data-axis="depth">1200 px</output></div>
-                    <input type="range" id="depth-alerts" class="js-persp" data-persp="alerts" data-axis="depth" min="300" max="3000" step="50" value="1200">
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-    </section>
-
     <!-- ============ RUNNING TEXT STUDIO ============ -->
     <section data-view="running" class="min-w-0" hidden>
       <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
@@ -767,59 +893,6 @@
               </div>
             </div>
           </div>
-        </div>
-      </main>
-    </section>
-
-    <!-- ============ OVERLAY LAB ============ -->
-    <section data-view="lab" class="min-w-0" hidden>
-      <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
-        <div class="space-y-4">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <h1 class="text-[26px] font-black">OVERLAY LAB • 1920x1080 Canvas</h1>
-            <div class="flex gap-2">
-              <button class="h-8 px-3 rounded-full bg-black text-white text-[11px] font-bold js-reload" type="button">Muat ulang pratinjau</button>
-            </div>
-          </div>
-
-          <div class="glass rounded-[24px] p-3">
-            <div class="relative w-full aspect-[16/9] rounded-[16px] overflow-hidden border border-black/10 bg-white checker">
-              <div class="absolute" style="left: 2%; top: 4%; width: 26%">
-                <div class="rounded-[12px] border border-black/20 bg-white/90 p-2 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
-                  <div class="text-[10px] font-bold tracking-widest opacity-60 flex items-center justify-between mb-1"><span>CHAT • LIVE</span><span class="w-2 h-2 rounded-full bg-[#00FF88]"></span></div>
-                  <div class="stage" style="--scale: 0.2"><iframe data-frame="chat" title="Pratinjau chat" tabindex="-1"></iframe></div>
-                </div>
-              </div>
-              <div class="absolute" style="left: 62%; top: 6%; width: 34%">
-                <div class="rounded-[12px] border border-black/20 bg-white/90 p-2 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
-                  <div class="text-[10px] font-bold tracking-widest opacity-60 flex items-center justify-between mb-1"><span>SPOTIFY • LIVE</span><span class="w-2 h-2 rounded-full bg-[#00FF88]"></span></div>
-                  <div class="stage" style="--scale: 0.3"><iframe data-frame="nowplaying" title="Pratinjau Spotify" tabindex="-1"></iframe></div>
-                </div>
-              </div>
-              <div class="absolute" style="left: 2%; top: 60%; width: 26%">
-                <div class="rounded-[12px] border border-black/20 bg-white/90 p-2 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
-                  <div class="text-[10px] font-bold tracking-widest opacity-60 flex items-center justify-between mb-1"><span>YT MUSIC • LIVE</span><span class="w-2 h-2 rounded-full" style="background: #FF0000"></span></div>
-                  <div class="stage" style="--scale: 0.2"><iframe data-frame="youtube" title="Pratinjau YT Music" tabindex="-1"></iframe></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid lg:grid-cols-2 gap-4">
-
-            <div class="glass-strong rounded-[24px] p-5">
-              <h3 class="font-bold text-[14px] tracking-tight">Link untuk OBS</h3>
-              <p class="mt-1 text-[11px] opacity-60">Tambahkan sebagai Browser Source. Background sudah transparan.</p>
-              <div class="mt-4 grid gap-3">
-                <div data-link="chat"></div>
-                <div data-link="alerts"></div>
-                <div data-link="nowplaying"></div>
-                <div data-link="youtube"></div>
-                <div data-link="runningtext"></div>
-              </div>
-            </div>
-          </div>
-
         </div>
       </main>
     </section>

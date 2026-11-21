@@ -398,7 +398,8 @@ input[type="range"] { width: 100%; accent-color: var(--ink); margin: 0; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .yt-tabs { background: rgba(255, 255, 255, 0.05); }
 }
-.yt-tab { height: 32px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; }
+/* Tab bisa berupa tombol atau link, jadi garis bawah link dimatikan dan teksnya dipusatkan. */
+.yt-tab { height: 32px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; text-decoration: none; }
 .yt-tab[aria-selected="true"] { background: var(--ink); color: var(--ink-text); }
 .yt-tab:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
