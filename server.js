@@ -10,6 +10,7 @@ import { SAMPLES } from './src/samples.js';
 import { SpotifySession } from './src/spotify.js';
 import { lyricsFor, lyricsById, searchLyrics } from './src/lyrics.js';
 import { YouTubeMusicBridge } from './src/ytmusic.js';
+import { appleConfigFromEnv, developerTokenSource, appleKeyFor } from './src/applemusic.js';
 import { UserStore } from './src/users.js';
 import { FeedBuffer } from './src/feed.js';
 import { RequestQueue, parseRequest } from './src/queue.js';
@@ -25,6 +26,9 @@ const HOST = process.env.HOST || '127.0.0.1';
 const PUBLIC_URL = (process.env.PUBLIC_URL || `http://127.0.0.1:${PORT}`).replace(/\/$/, '');
 // Needed only to find chat requests on YouTube. Playlist songs use links, so they don't need it.
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || '';
+// Apple Music needs a developer key from an Apple Developer account. Without it, the feature stays off.
+const appleConfig = appleConfigFromEnv();
+const appleToken = appleConfig ? developerTokenSource(appleConfig) : null;
 const PANEL_SETTING_KEYS = [
   'size', 'max', 'chatMode', 'chatHold', 'duration', 'template', 'spotifyTemplate', 'youtubeTemplate', 'anim', 'dur',
   'custom', 'accent', 'text', 'bg', 'gradient', 'persp', 'username',
@@ -164,7 +168,9 @@ function saveMusicSettings(ctx) {
 
 // source is 'spotify' or 'youtube'. Each overlay asks for one of them by its ?source= link.
 function nowPlayingMessage(ctx, source) {
-  const nowPlaying = source === 'youtube' ? ctx.youtube.nowPlaying() : ctx.spotify.status().nowPlaying;
+  const nowPlaying = source === 'youtube' ? ctx.youtube.nowPlaying()
+    : source === 'applemusic' ? ctx.applemusic.nowPlaying()
+      : ctx.spotify.status().nowPlaying;
   return { type: 'nowplaying', source, nowPlaying };
 }
 
@@ -201,7 +207,7 @@ function trackLyrics(ctx, source, track) {
 
   const override = ctx.lyricOverrides[key];
   // Spotify can help find a YouTube song, if the account is connected.
-  const lookup = source === 'youtube' && ctx.spotify.status().connected
+  const lookup = source !== 'spotify' && ctx.spotify.status().connected
     ? (t) => ctx.spotify.searchTrack(`${t.title} ${t.artist}`)
     : null;
   const work = override ? lyricsById(override.id) : lyricsFor(key, track, lookup);
@@ -228,7 +234,7 @@ function saveLyricOverrides(ctx) {
 
 // After a pick changes, the song playing now (if it is that song) gets its lyrics again.
 function refreshLyrics(ctx, key) {
-  for (const source of ['spotify', 'youtube']) {
+  for (const source of ['spotify', 'youtube', 'applemusic']) {
     const track = nowPlayingMessage(ctx, source).nowPlaying;
     if (track?.key !== key || ctx.lyrics[source].key !== key) continue;
     ctx.lyrics[source] = { key: '', lines: null };
@@ -322,7 +328,7 @@ function contextFor(userId) {
     youtubeCommands: [], // extension mode: commands waiting for the YT Music tab
     lastTrackKey: {},
     // Per source: the song (key) the lyrics are for. lines is null while loading, [] when none exist.
-    lyrics: { spotify: { key: '', lines: null }, youtube: { key: '', lines: null } },
+    lyrics: { spotify: { key: '', lines: null }, youtube: { key: '', lines: null }, applemusic: { key: '', lines: null } },
     lyricsFile: path.join(dir, 'lyrics.json'),
     lyricOverrides: readLyricOverrides(path.join(dir, 'lyrics.json')), // song key -> { id } of the LRCLIB lyrics picked by hand
     youtubeKey: readYouTubeKey(dir), // connected in the panel; empty means use .env
@@ -357,6 +363,12 @@ function contextFor(userId) {
     },
   });
   ctx.youtube.start();
+  // Apple Music reports from the Apple Music page in the browser (public/applemusic.html), like the YT Music extension.
+  ctx.applemusic = new YouTubeMusicBridge({
+    keyFor: appleKeyFor,
+    onChange: () => broadcastNowPlaying(ctx, 'applemusic'),
+  });
+  ctx.applemusic.start();
 
   contexts.set(userId, ctx);
   return ctx;
@@ -961,6 +973,22 @@ app.post('/api/settings', (req, res) => {
   res.json({ ok: true });
 });
 
+// ---- Apple Music: token untuk MusicKit dan laporan lagu dari halaman Apple Music ----
+
+// The Apple Music page asks for a token when it opens. The private key itself never leaves the server.
+app.get('/api/applemusic/token', (req, res) => {
+  if (!appleToken) {
+    return res.status(503).json({ error: 'Apple Music belum disiapkan di server. Isi APPLE_TEAM_ID, APPLE_KEY_ID, dan kunci di .env.' });
+  }
+  res.set('Cache-Control', 'no-store');
+  res.json({ token: appleToken() });
+});
+
+app.post('/api/applemusic/report', (req, res) => {
+  req.ctx.applemusic.report(req.body || {});
+  res.json({ ok: true });
+});
+
 // ---- Lirik: cari dan pilih lirik per lagu ----
 
 app.get('/api/lyrics/search', async (req, res) => {
@@ -1009,8 +1037,10 @@ const hub = createHub(server, {
       { type: 'status', ...ctx.live.status() },
       nowPlayingMessage(ctx, 'spotify'),
       nowPlayingMessage(ctx, 'youtube'),
+      nowPlayingMessage(ctx, 'applemusic'),
       lyricsMessage(ctx, 'spotify'),
       lyricsMessage(ctx, 'youtube'),
+      lyricsMessage(ctx, 'applemusic'),
     ];
   },
 });
@@ -1029,6 +1059,7 @@ async function shutdown() {
   for (const ctx of contexts.values()) {
     ctx.spotify.stop();
     ctx.youtube.stop();
+    ctx.applemusic.stop();
     ctx.feed.flush();
     await ctx.live.stop();
   }

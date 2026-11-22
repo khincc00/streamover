@@ -12,9 +12,11 @@ const safeUrl = (url) => (typeof url === 'string' && url.startsWith('https://') 
 // Reports send seconds. The overlays work in milliseconds, like Spotify's progress.
 const millis = (seconds) => Math.max(0, Math.round((Number(seconds) || 0) * 1000));
 
+// Also used for Apple Music, which reports the same way. keyFor(title, artist, songId) gives the song's key.
 export class YouTubeMusicBridge {
-  constructor({ onChange }) {
+  constructor({ onChange, keyFor = (title, artist) => youtubeKey(title, artist) }) {
     this.onChange = onChange;
+    this.keyFor = keyFor;
     this.track = null;
     this.lastSeen = 0;
     this.live = false;
@@ -30,7 +32,7 @@ export class YouTubeMusicBridge {
         title,
         artist,
         image: safeUrl(data.image),
-        key: youtubeKey(title, artist),
+        key: this.keyFor(title, artist, text(String(data.songId ?? ''))),
         kind: 'track',
         progressMs: millis(data.currentTime),
         durationMs: millis(data.duration),

@@ -47,6 +47,17 @@ YT Music punya halaman sendiri, **YT Music Studio**, terpisah dari Spotify. Ada 
 
 Request dari chat (`!req judul lagu`) dicari di YouTube, dan import playlist juga memakai YouTube API. Hubungkan key di halaman **Settings** panel, atau isi `YOUTUBE_API_KEY` di `.env`. Video yang dibatasi umur atau diblokir di wilayah siaran tidak dipilih; wilayahnya Indonesia, atau isi `YOUTUBE_REGION` (kode negara) di `.env`. Tanpa key, request tetap masuk ke daftar, tapi tidak bisa diputar otomatis. Lagu dari playlist tidak memerlukan key.
 
+## Apple Music (opsional)
+
+Apple Music membutuhkan akun **Apple Developer** berbayar dan kunci MusicKit. Tanpa itu, fitur ini mati dan server tetap jalan seperti biasa.
+
+1. Di https://developer.apple.com, buat **MusicKit key** (Certificates, Identifiers & Profiles → Keys). Simpan file `.p8`, lalu catat **Key ID** dan **Team ID**.
+2. Isi di `.env`: `APPLE_TEAM_ID`, `APPLE_KEY_ID`, dan `APPLE_PRIVATE_KEY_FILE` (path ke file `.p8`). Kunci itu tidak pernah dikirim ke panel.
+3. Login ke panel, lalu buka `/applemusic.html` di browser yang sama. Login ke Apple Music, dan putar lagu di tab itu. Biarkan tab terbuka selama siaran.
+4. Lirik Apple Music: `http://127.0.0.1:3000/overlay/lyrics.html?source=applemusic`, atau dari kartu lirik di Spotify Studio.
+
+Catatan: Apple Music tidak punya API resmi untuk lagu yang sedang diputar, jadi data lagu datang dari halaman di browser, mirip mode extension YT Music. Lirik tetap dari LRCLIB. Cara ini belum diuji dengan akun Apple Music sungguhan.
+
 ## Pakai di OBS
 
 1. Di panel kontrol, isi username TikTok (tanpa @) lalu klik **Hubungkan**.

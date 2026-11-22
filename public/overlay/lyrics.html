@@ -100,8 +100,8 @@
     import { applyPerspective, perspectiveFromParams } from '/shared/perspective.js';
 
     const params = new URLSearchParams(location.search);
-    // Which music source to show: Spotify by default, or YT Music with ?source=youtube.
-    const source = params.get('source') === 'youtube' ? 'youtube' : 'spotify';
+    // Which music source to show: Spotify by default, or ?source=youtube or ?source=applemusic.
+    const source = ['youtube', 'applemusic'].includes(params.get('source')) ? params.get('source') : 'spotify';
     const root = document.documentElement.style;
     // Size in px for the current line. Anything out of range falls back to the default.
     const size = Math.min(160, Math.max(24, Number(params.get('size')) || 56));

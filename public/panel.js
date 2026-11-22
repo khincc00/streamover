@@ -21,6 +21,7 @@ const OVERLAYS = {
   youtube: { label: 'YT Music', file: 'nowplaying.html', source: 'youtube' },
   lyrics: { label: 'Lirik Spotify', file: 'lyrics.html', source: 'spotify' },
   lyricsyt: { label: 'Lirik YT Music', file: 'lyrics.html', source: 'youtube' },
+  lyricsam: { label: 'Lirik Apple Music', file: 'lyrics.html', source: 'applemusic' },
   tts: { label: 'Pembaca komentar', file: 'tts.html' },
   runningtext: { label: 'Running text', file: 'running-text.html' },
 };
@@ -331,7 +332,7 @@ function overlayUrl(key, item = selectedRunningText()) {
     params.set('color', item.color);
   }
   // Lirik YT Music memakai font, warna, dan perspektif yang sama dengan lirik Spotify.
-  const styleKey = key === 'lyricsyt' ? 'lyrics' : key;
+  const styleKey = ['lyricsyt', 'lyricsam'].includes(key) ? 'lyrics' : key;
   if (styleKey === 'lyrics') {
     params.set('font', settings.lyricsFont);
     params.set('color', settings.lyricsColor.slice(1));
@@ -1565,11 +1566,12 @@ function bindTts() {
 // ---- Pilih lirik lagu: cari di LRCLIB dan simpan pilihan untuk lagu itu ----
 
 // The last song each source reported. The hub sends these to the panel as nowplaying messages.
-const latestTrack = { spotify: null, youtube: null };
+const latestTrack = { spotify: null, youtube: null, applemusic: null };
 
-// The song the picker works on: the one playing now, YT Music first if both are.
+// The song the picker works on: the one playing now, in the order YT Music, Apple Music, Spotify.
 function lyricsTrack() {
-  return [latestTrack.youtube, latestTrack.spotify].find((t) => t?.playing) || latestTrack.youtube || latestTrack.spotify || null;
+  const order = [latestTrack.youtube, latestTrack.applemusic, latestTrack.spotify];
+  return order.find((t) => t?.playing) || order.find(Boolean) || null;
 }
 
 function renderLyricsNow() {
