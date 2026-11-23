@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -33,6 +34,7 @@ const PANEL_SETTING_KEYS = [
   'size', 'max', 'chatMode', 'chatHold', 'chatNames', 'duration', 'template', 'spotifyTemplate', 'youtubeTemplate', 'anim', 'dur',
   'custom', 'accent', 'text', 'bg', 'gradient', 'persp', 'username',
   'runningTexts', 'runningSelected', 'npFit', 'npAlign', 'npWidth', 'lyricsFont', 'lyricsColor',
+  'npBgColor', 'npTextColor', 'npAccentColor', 'npFont', 'npBgVer',
   'ttsChat', 'ttsAlert', 'ttsPrefix', 'ttsRate', 'ttsVoice',
 ];
 
@@ -331,6 +333,12 @@ function contextFor(userId) {
     lyrics: { spotify: { key: '', lines: null }, youtube: { key: '', lines: null }, applemusic: { key: '', lines: null } },
     lyricsFile: path.join(dir, 'lyrics.json'),
     lyricOverrides: readLyricOverrides(path.join(dir, 'lyrics.json')), // song key -> { id } of the LRCLIB lyrics picked by hand
+    soundFile: path.join(dir, 'soundboard.json'),
+    soundDir: path.join(dir, 'soundboard'),
+    soundboard: readSoundboard(path.join(dir, 'soundboard.json')), // the 10 slots: { name, file }
+    npDir: path.join(dir, 'nowplaying'),
+    npFile: path.join(dir, 'nowplaying.json'),
+    npBg: readNowPlayingBg(path.join(dir, 'nowplaying.json')), // background of the custom song template: { file }
     youtubeKey: readYouTubeKey(dir), // connected in the panel; empty means use .env
     player: { current: null, history: [], cursor: null, bag: null }, // what the player page is playing, and its playlist position
     feed: new FeedBuffer(path.join(dir, 'feed.json')),
@@ -380,6 +388,15 @@ app.use('/api', (req, res, next) => {
   req.user = store.userForSession(sessionTokenFrom(req));
   const pathname = req.originalUrl.split('?')[0];
   if (OPEN_API.has(pathname)) return next();
+
+  // The soundboard overlay in OBS plays the sound files with its overlay key instead of a login.
+  // Only reading is allowed with an overlay key. Uploading and deleting still need the logged-in panel.
+  if (req.method === 'GET' && (pathname.startsWith('/api/soundboard/file/') || pathname === '/api/nowplaying/bg')) {
+    const user = store.byOverlayKey(req.query.key) || req.user;
+    if (!user) return res.status(401).json({ error: 'Perlu kunci overlay' });
+    req.ctx = contextFor(user.id);
+    return next();
+  }
 
   // The player page reports and asks for the next track with its overlay key instead of a login.
   if (['/api/ytmusic/report', '/api/ytmusic/command', '/api/player/ended', '/api/player/blocked'].includes(pathname)) {
@@ -1016,6 +1033,173 @@ app.post('/api/lyrics/override', (req, res) => {
   saveLyricOverrides(req.ctx);
   refreshLyrics(req.ctx, key);
   res.json({ ok: true });
+});
+
+// ---- Soundboard: 10 slot, tiap slot berisi suara yang diunggah sendiri ----
+
+const SOUND_SLOTS = 10;
+const SOUND_MAX_BYTES = 5 * 1024 * 1024;
+const SOUND_NAME_MAX = 40;
+
+// The file's contents decide the type, not its Content-Type header, so only real audio is stored.
+function soundKind(buf) {
+  if (buf.length > 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WAVE') return 'wav';
+  if (buf.length > 4 && buf.toString('ascii', 0, 4) === 'OggS') return 'ogg';
+  if (buf.length > 3 && buf.toString('ascii', 0, 3) === 'ID3') return 'mp3';
+  if (buf.length > 2 && buf[0] === 0xff && (buf[1] & 0xe0) === 0xe0) return 'mp3';
+  return '';
+}
+
+function readSoundboard(file) {
+  const empty = () => Array.from({ length: SOUND_SLOTS }, () => ({ name: '', file: '' }));
+  try {
+    const slots = JSON.parse(fs.readFileSync(file, 'utf8'));
+    return Array.isArray(slots) && slots.length === SOUND_SLOTS ? slots : empty();
+  } catch {
+    return empty();
+  }
+}
+
+function saveSoundboard(ctx) {
+  const tmp = `${ctx.soundFile}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(ctx.soundboard, null, 2));
+  fs.renameSync(tmp, ctx.soundFile);
+}
+
+function soundSlot(value) {
+  const slot = Number(value);
+  return Number.isInteger(slot) && slot >= 0 && slot < SOUND_SLOTS ? slot : -1;
+}
+
+app.get('/api/soundboard', (req, res) => {
+  res.json({
+    slots: req.ctx.soundboard.map((slot, index) => ({ slot: index, name: slot.name, hasFile: Boolean(slot.file) })),
+  });
+});
+
+// The raw body is the file itself. The size limit is checked while it is read.
+app.post('/api/soundboard/:slot/file', express.raw({ type: '*/*', limit: SOUND_MAX_BYTES }), (req, res) => {
+  const ctx = req.ctx;
+  const index = soundSlot(req.params.slot);
+  if (index < 0) return res.status(400).json({ error: 'Slot tidak valid' });
+  const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+  const kind = soundKind(body);
+  if (!kind) return res.status(400).json({ error: 'File harus MP3, WAV, atau OGG' });
+
+  fs.mkdirSync(ctx.soundDir, { recursive: true });
+  const old = ctx.soundboard[index].file;
+  const file = `${crypto.randomBytes(12).toString('hex')}.${kind}`;
+  fs.writeFileSync(path.join(ctx.soundDir, file), body);
+  if (old) fs.rm(path.join(ctx.soundDir, old), () => {});
+  ctx.soundboard[index] = { name: ctx.soundboard[index].name || `Suara ${index + 1}`, file };
+  saveSoundboard(ctx);
+  res.json({ ok: true });
+});
+
+app.delete('/api/soundboard/:slot/file', (req, res) => {
+  const ctx = req.ctx;
+  const index = soundSlot(req.params.slot);
+  if (index < 0) return res.status(400).json({ error: 'Slot tidak valid' });
+  const old = ctx.soundboard[index].file;
+  if (old) fs.rm(path.join(ctx.soundDir, old), () => {});
+  ctx.soundboard[index] = { name: ctx.soundboard[index].name, file: '' };
+  saveSoundboard(ctx);
+  res.json({ ok: true });
+});
+
+app.post('/api/soundboard/:slot/name', (req, res) => {
+  const ctx = req.ctx;
+  const index = soundSlot(req.params.slot);
+  if (index < 0) return res.status(400).json({ error: 'Slot tidak valid' });
+  const name = String(req.body?.name ?? '').trim().slice(0, SOUND_NAME_MAX);
+  ctx.soundboard[index] = { name, file: ctx.soundboard[index].file };
+  saveSoundboard(ctx);
+  res.json({ ok: true });
+});
+
+// Sends the sound to the soundboard overlay, which plays it. Volume is 0 to 1.
+app.post('/api/soundboard/play', (req, res) => {
+  const ctx = req.ctx;
+  const index = soundSlot(req.body?.slot);
+  if (index < 0) return res.status(400).json({ error: 'Slot tidak valid' });
+  if (!ctx.soundboard[index].file) return res.status(400).json({ error: 'Slot ini belum ada suaranya' });
+  const volume = Math.min(1, Math.max(0, Number.isFinite(Number(req.body?.volume)) ? Number(req.body.volume) : 1));
+  hub.broadcast(ctx.userId, { type: 'sound', slot: index, volume });
+  res.json({ ok: true });
+});
+
+app.post('/api/soundboard/stop', (req, res) => {
+  hub.broadcast(req.ctx.userId, { type: 'sound-stop' });
+  res.json({ ok: true });
+});
+
+// The overlay fetches the file with its key. Range requests work, so the browser can seek and play it.
+app.get('/api/soundboard/file/:slot', (req, res) => {
+  const ctx = req.ctx;
+  const index = soundSlot(req.params.slot);
+  const file = index >= 0 ? ctx.soundboard[index].file : '';
+  if (!file) return res.status(404).json({ error: 'Suara tidak ditemukan' });
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.sendFile(path.join(ctx.soundDir, file));
+});
+
+// ---- Template custom: background sendiri untuk overlay lagu ----
+
+const NP_BG_MAX_BYTES = 3 * 1024 * 1024;
+const NP_BG_EXT = { png: 'png', jpg: 'jpg', webp: 'webp' };
+
+// Looks at the first bytes, the same as the soundboard, so only real images are kept.
+function imageKind(buf) {
+  if (buf.length > 8 && buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'png';
+  if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'jpg';
+  if (buf.length > 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return 'webp';
+  return '';
+}
+
+function readNowPlayingBg(file) {
+  try {
+    const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
+    return { file: typeof saved.bgFile === 'string' ? saved.bgFile : '' };
+  } catch {
+    return { file: '' };
+  }
+}
+
+function saveNowPlayingBg(ctx) {
+  const tmp = `${ctx.npFile}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify({ bgFile: ctx.npBg.file }, null, 2));
+  fs.renameSync(tmp, ctx.npFile);
+}
+
+app.post('/api/nowplaying/bg', express.raw({ type: '*/*', limit: NP_BG_MAX_BYTES }), (req, res) => {
+  const ctx = req.ctx;
+  const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+  const kind = imageKind(body);
+  if (!kind) return res.status(400).json({ error: 'Background harus PNG, JPG, atau WebP' });
+  fs.mkdirSync(ctx.npDir, { recursive: true });
+  const file = `${crypto.randomBytes(12).toString('hex')}.${NP_BG_EXT[kind]}`;
+  fs.writeFileSync(path.join(ctx.npDir, file), body);
+  if (ctx.npBg.file) fs.rm(path.join(ctx.npDir, ctx.npBg.file), () => {});
+  ctx.npBg = { file };
+  saveNowPlayingBg(ctx);
+  res.json({ ok: true });
+});
+
+app.delete('/api/nowplaying/bg', (req, res) => {
+  const ctx = req.ctx;
+  if (ctx.npBg.file) fs.rm(path.join(ctx.npDir, ctx.npBg.file), () => {});
+  ctx.npBg = { file: '' };
+  saveNowPlayingBg(ctx);
+  res.json({ ok: true });
+});
+
+// Read with the panel login or the overlay key. Revalidated each time, so a new upload shows at once.
+app.get('/api/nowplaying/bg', (req, res) => {
+  const ctx = req.ctx;
+  if (!ctx.npBg.file) return res.status(404).json({ error: 'Belum ada background' });
+  res.set('Cache-Control', 'no-cache');
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.sendFile(path.join(ctx.npDir, ctx.npBg.file));
 });
 
 // ---- Live channel ----

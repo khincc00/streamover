@@ -30,6 +30,8 @@ Catatan: mode development Spotify membatasi 5 pengguna per Client ID, dan pemili
 
 Overlay: `http://127.0.0.1:3000/overlay/nowplaying.html` (sama dengan `?source=spotify`)
 
+Template **Custom** (di Spotify Studio, dipakai juga untuk YT Music): unggah background sendiri (PNG, JPG, atau WebP, maks 3 MB), lalu atur warna latar, teks, dan aksen, serta jenis huruf. Background disimpan per akun di server, dan hanya bisa dihapus lewat panel.
+
 Lirik: `http://127.0.0.1:3000/overlay/lyrics.html`. Lirik tersinkron diambil dari [LRCLIB](https://lrclib.net) setiap lagu berganti, tanpa login dan tanpa cookie Spotify. Lagu yang tidak punya lirik tersinkron di LRCLIB hanya menampilkan pesan kosong, dan podcast tidak punya lirik. Untuk menggeser waktu lirik, tambahkan `&offset=<ms>` (positif = lirik muncul lebih lambat, negatif = lebih cepat). Ukuran baris aktif bisa diubah dengan `&size=<px>` (bawaan 56).
 
 Lirik YT Music: `http://127.0.0.1:3000/overlay/lyrics.html?source=youtube`. Judul YouTube dibersihkan dulu (keterangan seperti "(Official Video)" dibuang). Kalau LRCLIB tidak menemukan lirik dan akun Spotify sudah terhubung, judul dicari lewat Spotify untuk dicocokkan ulang. Kalau masih salah, pilih lirik yang benar di kartu **Pilih lirik lagu** di Spotify Studio. Pilihan itu disimpan per lagu. Untuk mode extension, posisi lagu dikirim oleh extension, jadi extension perlu di-reload di `chrome://extensions` setelah update ini.
@@ -57,6 +59,10 @@ Apple Music membutuhkan akun **Apple Developer** berbayar dan kunci MusicKit. Ta
 4. Lirik Apple Music: `http://127.0.0.1:3000/overlay/lyrics.html?source=applemusic`, atau dari kartu lirik di Spotify Studio.
 
 Catatan: Apple Music tidak punya API resmi untuk lagu yang sedang diputar, jadi data lagu datang dari halaman di browser, mirip mode extension YT Music. Lirik tetap dari LRCLIB. Cara ini belum diuji dengan akun Apple Music sungguhan.
+
+## Soundboard
+
+Menu **Soundboard** punya 10 slot. Tiap slot bisa diberi nama, diisi suara sendiri (MP3, WAV, atau OGG, maksimal 5 MB), dimainkan, lalu dihapus. Isi file dicek sebelum disimpan, jadi file yang bukan audio ditolak. Suara dimainkan oleh overlay soundboard di OBS (link ada di halaman Soundboard), jadi audionya ikut tertangkap OBS. Volume dan tombol **Hentikan semua** juga ada di halaman itu.
 
 ## Pakai di OBS
 

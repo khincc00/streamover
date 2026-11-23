@@ -12,6 +12,8 @@ const $ = (id) => document.getElementById(id);
 const PREVIEW_WIDTH = 1920;
 const FEED_MAX = 60;
 const SETTINGS_KEY = 'streamover.settings';
+// Warna bawaan template custom, dipakai kalau nilai yang tersimpan tidak valid.
+const DEFAULT_SETTINGS_COLORS = { npBgColor: '#121212', npTextColor: '#ffffff', npAccentColor: '#1ed760' };
 
 // Spotify dan YT Music punya overlay sendiri. Keduanya memakai nowplaying.html, dan ?source= memilih sumbernya.
 const OVERLAYS = {
@@ -23,11 +25,12 @@ const OVERLAYS = {
   lyricsyt: { label: 'Lirik YT Music', file: 'lyrics.html', source: 'youtube' },
   lyricsam: { label: 'Lirik Apple Music', file: 'lyrics.html', source: 'applemusic' },
   tts: { label: 'Pembaca komentar', file: 'tts.html' },
+  soundboard: { label: 'Soundboard', file: 'soundboard.html' },
   runningtext: { label: 'Running text', file: 'running-text.html' },
 };
 
 // Halaman sesuai menu sidebar: Dashboard, Template Studio, Spotify Studio, YT Music Studio, Alert, Running text, Overlay Lab, Settings.
-const VIEW_NAMES = ['home', 'musik', 'ytmusic', 'running', 'settings'];
+const VIEW_NAMES = ['home', 'musik', 'ytmusic', 'running', 'soundboard', 'settings'];
 // Template chat, alert, dan Overlay Lab ada di satu halaman dengan tab. Link lama (#/chat, #/alert, #/lab) tetap membuka tab yang sama.
 const STUDIO_TABS = { studio: 'chat', chat: 'chat', alert: 'alert', lab: 'lab' };
 
@@ -67,6 +70,11 @@ const settings = {
   npWidth: 560, // width in px for fixed size
   lyricsFont: 'default', // jenis huruf lirik: id dari RUNNING_TEXT_FONTS, 'default' memakai huruf sistem
   lyricsColor: '#ffffff', // warna teks lirik
+  npBgColor: '#121212', // template custom: warna background
+  npTextColor: '#ffffff', // template custom: warna teks
+  npAccentColor: '#1ed760', // template custom: warna status (Sedang diputar / Dijeda)
+  npFont: 'default', // template custom: jenis huruf, id dari RUNNING_TEXT_FONTS
+  npBgVer: 0, // template custom: versi background, berubah setiap upload agar overlay memuat ulang
   ttsChat: false, // baca komentar chat
   ttsAlert: false, // baca alert gift, follow, dan share
   ttsPrefix: false, // kalau aktif, hanya komentar yang diawali !tts yang dibaca
@@ -95,6 +103,11 @@ function sanitizeSettings() {
   if (!['content', 'fixed'].includes(settings.npFit)) settings.npFit = 'content';
   if (!['left', 'center', 'right'].includes(settings.npAlign)) settings.npAlign = 'left';
   if (!isRunningTextFont(settings.lyricsFont)) settings.lyricsFont = 'default';
+  for (const key of ['npBgColor', 'npTextColor', 'npAccentColor']) {
+    if (!/^#[0-9a-f]{6}$/i.test(settings[key])) settings[key] = DEFAULT_SETTINGS_COLORS[key];
+  }
+  if (!isRunningTextFont(settings.npFont)) settings.npFont = 'default';
+  settings.npBgVer = Number(settings.npBgVer) || 0;
   if (!/^#[0-9a-f]{6}$/i.test(settings.lyricsColor)) settings.lyricsColor = '#ffffff';
   settings.ttsChat = Boolean(settings.ttsChat);
   settings.ttsAlert = Boolean(settings.ttsAlert);
@@ -320,6 +333,17 @@ function overlayUrl(key, item = selectedRunningText()) {
   }
   if (key === 'nowplaying') params.set('template', settings.spotifyTemplate);
   if (key === 'youtube') params.set('template', settings.youtubeTemplate);
+  // Template custom: warna, font, dan background dari pengaturan Custom di Spotify Studio.
+  if ((key === 'nowplaying' && settings.spotifyTemplate === 'custom') || (key === 'youtube' && settings.youtubeTemplate === 'custom')) {
+    params.set('bgc', settings.npBgColor.slice(1));
+    params.set('tc', settings.npTextColor.slice(1));
+    params.set('ac', settings.npAccentColor.slice(1));
+    params.set('font', settings.npFont);
+    if (settings.npBgVer) {
+      params.set('bgimg', '1');
+      params.set('bgv', settings.npBgVer);
+    }
+  }
   if (key === 'nowplaying' || key === 'youtube') {
     params.set('fit', settings.npFit);
     params.set('align', settings.npAlign);
@@ -347,8 +371,8 @@ function overlayUrl(key, item = selectedRunningText()) {
     params.set('rate', settings.ttsRate);
     if (settings.ttsVoice) params.set('voice', settings.ttsVoice);
   }
-  // Pembaca komentar tidak tampil di layar, jadi tidak ada perspektif.
-  if (key !== 'tts') {
+  // Pembaca komentar dan soundboard tidak tampil di layar, jadi tidak ada perspektif.
+  if (!['tts', 'soundboard'].includes(key)) {
     const persp = key === 'runningtext' ? item.persp : settings.persp[styleKey];
     params.set('rx', persp.rx);
     params.set('ry', persp.ry);
@@ -424,6 +448,7 @@ function route() {
     else link.removeAttribute('aria-current');
   }
   refreshPreview();
+  if (view === 'soundboard') loadSoundboard().catch((err) => toast(err.message));
 }
 
 // ---- Status ----
@@ -1646,6 +1671,213 @@ function bindLyricsPicker() {
   renderLyricsNow();
 }
 
+// ---- Soundboard: 10 slot. Tiap slot berisi suara yang diunggah sendiri dan dimainkan di overlay OBS ----
+
+const SOUND_MAX_MB = 5;
+let soundSlots = [];
+
+// Sends a request to the server and throws the server's message when it fails.
+async function soundRequest(path, options = {}) {
+  const res = await fetch(path, { credentials: 'same-origin', ...options });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+async function loadSoundboard() {
+  const { slots } = await soundRequest('/api/soundboard');
+  soundSlots = slots;
+  $('soundGrid').replaceChildren(...slots.map((slot) => soundCard(slot)));
+}
+
+function soundCard(slot) {
+  const n = slot.slot + 1;
+  const card = document.createElement('div');
+  card.className = 'rounded-[18px] border border-black/10 dark:border-white/10 p-3 space-y-2';
+
+  const head = document.createElement('div');
+  head.className = 'text-[10px] font-bold tracking-widest opacity-60';
+  head.textContent = `SLOT ${n}`;
+
+  const name = document.createElement('input');
+  name.className = 'w-full rounded-[10px] border border-black/10 dark:border-white/10 bg-transparent px-2 py-1.5 text-[13px] outline-none';
+  name.value = slot.name;
+  name.placeholder = `Suara ${n}`;
+  name.maxLength = 40;
+  name.setAttribute('aria-label', `Nama slot ${n}`);
+  name.dataset.action = 'name';
+  name.dataset.slot = slot.slot;
+
+  const buttons = document.createElement('div');
+  buttons.className = 'flex gap-2 flex-wrap';
+
+  const play = document.createElement('button');
+  play.className = 'h-8 px-3 rounded-full bg-black text-white text-[11px] font-bold disabled:opacity-40';
+  play.type = 'button';
+  play.textContent = 'Mainkan';
+  play.disabled = !slot.hasFile;
+  play.dataset.action = 'play';
+  play.dataset.slot = slot.slot;
+
+  // The label wraps a hidden file input, so the whole label opens the file picker.
+  const upload = document.createElement('label');
+  upload.className = 'h-8 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold leading-8 cursor-pointer';
+  upload.textContent = slot.hasFile ? 'Ganti' : 'Unggah';
+  const file = document.createElement('input');
+  file.type = 'file';
+  file.accept = 'audio/mpeg,audio/wav,audio/ogg,.mp3,.wav,.ogg';
+  file.style.display = 'none';
+  file.dataset.action = 'upload';
+  file.dataset.slot = slot.slot;
+  upload.append(file);
+
+  const remove = document.createElement('button');
+  remove.className = 'h-8 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold disabled:opacity-40';
+  remove.type = 'button';
+  remove.textContent = 'Hapus';
+  remove.disabled = !slot.hasFile;
+  remove.dataset.action = 'remove';
+  remove.dataset.slot = slot.slot;
+
+  buttons.append(play, upload, remove);
+  const status = document.createElement('div');
+  status.className = 'text-[11px] opacity-60';
+  status.textContent = slot.hasFile ? 'Ada suara' : 'Kosong';
+  card.append(head, name, buttons, status);
+  return card;
+}
+
+function soundVolume() {
+  return Number($('soundVolume').value) / 100;
+}
+
+function bindSoundboard() {
+  const grid = $('soundGrid');
+  grid.addEventListener('click', async (event) => {
+    const button = event.target.closest('button[data-action]');
+    if (!button) return;
+    const slot = Number(button.dataset.slot);
+    try {
+      if (button.dataset.action === 'play') {
+        await soundRequest('/api/soundboard/play', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slot, volume: soundVolume() }),
+        });
+      } else if (button.dataset.action === 'remove') {
+        await soundRequest(`/api/soundboard/${slot}/file`, { method: 'DELETE' });
+        await loadSoundboard();
+        toast('Suara dihapus');
+      }
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  grid.addEventListener('change', async (event) => {
+    const input = event.target;
+    const slot = Number(input.dataset.slot);
+    try {
+      if (input.dataset.action === 'upload') {
+        const picked = input.files?.[0];
+        input.value = '';
+        if (!picked) return;
+        if (picked.size > SOUND_MAX_MB * 1024 * 1024) return toast(`File terlalu besar, maksimal ${SOUND_MAX_MB} MB`);
+        // The file goes up as the raw body. The server checks the contents before it keeps the file.
+        await soundRequest(`/api/soundboard/${slot}/file`, {
+          method: 'POST',
+          headers: { 'Content-Type': picked.type || 'application/octet-stream' },
+          body: picked,
+        });
+        await loadSoundboard();
+        toast('Suara diunggah');
+      } else if (input.dataset.action === 'name') {
+        await soundRequest(`/api/soundboard/${slot}/name`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: input.value.trim() }),
+        });
+        await loadSoundboard();
+      }
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  $('soundVolume').addEventListener('input', () => {
+    $('soundVolumeOut').textContent = `${$('soundVolume').value}%`;
+  });
+  $('soundStop').addEventListener('click', () => {
+    api('/api/soundboard/stop', {}).catch((err) => toast(err.message));
+  });
+}
+
+// ---- Template custom: background, warna, dan font sendiri untuk overlay lagu (Spotify dan YT Music) ----
+
+function renderNpCustom() {
+  $('npBgColor').value = settings.npBgColor;
+  $('npTextColor').value = settings.npTextColor;
+  $('npAccentColor').value = settings.npAccentColor;
+  $('npFont').value = settings.npFont;
+  const preview = $('npBgPreview');
+  preview.style.backgroundColor = settings.npBgColor;
+  preview.style.backgroundImage = settings.npBgVer ? `url("/api/nowplaying/bg?v=${settings.npBgVer}")` : 'none';
+  $('npBgRemove').disabled = !settings.npBgVer;
+}
+
+function changedNpCustom() {
+  saveSettings();
+  renderNpCustom();
+  renderLinks();
+  refreshPreviewSoon();
+}
+
+function bindNpCustom() {
+  const font = $('npFont');
+  for (const f of RUNNING_TEXT_FONTS) font.append(new Option(f.label, f.id));
+  for (const [id, key] of [['npBgColor', 'npBgColor'], ['npTextColor', 'npTextColor'], ['npAccentColor', 'npAccentColor']]) {
+    $(id).addEventListener('input', () => {
+      settings[key] = $(id).value;
+      changedNpCustom();
+    });
+  }
+  font.addEventListener('change', () => {
+    settings.npFont = font.value;
+    changedNpCustom();
+  });
+
+  $('npBgFile').addEventListener('change', async (event) => {
+    const picked = event.target.files?.[0];
+    event.target.value = '';
+    if (!picked) return;
+    if (picked.size > 3 * 1024 * 1024) return toast('Background terlalu besar, maksimal 3 MB');
+    try {
+      await soundRequest('/api/nowplaying/bg', {
+        method: 'POST',
+        headers: { 'Content-Type': picked.type || 'application/octet-stream' },
+        body: picked,
+      });
+      // A new version makes the overlay load the new picture.
+      settings.npBgVer = Date.now();
+      changedNpCustom();
+      toast('Background diunggah');
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+  $('npBgRemove').addEventListener('click', async () => {
+    try {
+      await soundRequest('/api/nowplaying/bg', { method: 'DELETE' });
+      settings.npBgVer = 0;
+      changedNpCustom();
+      toast('Background dihapus');
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+  renderNpCustom();
+}
+
 // ---- Template Spotify ----
 
 // Kartu template Spotify dibuat dari daftar yang sama dengan overlay, dengan kelas np-* yang sama.
@@ -2155,8 +2387,10 @@ bindPerspective();
 bindLibrary();
 bindNpOptions();
 bindLyricsStyle();
+bindNpCustom();
 bindLyricsPicker();
 bindTts();
+bindSoundboard();
 
 renderAnims();
 renderGradients();

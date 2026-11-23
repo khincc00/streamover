@@ -9,6 +9,7 @@ export const NOWPLAYING_TEMPLATES = [
   { id: 'cinematic', label: 'Sinematik', hint: 'Bilah hitam dengan huruf kredit film' },
   { id: 'minimal', label: 'Minimal', hint: 'Kartu putih polos dengan garis tipis' },
   { id: 'lyrics', label: 'Lirik', hint: 'Teks besar gaya karaoke tanpa kotak' },
+  { id: 'custom', label: 'Custom', hint: 'Background, warna, dan font sendiri' },
 ];
 
 export const DEFAULT_NOWPLAYING_TEMPLATE = 'apple';
