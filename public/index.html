@@ -243,8 +243,12 @@
                 <div class="chips js-chatmode"></div>
               </div>
               <div class="field js-chathold-field">
-                <div class="field-head"><label for="chatHold">Tampil pesan terbaru</label><output id="chatHoldOut">6 detik</output></div>
-                <input type="range" id="chatHold" min="2" max="60" value="6">
+                <div class="field-head"><label for="chatHold">Lama tampil chat terbaru</label><output id="chatHoldOut">6 detik</output></div>
+                <input type="range" id="chatHold" min="2" max="120" value="6">
+              </div>
+              <div class="field">
+                <div class="field-label">Posisi nama penonton</div>
+                <div class="chips js-chatnames"></div>
               </div>
               <div class="field">
                 <div class="field-label">Animasi</div>
@@ -691,7 +695,7 @@
               <p id="ytOrderHint" class="hint"></p>
               <ol id="ytExtensionSteps" class="hint space-y-1" hidden>
                 <li>1. Buka <code>chrome://extensions</code>, aktifkan Mode developer, lalu pilih Load unpacked dan pilih folder <code>extension</code>.</li>
-                <li>2. Buka panel ini di <code>127.0.0.1:3000</code> sekali, supaya kunci tersimpan di extension.</li>
+                <li>2. Buka panel ini sekali di alamat server yang dipakai (misalnya <code>streamover.khincreator.com</code>), supaya kunci dan alamat server tersimpan di extension.</li>
                 <li>3. Buka music.youtube.com di Chrome dan biarkan tab itu terbuka.</li>
               </ol>
               <div id="ytPlayerRow" class="lib-row">

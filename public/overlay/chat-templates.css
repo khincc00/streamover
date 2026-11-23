@@ -436,3 +436,6 @@
   60% { opacity: 1; transform: translateY(-4px) scale(1.03); }
   100% { opacity: 1; transform: none; }
 }
+
+/* Nama penonton di atas komentar, bukan di samping (pilihan "Di atas" di panel). */
+.chat.names-top .msg .name { display: block; margin-right: 0; }

@@ -57,6 +57,7 @@ const settings = {
   max: 15,
   chatMode: 'history', // 'history': daftar chat, 'latest': satu pesan terbaru saja
   chatHold: 6, // detik pesan terbaru tampil di mode 'latest'
+  chatNames: 'side', // posisi nama penonton: 'side' di samping komentar, 'top' di atas komentar
   duration: 4,
   template: DEFAULT_CHAT_TEMPLATE,
   spotifyTemplate: DEFAULT_NOWPLAYING_TEMPLATE,
@@ -102,7 +103,8 @@ function sanitizeSettings() {
   settings.ttsVoice = typeof settings.ttsVoice === 'string' ? settings.ttsVoice.slice(0, 100) : '';
   settings.npWidth = clampTo(Number(settings.npWidth) || 560, { min: 300, max: 1000 });
   if (!CHAT_MODES.some((m) => m.id === settings.chatMode)) settings.chatMode = 'history';
-  settings.chatHold = clampTo(Number(settings.chatHold) || 6, { min: 2, max: 60 });
+  settings.chatHold = clampTo(Number(settings.chatHold) || 6, { min: 2, max: 120 });
+  if (!['side', 'top'].includes(settings.chatNames)) settings.chatNames = 'side';
   sanitizeRunningTexts();
   Object.assign(settings, normalizeStyle(settings));
   settings.persp = normalizePersp(settings.persp);
@@ -309,6 +311,7 @@ function overlayUrl(key, item = selectedRunningText()) {
     params.set('max', settings.max);
     params.set('mode', settings.chatMode);
     params.set('hold', settings.chatHold * 1000);
+    params.set('names', settings.chatNames);
     addStyleParams(params);
   }
   if (key === 'alerts') {
@@ -1244,7 +1247,7 @@ function markChatCards() {
 // Contoh chat di Template Studio memakai template dan pengaturan yang sedang dipilih.
 function renderSample() {
   const sample = $('chatSample');
-  sample.className = `chat tpl-${settings.template}`;
+  sample.className = `chat tpl-${settings.template}${settings.chatNames === 'top' ? ' names-top' : ''}`;
   applyStyle(sample, chatStyle());
   sample.replaceChildren(...SAMPLE_CHAT.map((line) => chatRow(line)));
 }
@@ -1771,6 +1774,35 @@ function renderChatMode() {
   }
 }
 
+// Posisi nama penonton: di samping komentar, atau di atas.
+const CHAT_NAME_POSITIONS = [
+  { id: 'side', label: 'Di samping' },
+  { id: 'top', label: 'Di atas' },
+];
+
+function renderChatNames() {
+  for (const wrap of document.querySelectorAll('.js-chatnames')) {
+    wrap.replaceChildren();
+    for (const option of CHAT_NAME_POSITIONS) {
+      const chip = document.createElement('button');
+      chip.className = 'chip';
+      chip.type = 'button';
+      chip.setAttribute('role', 'radio');
+      chip.setAttribute('aria-checked', String(settings.chatNames === option.id));
+      chip.textContent = option.label;
+      chip.addEventListener('click', () => {
+        settings.chatNames = option.id;
+        renderChatNames();
+        saveSettings();
+        renderLinks();
+        renderSample();
+        refreshPreviewSoon();
+      });
+      wrap.append(chip);
+    }
+  }
+}
+
 // Kartu gradasi: contoh chat di atas latar gradasi, supaya hasilnya terlihat sebelum dipilih.
 function renderGradients() {
   for (const wrap of document.querySelectorAll('.js-gradients')) {
@@ -1795,7 +1827,7 @@ function renderGradients() {
       thumb.className = 'tpl-thumb grad-thumb';
       if (gradient.from) thumb.style.background = `linear-gradient(135deg, ${gradient.from}, ${gradient.to})`;
       const sample = document.createElement('div');
-      sample.className = `chat tpl-${settings.template}`;
+      sample.className = `chat tpl-${settings.template}${settings.chatNames === 'top' ? ' names-top' : ''}`;
       // The card shows the gradient behind the sample, so the sample itself uses no gradient.
       applyStyle(sample, { ...chatStyle(), gradient: 'none' });
       sample.append(chatRow(SAMPLE_CHAT[1]));
@@ -2115,6 +2147,7 @@ bindSetting('size', 'size', 'sizeOut');
 bindSetting('max', 'max', 'maxOut');
 bindSetting('chatHold', 'chatHold', 'chatHoldOut');
 renderChatMode();
+renderChatNames();
 bindSetting('duration', 'duration', 'durOut');
 bindRunningText();
 bindAnimDur();

@@ -30,7 +30,7 @@ const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || '';
 const appleConfig = appleConfigFromEnv();
 const appleToken = appleConfig ? developerTokenSource(appleConfig) : null;
 const PANEL_SETTING_KEYS = [
-  'size', 'max', 'chatMode', 'chatHold', 'duration', 'template', 'spotifyTemplate', 'youtubeTemplate', 'anim', 'dur',
+  'size', 'max', 'chatMode', 'chatHold', 'chatNames', 'duration', 'template', 'spotifyTemplate', 'youtubeTemplate', 'anim', 'dur',
   'custom', 'accent', 'text', 'bg', 'gradient', 'persp', 'username',
   'runningTexts', 'runningSelected', 'npFit', 'npAlign', 'npWidth', 'lyricsFont', 'lyricsColor',
   'ttsChat', 'ttsAlert', 'ttsPrefix', 'ttsRate', 'ttsVoice',
