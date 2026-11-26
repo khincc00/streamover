@@ -16,6 +16,7 @@ import { UserStore } from './src/users.js';
 import { FeedBuffer } from './src/feed.js';
 import { RequestQueue, parseRequest } from './src/queue.js';
 import { MusicLibrary } from './src/library.js';
+import { Leaderboard, BOARDS, SAMPLE_BOARDS } from './src/leaderboard.js';
 import { searchVideo, searchVideos, checkEmbeddable, parseVideoId, parsePlaylistId, fetchPlaylistItems, fetchEmbeddableIds } from './src/youtube.js';
 import { SESSION_COOKIE, sessionTokenFrom, tooManyAttempts } from './src/auth.js';
 
@@ -35,7 +36,9 @@ const PANEL_SETTING_KEYS = [
   'custom', 'accent', 'text', 'bg', 'gradient', 'persp', 'username',
   'runningTexts', 'runningSelected', 'npFit', 'npAlign', 'npWidth', 'lyricsFont', 'lyricsColor',
   'npBgColor', 'npTextColor', 'npAccentColor', 'npFont', 'npBgVer',
-  'ttsChat', 'ttsAlert', 'ttsPrefix', 'ttsRate', 'ttsVoice',
+  'ttsChat', 'ttsAlert', 'ttsPrefix', 'ttsRate', 'ttsVoice', 'chatAlign', 'alertAlign',
+  'capLang', 'capMic', 'capSize', 'capFont', 'capColor', 'capHold', 'capBox',
+  'board',
 ];
 
 // The events kept in each account's activity history.
@@ -345,13 +348,20 @@ function contextFor(userId) {
     queue: new RequestQueue(path.join(dir, 'queue.json')),
     library: new MusicLibrary(path.join(dir, 'library.json')),
   };
+  // Top gifter and top tap for this live. Each new live starts from zero.
+  ctx.board = new Leaderboard((message) => send(message));
   ctx.live = new LiveSession({
     onEvent: (event) => {
       if (FEED_TYPES.has(event.type)) ctx.feed.add(event);
       if (event.type === 'chat') handleChat(ctx, event);
-      send(event);
+      if (event.type === 'gift' || event.type === 'like') ctx.board.add(event);
+      // Taps are only counted on the board. Sending each one would flood the overlays.
+      if (event.type !== 'like') send(event);
     },
-    onStatus: (status) => send({ type: 'status', ...status }),
+    onStatus: (status) => {
+      if (status.state === 'connecting') ctx.board.reset();
+      send({ type: 'status', ...status });
+    },
   });
   ctx.spotify = new SpotifySession({
     redirectUri: `${PUBLIC_URL}/api/spotify/callback`,
@@ -444,7 +454,20 @@ app.post('/api/test/:kind', (req, res) => {
   const sample = make();
   if (FEED_TYPES.has(sample.type)) req.ctx.feed.add(sample);
   if (sample.type === 'chat') handleChat(req.ctx, sample);
-  hub.broadcast(req.user.id, sample);
+  if (sample.type === 'gift' || sample.type === 'like') req.ctx.board.add(sample);
+  if (sample.type !== 'like') hub.broadcast(req.user.id, sample);
+  res.json({ ok: true });
+});
+
+// Starts both boards from zero, for the panel's reset button.
+app.post('/api/board/reset', (req, res) => {
+  req.ctx.board.reset();
+  res.json({ ok: true });
+});
+
+// Shows sample rows on the overlays. The real scores are not changed, so this is safe during a live.
+app.post('/api/board/sample', (req, res) => {
+  for (const name of BOARDS) hub.broadcast(req.ctx.userId, { type: 'leaderboard', board: name, items: SAMPLE_BOARDS[name] });
   res.json({ ok: true });
 });
 
@@ -1133,6 +1156,19 @@ app.post('/api/soundboard/stop', (req, res) => {
   res.json({ ok: true });
 });
 
+// ---- Auto caption: the panel turns the streamer's voice into text and the caption overlay shows it ----
+
+const CAPTION_MAX = 400;
+
+// `final` is false while the sentence is still being heard, and true once the browser settles on it.
+// An empty text clears the overlay. `seq` lets the overlay drop an update that arrives after a newer one.
+app.post('/api/caption', (req, res) => {
+  const text = String(req.body?.text ?? '').replace(/\s+/g, ' ').trim().slice(-CAPTION_MAX);
+  const seq = Number(req.body?.seq) || 0;
+  hub.broadcast(req.ctx.userId, { type: 'caption', text, final: Boolean(req.body?.final), seq });
+  res.json({ ok: true });
+});
+
 // The overlay fetches the file with its key. Range requests work, so the browser can seek and play it.
 app.get('/api/soundboard/file/:slot', (req, res) => {
   const ctx = req.ctx;
@@ -1225,6 +1261,8 @@ const hub = createHub(server, {
       lyricsMessage(ctx, 'spotify'),
       lyricsMessage(ctx, 'youtube'),
       lyricsMessage(ctx, 'applemusic'),
+      // Empty boards are not sent, so a preview's sample rows aren't replaced by an empty board.
+      ...BOARDS.map((name) => contextFor(userId).board.message(name)).filter((m) => m.items.length),
     ];
   },
 });

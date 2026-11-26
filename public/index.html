@@ -33,6 +33,8 @@
         <a href="#/ytmusic" data-nav="ytmusic" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">▶</span>YT Music Studio</a>
         <a href="#/running" data-nav="running" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">A</span>Running Text</a>
         <a href="#/soundboard" data-nav="soundboard" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">◉</span>Soundboard</a>
+        <a href="#/caption" data-nav="caption" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">≡</span>Auto Caption</a>
+        <a href="#/board" data-nav="board" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">★</span>Papan Skor</a>
         <a href="#/settings" data-nav="settings" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">⚙</span>Settings</a>
       </nav>
       <div class="mt-auto p-3 rounded-[14px] bg-black text-white">
@@ -79,6 +81,8 @@
         <a href="#/ytmusic" data-nav="ytmusic" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">yt music</a>
         <a href="#/running" data-nav="running" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">running</a>
         <a href="#/soundboard" data-nav="soundboard" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">soundboard</a>
+        <a href="#/caption" data-nav="caption" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">caption</a>
+        <a href="#/board" data-nav="board" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">papan skor</a>
         <a href="#/settings" data-nav="settings" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">settings</a>
       </div>
     </header>
@@ -253,6 +257,10 @@
                 <div class="chips js-chatnames"></div>
               </div>
               <div class="field">
+                <div class="field-label">Perataan teks</div>
+                <div class="chips js-chatalign"></div>
+              </div>
+              <div class="field">
                 <div class="field-label">Animasi</div>
                 <div class="chips js-anims"></div>
               </div>
@@ -350,6 +358,10 @@
                 <div class="field">
                   <div class="field-head"><label for="duration">Lama tampil</label><output id="durOut">4</output></div>
                   <input type="range" id="duration" min="2" max="10" value="4">
+                </div>
+                <div class="field">
+                  <div class="field-label">Perataan alert</div>
+                  <div class="chips js-alertalign"></div>
                 </div>
                 <div class="field">
                   <div class="field-label">Animasi</div>
@@ -979,6 +991,169 @@
               <p class="hint">Tambahkan sebagai Browser Source. Suara diputar oleh overlay ini, jadi audionya ikut tertangkap OBS. Overlay tidak tampil di layar.</p>
               <div data-link="soundboard"></div>
             </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ============ AUTO CAPTION ============ -->
+    <section data-view="caption" class="min-w-0" hidden>
+      <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
+        <div class="space-y-5">
+          <div class="flex items-end justify-between gap-3 flex-wrap">
+            <h1 class="text-[22px] md:text-[26px] font-black tracking-[-0.02em]">AUTO CAPTION</h1>
+            <div class="text-[11px] opacity-60">Suara dari mikrofon jadi teks di overlay • Chrome atau Edge</div>
+          </div>
+
+          <p id="capUnsupported" class="text-[12px] text-red-600" role="alert" hidden>Browser ini tidak mendukung pengenalan suara. Buka panel ini di Google Chrome atau Microsoft Edge.</p>
+
+          <div class="glass-strong rounded-[24px] p-5 space-y-4">
+            <div class="flex items-center gap-2 flex-wrap">
+              <button id="capToggle" class="h-10 px-5 rounded-full bg-black text-white text-[12px] font-bold disabled:opacity-40" type="button">Mulai caption</button>
+              <button id="capClear" class="h-10 px-5 rounded-full bg-white border border-black/10 text-[12px] font-bold" type="button">Bersihkan layar</button>
+              <span id="capStatus" class="text-[12px] opacity-60" role="status" aria-live="polite">Belum jalan</span>
+            </div>
+            <div class="rounded-[16px] bg-black text-white p-4 min-h-[88px]">
+              <div class="text-[10px] tracking-widest opacity-60">TERDENGAR</div>
+              <div id="capPreview" class="mt-1 text-[18px] font-bold leading-snug"></div>
+            </div>
+            <div class="lib-row">
+              <input id="capTestText" type="text" maxlength="200" placeholder="Ketik teks untuk tes overlay tanpa mikrofon" aria-label="Teks tes caption">
+              <button id="capTestSend" class="btn small" type="button">Kirim tes</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="glass rounded-[24px] p-5 space-y-4">
+              <div class="text-[12px] font-bold">Pengaturan</div>
+              <div class="field">
+                <div class="field-head"><label for="capMic">Mikrofon</label><button id="capMicRefresh" class="btn ghost small" type="button">Muat ulang daftar</button></div>
+                <select id="capMic" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none"></select>
+                <div class="h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden" aria-hidden="true"><div id="capLevel" class="h-full w-0 bg-[#00C853] transition-[width] duration-75"></div></div>
+                <p id="capMicHint" class="hint">Nama mikrofon muncul setelah akses mikrofon diizinkan. Bar hijau bergerak saat mikrofon yang dipilih menangkap suara.</p>
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="capLang">Bahasa yang diucapkan</label></div>
+                <select id="capLang" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none"></select>
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="capSize">Ukuran teks</label><output id="capSizeOut">48</output></div>
+                <input type="range" id="capSize" min="20" max="120" value="48">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="capHold">Lama tampil setelah selesai bicara (detik)</label><output id="capHoldOut">4</output></div>
+                <input type="range" id="capHold" min="1" max="30" value="4">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="capFont">Jenis huruf</label></div>
+                <select id="capFont" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none"></select>
+              </div>
+              <label class="color">Warna teks<input type="color" id="capColor" value="#ffffff"></label>
+              <label class="flex items-center gap-2 text-[13px]"><input type="checkbox" id="capBox" checked> Kotak gelap di belakang teks</label>
+            </div>
+            <div class="glass rounded-[24px] p-5 space-y-3">
+              <div class="text-[12px] font-bold">Pakai di OBS</div>
+              <p class="hint">Tambahkan sebagai Browser Source (1920×1080). Caption tampil di bagian bawah layar.</p>
+              <p class="hint">Pengenalan suara berjalan di tab panel ini, bukan di OBS. Biarkan tab ini tetap terbuka selama live, dan izinkan akses mikrofon saat diminta. Suara dikirim ke layanan pengenalan suara milik Google atau Microsoft, jadi perlu internet.</p>
+              <div data-link="captions"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ============ PAPAN SKOR ============ -->
+    <section data-view="board" class="min-w-0" hidden>
+      <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
+        <div class="flex items-end justify-between gap-3 flex-wrap">
+          <h1 class="text-[22px] md:text-[26px] font-black tracking-[-0.02em]">PAPAN SKOR</h1>
+          <div class="text-[11px] opacity-60">Top gifter: peringkat berdasarkan diamond. Top tap: peringkat berdasarkan tap layar.</div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="glass-strong rounded-[24px] p-5 space-y-3">
+            <div class="text-[12px] font-bold">Top gifter</div>
+            <div class="stage" style="--scale: 0.4"><iframe data-frame="gifters" data-demo="1" title="Pratinjau top gifter" tabindex="-1"></iframe><span class="stage-label">GIFTER</span></div>
+            <div data-link="gifters"></div>
+          </div>
+          <div class="glass-strong rounded-[24px] p-5 space-y-3">
+            <div class="text-[12px] font-bold">Top tap</div>
+            <div class="stage" style="--scale: 0.4"><iframe data-frame="tappers" data-demo="1" title="Pratinjau top tap" tabindex="-1"></iframe><span class="stage-label">TAP</span></div>
+            <div data-link="tappers"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="glass-strong rounded-[24px] p-5 space-y-4">
+            <div class="text-[12px] font-bold">Tampilan</div>
+            <div class="field">
+              <div class="field-label">Tema</div>
+              <div class="chips js-boardtheme"></div>
+            </div>
+            <div class="field">
+              <div class="field-label">Posisi di layar</div>
+              <div class="chips js-boardpos"></div>
+            </div>
+            <div class="field">
+              <div class="field-head"><label for="boardN">Jumlah peringkat</label><output id="boardNOut">5</output></div>
+              <input type="range" id="boardN" min="1" max="10" value="5">
+            </div>
+            <div class="field">
+              <div class="field-head"><label for="boardSize">Ukuran teks</label><output id="boardSizeOut">30px</output></div>
+              <input type="range" id="boardSize" min="12" max="80" value="30">
+            </div>
+            <label class="color">Warna teks<input type="color" id="boardColor" value="#ffffff"></label>
+            <label class="color">Warna aksen<input type="color" id="boardAccent" value="#6ee7ff"></label>
+            <label class="color">Warna latar<input type="color" id="boardBg" value="#000000"></label>
+            <div class="field">
+              <div class="field-label">Jenis huruf daftar</div>
+              <select id="boardFont" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none"></select>
+            </div>
+            <div class="field">
+              <div class="field-label">Jenis huruf judul</div>
+              <select id="boardTitleFont" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none"></select>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <label class="color">Warna judul<input type="color" id="boardTitleColor" value="#6ee7ff"></label>
+              <button id="boardTitleColorAuto" class="btn ghost small" type="button">Pakai warna tema</button>
+            </div>
+            <p class="hint">Tema Minimal tidak punya latar, jadi warna dan transparansi latar tidak berlaku di sana.</p>
+            <div class="field">
+              <div class="field-head"><label for="boardBga">Transparansi latar</label><output id="boardBgaOut">60%</output></div>
+              <input type="range" id="boardBga" min="0" max="100" value="60">
+            </div>
+          </div>
+
+          <div class="glass rounded-[24px] p-5 space-y-4">
+            <div class="text-[12px] font-bold">Judul &amp; perspektif</div>
+            <div class="field">
+              <label for="boardTitleGift" class="field-label">Judul top gifter</label>
+              <input id="boardTitleGift" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none" maxlength="40" placeholder="Top Gifter">
+            </div>
+            <div class="field">
+              <label for="boardTitleTap" class="field-label">Judul top tap</label>
+              <input id="boardTitleTap" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none" maxlength="40" placeholder="Top Tap">
+            </div>
+            <div class="field">
+              <div class="field-head"><span class="field-label">Perspektif papan</span><button class="btn ghost small js-persp-reset" type="button" data-persp="boards">Reset</button></div>
+              <div class="field">
+                <div class="field-head"><label for="rx-boards">Miring kiri-kanan</label><output class="js-persp-out" data-axis="rx">0°</output></div>
+                <input type="range" id="rx-boards" class="js-persp" data-persp="boards" data-axis="rx" min="-60" max="60" value="0">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="ry-boards">Miring atas-bawah</label><output class="js-persp-out" data-axis="ry">0°</output></div>
+                <input type="range" id="ry-boards" class="js-persp" data-persp="boards" data-axis="ry" min="-60" max="60" value="0">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="depth-boards">Kedalaman perspektif</label><output class="js-persp-out" data-axis="depth">1200 px</output></div>
+                <input type="range" id="depth-boards" class="js-persp" data-persp="boards" data-axis="depth" min="300" max="3000" step="50" value="1200">
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2 pt-2">
+              <button id="boardReset" class="h-9 px-4 rounded-full bg-white border border-black/10 text-[11px] font-bold" type="button">Mulai dari nol</button>
+              <button id="boardTest" class="h-9 px-4 rounded-full bg-white border border-black/10 text-[11px] font-bold" type="button">Kirim contoh ke overlay</button>
+            </div>
+            <p class="hint">Skor dihitung sejak live dimulai, dan mulai dari nol setiap kali live baru tersambung. Pratinjau di atas selalu menampilkan contoh. Tombol contoh hanya mengirim data ke overlay, tidak mengubah skor asli.</p>
           </div>
         </div>
       </main>

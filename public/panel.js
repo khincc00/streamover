@@ -2,7 +2,7 @@ import { connectHub } from '/shared/ws.js';
 import { startYouTubePlayer } from '/shared/ytPlayer.js';
 import { chatRow } from '/shared/chatRow.js';
 import { CHAT_TEMPLATES, DEFAULT_CHAT_TEMPLATE, isChatTemplate } from '/shared/chatTemplates.js';
-import { CHAT_ANIMATIONS, CHAT_GRADIENTS, DEFAULT_CHAT_STYLE, applyStyle, normalizeStyle } from '/shared/chatStyle.js';
+import { CHAT_ALIGNS, CHAT_ANIMATIONS, CHAT_GRADIENTS, DEFAULT_CHAT_STYLE, applyStyle, normalizeStyle } from '/shared/chatStyle.js';
 import { NOWPLAYING_TEMPLATES, DEFAULT_NOWPLAYING_TEMPLATE, isNowPlayingTemplate } from '/shared/nowplayingTemplates.js';
 import { DEFAULT_PERSPECTIVE, PERSPECTIVE_LIMITS } from '/shared/perspective.js';
 import { RUNNING_TEXT_TEMPLATES, DEFAULT_RUNNING_TEXT_TEMPLATE, isRunningTextTemplate, RUNNING_TEXT_FONTS, DEFAULT_RUNNING_TEXT_FONT, isRunningTextFont, runningTextFontStyle } from '/shared/runningTextTemplates.js';
@@ -26,11 +26,14 @@ const OVERLAYS = {
   lyricsam: { label: 'Lirik Apple Music', file: 'lyrics.html', source: 'applemusic' },
   tts: { label: 'Pembaca komentar', file: 'tts.html' },
   soundboard: { label: 'Soundboard', file: 'soundboard.html' },
+  gifters: { label: 'Top gifter', file: 'leaderboard.html', board: 'gifters' },
+  tappers: { label: 'Top tap', file: 'leaderboard.html', board: 'tappers' },
+  captions: { label: 'Auto caption', file: 'captions.html' },
   runningtext: { label: 'Running text', file: 'running-text.html' },
 };
 
 // Halaman sesuai menu sidebar: Dashboard, Template Studio, Spotify Studio, YT Music Studio, Alert, Running text, Overlay Lab, Settings.
-const VIEW_NAMES = ['home', 'musik', 'ytmusic', 'running', 'soundboard', 'settings'];
+const VIEW_NAMES = ['home', 'musik', 'ytmusic', 'running', 'soundboard', 'caption', 'board', 'settings'];
 // Template chat, alert, dan Overlay Lab ada di satu halaman dengan tab. Link lama (#/chat, #/alert, #/lab) tetap membuka tab yang sama.
 const STUDIO_TABS = { studio: 'chat', chat: 'chat', alert: 'alert', lab: 'lab' };
 
@@ -61,6 +64,8 @@ const settings = {
   chatMode: 'history', // 'history': daftar chat, 'latest': satu pesan terbaru saja
   chatHold: 6, // detik pesan terbaru tampil di mode 'latest'
   chatNames: 'side', // posisi nama penonton: 'side' di samping komentar, 'top' di atas komentar
+  chatAlign: 'left', // perataan chat: 'left', 'center', 'right', atau 'justify' (rata kiri-kanan)
+  alertAlign: 'center', // perataan alert: sama seperti chat
   duration: 4,
   template: DEFAULT_CHAT_TEMPLATE,
   spotifyTemplate: DEFAULT_NOWPLAYING_TEMPLATE,
@@ -80,6 +85,13 @@ const settings = {
   ttsPrefix: false, // kalau aktif, hanya komentar yang diawali !tts yang dibaca
   ttsRate: 1, // kecepatan bicara, 0.5 sampai 2
   ttsVoice: '', // nama suara. Kosong berarti otomatis, suara bahasa Indonesia kalau ada
+  capLang: 'id-ID', // bahasa yang diucapkan streamer, untuk auto caption
+  capMic: '', // deviceId mikrofon untuk auto caption. Kosong berarti mikrofon default
+  capSize: 48, // ukuran teks caption dalam px
+  capFont: 'default', // jenis huruf caption, id dari RUNNING_TEXT_FONTS
+  capColor: '#ffffff', // warna teks caption
+  capHold: 4, // detik caption tetap tampil setelah kalimat selesai
+  capBox: true, // kotak gelap di belakang teks caption
   username: '',
   ...DEFAULT_CHAT_STYLE,
   ...readJson(SETTINGS_KEY),
@@ -87,7 +99,8 @@ const settings = {
 
 // Perspektif per overlay. Saved values are clamped so a bad saved value can't break the overlay.
 // Running text punya perspektif sendiri di tiap overlay, jadi tidak ada di sini.
-const PERSP_KEYS = ['chat', 'alerts', 'nowplaying', 'youtube', 'lyrics'];
+// Top gifter dan top tap memakai satu perspektif bersama, 'boards'.
+const PERSP_KEYS = ['chat', 'alerts', 'nowplaying', 'youtube', 'lyrics', 'boards'];
 const PERSP_TARGETS = [...PERSP_KEYS, 'runningtext'];
 
 // Makes sure every setting has a valid value, whether it came from this browser or the server.
@@ -96,7 +109,56 @@ const CHAT_MODES = [
   { id: 'latest', label: '1 pesan terbaru' },
 ];
 
+// Bahasa untuk auto caption. Browser hanya mengenali satu bahasa dalam satu waktu.
+const CAPTION_LANGS = [
+  { id: 'id-ID', label: 'Bahasa Indonesia' },
+  { id: 'en-US', label: 'English (US)' },
+  { id: 'en-GB', label: 'English (UK)' },
+  { id: 'jv-ID', label: 'Basa Jawa' },
+  { id: 'su-ID', label: 'Basa Sunda' },
+  { id: 'ms-MY', label: 'Bahasa Melayu' },
+  { id: 'ja-JP', label: '日本語' },
+  { id: 'ko-KR', label: '한국어' },
+];
+
+// Papan skor (top gifter dan top tap): tampilan yang sama untuk keduanya, dan judul masing-masing.
+const BOARD_THEMES = [
+  { id: 'glass', label: 'Kaca' },
+  { id: 'neon', label: 'Neon' },
+  { id: 'gold', label: 'Emas' },
+  { id: 'minimal', label: 'Minimal' },
+  { id: 'custom', label: 'Kustom' },
+];
+const BOARD_POSITIONS = [
+  { id: 'tl', label: 'Kiri atas' },
+  { id: 'tr', label: 'Kanan atas' },
+  { id: 'bl', label: 'Kiri bawah' },
+  { id: 'br', label: 'Kanan bawah' },
+];
+// titleColor '' means the theme chooses the title colour. Fonts are ids from RUNNING_TEXT_FONTS.
+const BOARD_DEFAULTS = { theme: 'glass', pos: 'tl', n: 5, size: 30, color: '#ffffff', accent: '#6ee7ff', bg: '#000000', bga: 60, font: 'default', titleFont: 'default', titleColor: '', titleGift: '', titleTap: '' };
+
+function normalizeBoard(saved = {}) {
+  const b = { ...BOARD_DEFAULTS, ...(saved && typeof saved === 'object' ? saved : {}) };
+  return {
+    theme: BOARD_THEMES.some((t) => t.id === b.theme) ? b.theme : BOARD_DEFAULTS.theme,
+    pos: BOARD_POSITIONS.some((p) => p.id === b.pos) ? b.pos : BOARD_DEFAULTS.pos,
+    n: clampTo(Math.round(Number(b.n)) || 5, { min: 1, max: 10 }),
+    size: clampTo(Math.round(Number(b.size)) || 30, { min: 12, max: 80 }),
+    color: /^#[0-9a-f]{6}$/i.test(b.color) ? b.color : BOARD_DEFAULTS.color,
+    accent: /^#[0-9a-f]{6}$/i.test(b.accent) ? b.accent : BOARD_DEFAULTS.accent,
+    bg: /^#[0-9a-f]{6}$/i.test(b.bg) ? b.bg : BOARD_DEFAULTS.bg,
+    bga: clampTo(Number.isFinite(Number(b.bga)) ? Math.round(Number(b.bga)) : 60, { min: 0, max: 100 }),
+    font: isRunningTextFont(b.font) ? b.font : BOARD_DEFAULTS.font,
+    titleFont: isRunningTextFont(b.titleFont) ? b.titleFont : BOARD_DEFAULTS.titleFont,
+    titleColor: /^#[0-9a-f]{6}$/i.test(b.titleColor) ? b.titleColor : '',
+    titleGift: typeof b.titleGift === 'string' ? b.titleGift.slice(0, 40) : '',
+    titleTap: typeof b.titleTap === 'string' ? b.titleTap.slice(0, 40) : '',
+  };
+}
+
 function sanitizeSettings() {
+  settings.board = normalizeBoard(settings.board);
   if (!isChatTemplate(settings.template)) settings.template = DEFAULT_CHAT_TEMPLATE;
   if (!isNowPlayingTemplate(settings.spotifyTemplate)) settings.spotifyTemplate = DEFAULT_NOWPLAYING_TEMPLATE;
   if (!isNowPlayingTemplate(settings.youtubeTemplate)) settings.youtubeTemplate = DEFAULT_NOWPLAYING_TEMPLATE;
@@ -114,10 +176,19 @@ function sanitizeSettings() {
   settings.ttsPrefix = Boolean(settings.ttsPrefix);
   settings.ttsRate = clampTo(Number(settings.ttsRate) || 1, { min: 0.5, max: 2 });
   settings.ttsVoice = typeof settings.ttsVoice === 'string' ? settings.ttsVoice.slice(0, 100) : '';
+  if (!CAPTION_LANGS.some((l) => l.id === settings.capLang)) settings.capLang = 'id-ID';
+  settings.capMic = typeof settings.capMic === 'string' ? settings.capMic.slice(0, 200) : '';
+  settings.capSize = clampTo(Number(settings.capSize) || 48, { min: 20, max: 120 });
+  if (!isRunningTextFont(settings.capFont)) settings.capFont = 'default';
+  if (!/^#[0-9a-f]{6}$/i.test(settings.capColor)) settings.capColor = '#ffffff';
+  settings.capHold = clampTo(Number(settings.capHold) || 4, { min: 1, max: 30 });
+  settings.capBox = settings.capBox !== false;
   settings.npWidth = clampTo(Number(settings.npWidth) || 560, { min: 300, max: 1000 });
   if (!CHAT_MODES.some((m) => m.id === settings.chatMode)) settings.chatMode = 'history';
   settings.chatHold = clampTo(Number(settings.chatHold) || 6, { min: 2, max: 120 });
   if (!['side', 'top'].includes(settings.chatNames)) settings.chatNames = 'side';
+  if (!CHAT_ALIGNS.some((a) => a.id === settings.chatAlign)) settings.chatAlign = 'left';
+  if (!CHAT_ALIGNS.some((a) => a.id === settings.alertAlign)) settings.alertAlign = 'center';
   sanitizeRunningTexts();
   Object.assign(settings, normalizeStyle(settings));
   settings.persp = normalizePersp(settings.persp);
@@ -188,8 +259,9 @@ function perspOf(key) {
   return key === 'runningtext' ? selectedRunningText().persp : settings.persp[key];
 }
 
+// The chat's style. Its alignment is chatAlign; the alert overlay has its own alertAlign.
 function chatStyle() {
-  return normalizeStyle(settings);
+  return normalizeStyle({ ...settings, align: settings.chatAlign });
 }
 
 const SAMPLE_CHAT = [
@@ -325,11 +397,30 @@ function overlayUrl(key, item = selectedRunningText()) {
     params.set('mode', settings.chatMode);
     params.set('hold', settings.chatHold * 1000);
     params.set('names', settings.chatNames);
+    params.set('align', settings.chatAlign);
     addStyleParams(params);
   }
   if (key === 'alerts') {
     params.set('duration', settings.duration * 1000);
+    params.set('align', settings.alertAlign);
     addStyleParams(params);
+  }
+  if (key === 'gifters' || key === 'tappers') {
+    const b = settings.board;
+    params.set('board', key);
+    params.set('theme', b.theme);
+    params.set('pos', b.pos);
+    params.set('n', b.n);
+    params.set('size', b.size);
+    params.set('color', b.color.slice(1));
+    params.set('accent', b.accent.slice(1));
+    params.set('bg', b.bg.slice(1));
+    params.set('bga', b.bga);
+    params.set('font', b.font);
+    params.set('titleFont', b.titleFont);
+    if (b.titleColor) params.set('titleColor', b.titleColor.slice(1));
+    const title = key === 'tappers' ? b.titleTap : b.titleGift;
+    if (title) params.set('title', title);
   }
   if (key === 'nowplaying') params.set('template', settings.spotifyTemplate);
   if (key === 'youtube') params.set('template', settings.youtubeTemplate);
@@ -371,9 +462,18 @@ function overlayUrl(key, item = selectedRunningText()) {
     params.set('rate', settings.ttsRate);
     if (settings.ttsVoice) params.set('voice', settings.ttsVoice);
   }
+  if (key === 'captions') {
+    params.set('size', settings.capSize);
+    params.set('font', settings.capFont);
+    params.set('color', settings.capColor.slice(1));
+    params.set('hold', settings.capHold * 1000);
+    params.set('box', settings.capBox ? '1' : '0');
+  }
   // Pembaca komentar dan soundboard tidak tampil di layar, jadi tidak ada perspektif.
-  if (!['tts', 'soundboard'].includes(key)) {
-    const persp = key === 'runningtext' ? item.persp : settings.persp[styleKey];
+  // Caption selalu datar di bawah layar supaya mudah dibaca.
+  if (!['tts', 'soundboard', 'captions'].includes(key)) {
+    const perspKey = OVERLAYS[key].board ? 'boards' : styleKey;
+    const persp = key === 'runningtext' ? item.persp : settings.persp[perspKey];
     params.set('rx', persp.rx);
     params.set('ry', persp.ry);
     params.set('pd', persp.depth);
@@ -1235,7 +1335,8 @@ function refreshPreview() {
   for (const frame of document.querySelectorAll('[data-view]:not([hidden]) [data-frame]')) {
     // Pratinjau di tab yang tidak tampil tidak perlu dimuat. Tab itu dimuat saat dibuka.
     if (frame.closest('[data-subview][hidden]')) continue;
-    frame.src = overlayUrl(frame.dataset.frame);
+    // data-demo: the preview shows sample rows, so the look can be checked before a live starts.
+    frame.src = overlayUrl(frame.dataset.frame) + (frame.dataset.demo ? '&demo=1' : '');
   }
 }
 
@@ -1751,6 +1852,114 @@ function soundVolume() {
   return Number($('soundVolume').value) / 100;
 }
 
+// ---- Papan skor: top gifter dan top tap. Satu halaman, dua overlay ----
+
+function renderBoardChips() {
+  const groups = [
+    ['.js-boardtheme', BOARD_THEMES, 'theme'],
+    ['.js-boardpos', BOARD_POSITIONS, 'pos'],
+  ];
+  for (const [selector, options, key] of groups) {
+    for (const wrap of document.querySelectorAll(selector)) {
+      wrap.replaceChildren();
+      for (const option of options) {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.type = 'button';
+        chip.setAttribute('role', 'radio');
+        chip.setAttribute('aria-checked', String(settings.board[key] === option.id));
+        chip.textContent = option.label;
+        chip.addEventListener('click', () => {
+          settings.board[key] = option.id;
+          renderBoardControls();
+          changedBoard();
+        });
+        wrap.append(chip);
+      }
+    }
+  }
+}
+
+// Writes the values of the board controls back to the settings (they may have been set from the saved settings).
+function renderBoardControls() {
+  renderBoardChips();
+  const b = settings.board;
+  $('boardN').value = b.n;
+  $('boardNOut').textContent = b.n;
+  $('boardSize').value = b.size;
+  $('boardSizeOut').textContent = `${b.size}px`;
+  $('boardColor').value = b.color;
+  $('boardAccent').value = b.accent;
+  $('boardBg').value = b.bg;
+  $('boardBga').value = b.bga;
+  $('boardBgaOut').textContent = `${b.bga}%`;
+  $('boardFont').value = b.font;
+  $('boardTitleFont').value = b.titleFont;
+  $('boardTitleColor').value = b.titleColor || b.accent;
+  $('boardTitleColorAuto').disabled = !b.titleColor;
+  $('boardTitleGift').value = b.titleGift;
+  $('boardTitleTap').value = b.titleTap;
+}
+
+function changedBoard() {
+  saveSettings();
+  renderLinks();
+  refreshPreviewSoon();
+}
+
+function bindBoard() {
+  // The board's fonts. 'default' is the system font here, since a board has no template of its own.
+  for (const id of ['boardFont', 'boardTitleFont']) {
+    for (const f of RUNNING_TEXT_FONTS) $(id).append(new Option(f.id === 'default' ? 'Huruf sistem' : f.label, f.id));
+  }
+  renderBoardControls();
+  const onInput = (id, key, transform, outId, out) => {
+    $(id).addEventListener('input', () => {
+      settings.board[key] = transform($(id).value);
+      if (outId) $(outId).textContent = out(settings.board[key]);
+      changedBoard();
+    });
+  };
+  onInput('boardN', 'n', Number, 'boardNOut', (v) => v);
+  onInput('boardSize', 'size', Number, 'boardSizeOut', (v) => `${v}px`);
+  onInput('boardColor', 'color', (v) => v, null);
+  onInput('boardAccent', 'accent', (v) => v, null);
+  onInput('boardBg', 'bg', (v) => v, null);
+  onInput('boardBga', 'bga', Number, 'boardBgaOut', (v) => `${v}%`);
+  onInput('boardTitleColor', 'titleColor', (v) => v, null);
+  onInput('boardTitleGift', 'titleGift', (v) => v.trim(), null);
+  // Font pickers: a change re-reads the same settings, so the links and previews use the new font.
+  for (const [id, key] of [['boardFont', 'font'], ['boardTitleFont', 'titleFont']]) {
+    $(id).addEventListener('change', () => {
+      settings.board[key] = $(id).value;
+      changedBoard();
+    });
+  }
+  $('boardTitleColorAuto').addEventListener('click', () => {
+    settings.board.titleColor = '';
+    renderBoardControls();
+    changedBoard();
+  });
+  onInput('boardTitleTap', 'titleTap', (v) => v.trim(), null);
+
+  $('boardReset').addEventListener('click', async () => {
+    try {
+      await api('/api/board/reset', {});
+      toast('Papan skor dimulai dari nol');
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+  $('boardTest').addEventListener('click', async () => {
+    try {
+      await api('/api/board/sample', {});
+      toast('Contoh dikirim ke overlay. Skor asli tidak berubah.');
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+}
+
 function bindSoundboard() {
   const grid = $('soundGrid');
   grid.addEventListener('click', async (event) => {
@@ -1809,6 +2018,284 @@ function bindSoundboard() {
   });
   $('soundStop').addEventListener('click', () => {
     api('/api/soundboard/stop', {}).catch((err) => toast(err.message));
+  });
+}
+
+// ---- Auto caption: pengenalan suara berjalan di tab panel ini, lalu teksnya dikirim ke overlay caption ----
+
+const SpeechRecognitionApi = window.SpeechRecognition || window.webkitSpeechRecognition;
+const CAPTION_SEND_MS = 150;
+let recognition = null;
+let captionOn = false; // the streamer pressed start and has not pressed stop
+let captionSentAt = 0;
+let captionLastInterim = '';
+let captionTimer = null;
+
+// Requests can arrive out of order, so each caption carries the time it was sent and the overlay keeps the newest.
+function sendCaption(text, final) {
+  api('/api/caption', { text, final, seq: Date.now() }).catch(() => {});
+}
+
+// Unfinished text changes many times a second. At most one update goes out every CAPTION_SEND_MS,
+// and a finished sentence always goes out right away.
+function queueCaption(text, final) {
+  $('capPreview').textContent = text;
+  clearTimeout(captionTimer);
+  if (final) {
+    captionLastInterim = '';
+    sendCaption(text, true);
+    return;
+  }
+  if (text === captionLastInterim) return;
+  const wait = CAPTION_SEND_MS - (Date.now() - captionSentAt);
+  if (wait > 0) {
+    captionTimer = setTimeout(() => queueCaption(text, false), wait);
+    return;
+  }
+  captionSentAt = Date.now();
+  captionLastInterim = text;
+  sendCaption(text, false);
+}
+
+function renderCaptionState(text) {
+  $('capToggle').textContent = captionOn ? 'Hentikan caption' : 'Mulai caption';
+  $('capStatus').textContent = text;
+}
+
+const CAPTION_ERRORS = {
+  'not-allowed': 'Akses mikrofon ditolak. Izinkan mikrofon untuk situs ini di pengaturan browser.',
+  'service-not-allowed': 'Browser tidak mengizinkan pengenalan suara di halaman ini.',
+  'audio-capture': 'Mikrofon tidak ditemukan.',
+  'language-not-supported': 'Bahasa ini tidak didukung browser.',
+};
+
+function createRecognition() {
+  const rec = new SpeechRecognitionApi();
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.maxAlternatives = 1;
+
+  rec.onstart = () => renderCaptionState('Mendengarkan…');
+  rec.onresult = (event) => {
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const result = event.results[i];
+      const text = result[0].transcript.trim();
+      if (!text) continue;
+      if (result.isFinal) queueCaption(text, true);
+      else interim += `${interim ? ' ' : ''}${text}`;
+    }
+    if (interim) queueCaption(interim, false);
+  };
+  rec.onerror = (event) => {
+    // Silence and our own stop are normal. The browser ends the session and onend restarts it.
+    if (['no-speech', 'aborted'].includes(event.error)) return;
+    if (event.error === 'network') {
+      renderCaptionState('Koneksi ke layanan suara terputus, mencoba lagi…');
+      return;
+    }
+    captionOn = false;
+    closeMic();
+    renderCaptionState(CAPTION_ERRORS[event.error] || `Gagal: ${event.error}`);
+  };
+  // Chrome ends recognition after a pause or about a minute. While caption is on, it starts again.
+  rec.onend = () => {
+    if (!captionOn) {
+      renderCaptionState('Berhenti');
+      return;
+    }
+    setTimeout(() => {
+      if (captionOn) listen();
+    }, 250);
+  };
+  return rec;
+}
+
+// ---- Mikrofon untuk caption: dipilih dari daftar, dan bar level menunjukkan mikrofon itu menangkap suara ----
+
+let micStream = null;
+let micMeter = null; // { context, frame } while the level bar is running
+
+// Opens the chosen microphone. Without a choice, or when the chosen one is gone, the default is used.
+async function openMic() {
+  closeMic();
+  const audio = settings.capMic ? { deviceId: { exact: settings.capMic } } : true;
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio });
+  } catch (err) {
+    if (!settings.capMic || err.name !== 'OverconstrainedError') throw err;
+    toast('Mikrofon yang dipilih tidak ada, memakai mikrofon default');
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  }
+  startMeter(micStream);
+  // Device names are only readable after access is granted, so the list is filled again now.
+  loadMics().catch(() => {});
+  return micStream.getAudioTracks()[0];
+}
+
+function closeMic() {
+  if (micMeter) {
+    cancelAnimationFrame(micMeter.frame);
+    micMeter.context.close().catch(() => {});
+    micMeter = null;
+  }
+  micStream?.getTracks().forEach((track) => track.stop());
+  micStream = null;
+  $('capLevel').style.width = '0';
+}
+
+function startMeter(stream) {
+  const context = new AudioContext();
+  const analyser = context.createAnalyser();
+  analyser.fftSize = 512;
+  context.createMediaStreamSource(stream).connect(analyser);
+  const data = new Uint8Array(analyser.fftSize);
+  micMeter = { context, frame: 0 };
+  const tick = () => {
+    analyser.getByteTimeDomainData(data);
+    let peak = 0;
+    for (const v of data) peak = Math.max(peak, Math.abs(v - 128));
+    $('capLevel').style.width = `${Math.min(100, (peak / 128) * 160)}%`;
+    micMeter.frame = requestAnimationFrame(tick);
+  };
+  tick();
+}
+
+async function loadMics() {
+  const select = $('capMic');
+  const devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput' && d.deviceId !== 'default');
+  const options = [new Option('Default sistem', '')];
+  devices.forEach((d, i) => options.push(new Option(d.label || `Mikrofon ${i + 1}`, d.deviceId)));
+  select.replaceChildren(...options);
+  // A saved microphone that isn't plugged in stays chosen, so it comes back when it is plugged in again.
+  if (settings.capMic && !devices.some((d) => d.deviceId === settings.capMic)) {
+    select.append(new Option('Mikrofon tersimpan (tidak tersambung)', settings.capMic));
+  }
+  select.value = settings.capMic;
+}
+
+// Recognition is given the chosen microphone's track. Chrome then listens to that microphone
+// instead of the default one.
+function listen() {
+  const track = micStream?.getAudioTracks()[0];
+  recognition.lang = settings.capLang;
+  try {
+    if (track && track.readyState === 'live') recognition.start(track);
+    else recognition.start();
+  } catch {
+    // Already running.
+  }
+}
+
+async function startCaption() {
+  recognition ||= createRecognition();
+  captionOn = true;
+  renderCaptionState('Meminta akses mikrofon…');
+  try {
+    await openMic();
+  } catch {
+    captionOn = false;
+    renderCaptionState(CAPTION_ERRORS['not-allowed']);
+    return;
+  }
+  if (captionOn) listen();
+}
+
+function stopCaption() {
+  captionOn = false;
+  recognition?.stop();
+  closeMic();
+  renderCaptionState('Berhenti');
+}
+
+function bindCaption() {
+  const supported = Boolean(SpeechRecognitionApi);
+  $('capUnsupported').hidden = supported;
+  $('capToggle').disabled = !supported;
+  $('capToggle').addEventListener('click', () => (captionOn ? stopCaption() : startCaption()));
+
+  $('capClear').addEventListener('click', () => {
+    $('capPreview').textContent = '';
+    clearTimeout(captionTimer);
+    sendCaption('', true);
+  });
+
+  const sendTest = () => {
+    const text = $('capTestText').value.trim();
+    if (!text) return;
+    queueCaption(text, true);
+  };
+  $('capTestSend').addEventListener('click', sendTest);
+  $('capTestText').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') sendTest();
+  });
+
+  const mic = $('capMic');
+  if (navigator.mediaDevices?.enumerateDevices) {
+    loadMics().catch(() => {});
+    navigator.mediaDevices.addEventListener('devicechange', () => loadMics().catch(() => {}));
+  }
+  mic.addEventListener('change', async () => {
+    settings.capMic = mic.value;
+    saveSettings();
+    if (!captionOn) return;
+    // Switch while running: open the new microphone, then restart recognition so it listens to it.
+    try {
+      await openMic();
+    } catch {
+      toast('Mikrofon itu tidak bisa dibuka');
+    }
+    recognition?.stop();
+  });
+  // Asking for access once makes the browser reveal the microphone names.
+  $('capMicRefresh').addEventListener('click', async () => {
+    try {
+      if (!micStream) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+      }
+      await loadMics();
+    } catch {
+      toast('Akses mikrofon ditolak');
+    }
+  });
+
+  const lang = $('capLang');
+  for (const l of CAPTION_LANGS) lang.append(new Option(l.label, l.id));
+  lang.value = settings.capLang;
+  lang.addEventListener('change', () => {
+    settings.capLang = lang.value;
+    saveSettings();
+    // The new language is used when recognition starts again, which onend does by itself.
+    if (captionOn) recognition?.stop();
+  });
+
+  bindSetting('capSize', 'capSize', 'capSizeOut');
+  bindSetting('capHold', 'capHold', 'capHoldOut');
+
+  const font = $('capFont');
+  for (const f of RUNNING_TEXT_FONTS) font.append(new Option(f.label, f.id));
+  font.value = settings.capFont;
+  font.addEventListener('change', () => {
+    settings.capFont = font.value;
+    saveSettings();
+    renderLinks();
+  });
+
+  const color = $('capColor');
+  color.value = settings.capColor;
+  color.addEventListener('input', () => {
+    settings.capColor = color.value;
+    saveSettings();
+    renderLinks();
+  });
+
+  const box = $('capBox');
+  box.checked = settings.capBox;
+  box.addEventListener('change', () => {
+    settings.capBox = box.checked;
+    saveSettings();
+    renderLinks();
   });
 }
 
@@ -2003,6 +2490,32 @@ function renderChatMode() {
   }
   for (const field of document.querySelectorAll('.js-chathold-field')) {
     field.classList.toggle('dimmed', settings.chatMode !== 'latest');
+  }
+}
+
+// Perataan untuk chat dan alert. Setiap halaman punya pilihannya sendiri.
+function renderAlign() {
+  for (const [selector, key] of [['.js-chatalign', 'chatAlign'], ['.js-alertalign', 'alertAlign']]) {
+    for (const wrap of document.querySelectorAll(selector)) {
+      wrap.replaceChildren();
+      for (const option of CHAT_ALIGNS) {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.type = 'button';
+        chip.setAttribute('role', 'radio');
+        chip.setAttribute('aria-checked', String(settings[key] === option.id));
+        chip.textContent = option.label;
+        chip.addEventListener('click', () => {
+          settings[key] = option.id;
+          renderAlign();
+          saveSettings();
+          renderLinks();
+          renderSample();
+          refreshPreviewSoon();
+        });
+        wrap.append(chip);
+      }
+    }
   }
 }
 
@@ -2380,6 +2893,7 @@ bindSetting('max', 'max', 'maxOut');
 bindSetting('chatHold', 'chatHold', 'chatHoldOut');
 renderChatMode();
 renderChatNames();
+renderAlign();
 bindSetting('duration', 'duration', 'durOut');
 bindRunningText();
 bindAnimDur();
@@ -2391,6 +2905,8 @@ bindNpCustom();
 bindLyricsPicker();
 bindTts();
 bindSoundboard();
+bindBoard();
+bindCaption();
 
 renderAnims();
 renderGradients();

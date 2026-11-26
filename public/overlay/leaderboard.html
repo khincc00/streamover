@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Overlay Papan Skor</title>
+  <style>
+    :root {
+      --size: 30px;
+      --lb-color: #ffffff;
+      --lb-accent: #6ee7ff;
+      --lb-title: var(--lb-accent);
+      --lb-bg: rgba(0, 0, 0, 0.6);
+      --lb-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+      --lb-weight: 800;
+      --lb-title-family: var(--lb-family);
+      --lb-title-weight: 800;
+    }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+    }
+    /* The board sits in one corner. --pos-x and --pos-y are set from the position in the URL. */
+    #board {
+      position: absolute;
+      top: var(--pos-top, auto);
+      bottom: var(--pos-bottom, auto);
+      left: var(--pos-left, auto);
+      right: var(--pos-right, auto);
+      width: 560px;
+      max-width: 42vw;
+      box-sizing: border-box;
+      font-family: var(--lb-family);
+      font-size: var(--size);
+      color: var(--lb-color);
+      line-height: 1.2;
+      padding: 0.35em 0.5em;
+      border-radius: 0.5em;
+      background: var(--lb-bg);
+    }
+    #board[hidden] { display: none; }
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 0.4em;
+      margin-bottom: 0.3em;
+      font-family: var(--lb-title-family);
+      font-weight: var(--lb-title-weight);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 0.8em;
+      color: var(--lb-title);
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 0.4em;
+      padding: 0.18em 0.3em;
+      border-radius: 0.35em;
+      min-width: 0;
+    }
+    .rank {
+      flex: none;
+      width: 1.6em;
+      text-align: center;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .avatar {
+      flex: none;
+      width: 1.3em;
+      height: 1.3em;
+      border-radius: 50%;
+      object-fit: cover;
+      display: grid;
+      place-items: center;
+      background: rgba(127, 127, 127, 0.5);
+      font-size: 0.6em;
+      font-weight: 700;
+      overflow: hidden;
+    }
+    .name {
+      flex: 1;
+      min-width: 0;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .score {
+      flex: none;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .unit { font-size: 0.6em; font-weight: 600; opacity: 0.7; margin-left: 0.2em; }
+
+    /* Themes. Each one changes only how the same rows look. */
+    /* Each theme sets its own look. The background colour from the panel is --lb-bg, so a theme
+       that needs its own background sets --lb-bg itself. These rules are on the board element,
+       so they win over the colour that the panel sets on the page. */
+    .theme-glass { backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 0.9em; }
+    .theme-neon { border: 2px solid var(--lb-accent); box-shadow: 0 0 18px var(--lb-accent), inset 0 0 12px rgba(0, 0, 0, 0.5); }
+    .theme-neon .title { text-shadow: 0 0 8px var(--lb-accent); }
+    .theme-minimal { --lb-bg: transparent; padding-left: 0; padding-right: 0; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7); }
+    .theme-minimal .row { background: none; }
+    .theme-gold { border: 2px solid #d4af37; box-shadow: 0 0 14px rgba(212, 175, 55, 0.35); }
+    .theme-gold { --lb-title: #f2d675; }
+    /* Kustom has no look of its own: background, colours, and fonts all come from the panel. */
+    .theme-custom { border-radius: 0.5em; }
+
+    /* Top three get a medal colour, in every theme. */
+    .row.r1 .rank { color: #ffd700; }
+    .row.r2 .rank { color: #c0c0c0; }
+    .row.r3 .rank { color: #cd7f32; }
+    .row.r1 { background: rgba(255, 215, 0, 0.12); }
+    .row.r2 { background: rgba(192, 192, 192, 0.1); }
+    .row.r3 { background: rgba(205, 127, 50, 0.1); }
+
+  </style>
+</head>
+<body>
+  <div id="board" class="theme-glass" hidden>
+    <div class="title"><span id="titleText"></span></div>
+    <div id="rows"></div>
+  </div>
+  <script type="module">
+    import { connectHub } from '/shared/ws.js';
+    import { applyPerspective, perspectiveFromParams } from '/shared/perspective.js';
+    import { isRunningTextFont, runningTextFontStyle } from '/shared/runningTextTemplates.js';
+
+    const params = new URLSearchParams(location.search);
+    const root = document.documentElement.style;
+    const board = params.get('board') === 'tappers' ? 'tappers' : 'gifters';
+    const limit = Math.min(10, Math.max(1, Number(params.get('n')) || 5));
+    const size = Math.min(80, Math.max(12, Number(params.get('size')) || 30));
+    root.setProperty('--size', `${size}px`);
+    const hex = (value, fallback) => (/^[0-9a-f]{6}$/i.test(value || '') ? `#${value}` : fallback);
+    root.setProperty('--lb-color', hex(params.get('color'), '#ffffff'));
+    root.setProperty('--lb-accent', hex(params.get('accent'), '#6ee7ff'));
+    // Title colour: the panel's own colour, or the theme's when none is set (titleColor absent).
+    const titleColor = params.get('titleColor');
+    // Set on the board element itself: a theme's own rule for the title colour would otherwise win.
+    if (/^[0-9a-f]{6}$/i.test(titleColor || '')) document.getElementById('board').style.setProperty('--lb-title', `#${titleColor}`);
+    // Fonts are ids from the panel. 'default' keeps the system font.
+    const setFont = (id, family, weight) => {
+      const style = isRunningTextFont(id) ? runningTextFontStyle(id) : null;
+      if (!style) return;
+      root.setProperty(family, style.fontFamily);
+      root.setProperty(weight, style.fontWeight);
+    };
+    setFont(params.get('font'), '--lb-family', '--lb-weight');
+    setFont(params.get('titleFont'), '--lb-title-family', '--lb-title-weight');
+    const bga = Math.min(100, Math.max(0, Number(params.get('bga') ?? 60)));
+    const bgHex = hex(params.get('bg'), '#000000').slice(1);
+    const n = parseInt(bgHex, 16);
+    root.setProperty('--lb-bg', `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${bga / 100})`);
+
+    // Corner from the panel. Anything else falls back to the top-left.
+    const pos = ['tl', 'tr', 'bl', 'br'].includes(params.get('pos')) ? params.get('pos') : 'tl';
+    const el = document.getElementById('board');
+    if (pos[0] === 't') { root.setProperty('--pos-top', '40px'); root.setProperty('--pos-bottom', 'auto'); }
+    else { root.setProperty('--pos-bottom', '40px'); root.setProperty('--pos-top', 'auto'); }
+    if (pos[1] === 'l') { root.setProperty('--pos-left', '40px'); root.setProperty('--pos-right', 'auto'); }
+    else { root.setProperty('--pos-right', '40px'); root.setProperty('--pos-left', 'auto'); }
+    // Themes are fixed names, so an unknown value keeps the glass look.
+    const theme = ['glass', 'neon', 'minimal', 'gold', 'custom'].includes(params.get('theme')) ? params.get('theme') : 'glass';
+    el.className = `theme-${theme}`;
+
+    const title = (params.get('title') || '').trim().slice(0, 40)
+      || (board === 'tappers' ? 'Top Tap' : 'Top Gifter');
+    document.getElementById('titleText').textContent = title;
+    const unit = board === 'tappers' ? 'tap' : 'diamond';
+    const rows = document.getElementById('rows');
+    // Tilt from the panel's Perspektif fields, the same as the other overlays.
+    applyPerspective(el, perspectiveFromParams(params));
+
+    function render(items) {
+      // With nobody on the board yet, the box is hidden so the stream has nothing extra on screen.
+      el.hidden = !items.length;
+      if (!items.length) {
+        rows.replaceChildren();
+        return;
+      }
+      rows.replaceChildren(...items.slice(0, limit).map((item, i) => {
+        const row = document.createElement('div');
+        row.className = `row r${i + 1}`;
+
+        const rank = document.createElement('span');
+        rank.className = 'rank';
+        rank.textContent = i + 1;
+
+        // Avatar from the profile picture, or the first letter when there is none.
+        // The URL is only used when it is https, so a bad value can't load anything else.
+        const pic = document.createElement(item.avatar ? 'img' : 'span');
+        pic.className = 'avatar';
+        if (item.avatar) {
+          pic.src = item.avatar;
+          pic.alt = '';
+          pic.referrerPolicy = 'no-referrer';
+        } else {
+          pic.textContent = (item.nickname || '?').charAt(0).toUpperCase();
+        }
+
+        const name = document.createElement('span');
+        name.className = 'name';
+        // textContent (not innerHTML) so names can't inject markup.
+        name.textContent = item.nickname;
+
+        const score = document.createElement('span');
+        score.className = 'score';
+        score.textContent = item.score.toLocaleString('id-ID');
+        const suffix = document.createElement('span');
+        suffix.className = 'unit';
+        suffix.textContent = unit;
+        score.append(suffix);
+
+        row.append(rank, pic, name, score);
+        return row;
+      }));
+    }
+
+    // ?demo=1 (the panel preview) shows sample rows until real or sent data arrives.
+    const SAMPLE = {
+      gifters: [['Sari', 520], ['Budi', 310], ['Rina', 150], ['Andi', 80], ['Dewi', 20]],
+      tappers: [['Tap Master', 12450], ['Kopi', 8230], ['Lala', 4120], ['Yoga', 1875], ['Mira', 640]],
+    };
+    if (params.get('demo') === '1') {
+      render(SAMPLE[board].map(([nickname, score], i) => ({ uniqueId: `sample_${i}`, nickname, avatar: '', score })));
+    }
+    connectHub((msg) => {
+      if (msg.type !== 'leaderboard' || msg.board !== board) return;
+      render(msg.items || []);
+    });
+  </script>
+</body>
+</html>

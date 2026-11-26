@@ -10,6 +10,12 @@ export const SAMPLES = {
     user: { uniqueId: 'sari_test', nickname: 'Sari', avatar: '' },
     gift: { name: 'Rose', image: '', diamonds: 1, count: 5 },
   }),
+  // A burst of taps from one viewer, for the top tap board.
+  like: () => ({
+    type: 'like',
+    user: { uniqueId: 'tap_test', nickname: 'Tap Tester', avatar: '' },
+    count: 30,
+  }),
   follow: () => ({
     type: 'follow',
     user: { uniqueId: 'andi_test', nickname: 'Andi', avatar: '' },

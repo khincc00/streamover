@@ -25,6 +25,15 @@
   animation-fill-mode: both;
 }
 .chat .text { min-width: 0; }
+
+/* Perataan chat: kiri (bawaan), tengah, kanan, atau rata kiri-kanan. */
+.chat.align-center { align-items: center; }
+.chat.align-center .text { text-align: center; }
+.chat.align-right { align-items: flex-end; }
+.chat.align-right .text { text-align: right; }
+.chat.align-justify { align-items: stretch; }
+.chat.align-justify .msg { width: 100%; box-sizing: border-box; }
+.chat.align-justify .text { flex: 1; min-width: 0; text-align: justify; }
 .chat .name { font-weight: 700; margin-right: 0.35em; }
 .chat .avatar {
   flex: none;
