@@ -32,6 +32,9 @@
         <a href="#/musik" data-nav="musik" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">♫</span>Spotify Studio</a>
         <a href="#/ytmusic" data-nav="ytmusic" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">▶</span>YT Music Studio</a>
         <a href="#/running" data-nav="running" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">A</span>Running Text</a>
+        <a href="#/soundboard" data-nav="soundboard" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">◉</span>Soundboard</a>
+        <a href="#/caption" data-nav="caption" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">≡</span>Auto Caption</a>
+        <a href="#/board" data-nav="board" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">★</span>Papan Skor</a>
         <a href="#/settings" data-nav="settings" class="nav-item w-full text-left px-3 py-2.5 rounded-[12px] text-[13px] font-medium flex items-center gap-3 transition hover:bg-black/5 text-[var(--text-soft)]"><span class="w-6 text-center">⚙</span>Settings</a>
       </nav>
       <div class="mt-auto p-3 rounded-[14px] bg-black text-white">
@@ -77,6 +80,9 @@
         <a href="#/musik" data-nav="musik" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">spotify</a>
         <a href="#/ytmusic" data-nav="ytmusic" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">yt music</a>
         <a href="#/running" data-nav="running" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">running</a>
+        <a href="#/soundboard" data-nav="soundboard" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">soundboard</a>
+        <a href="#/caption" data-nav="caption" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">caption</a>
+        <a href="#/board" data-nav="board" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">papan skor</a>
         <a href="#/settings" data-nav="settings" class="nav-item shrink-0 px-3 py-1.5 rounded-full text-[11px] border bg-white/70 border-black/10">settings</a>
       </div>
     </header>
@@ -117,7 +123,7 @@
             <p id="error" class="error" role="alert"></p>
           </div>
 
-          <div class="grid md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="glass-strong rounded-[24px] p-5 md:col-span-2">
               <div class="flex items-center justify-between flex-wrap gap-2">
                 <h2 class="text-[18px] font-bold tracking-tight">Live Overview</h2>
@@ -215,7 +221,7 @@
             <span class="px-2.5 py-1 rounded-full bg-black text-white text-[10px] font-black tracking-widest">TEMPLATE DIPAKAI</span>
             <span id="featuredDesc" class="text-[11px] opacity-60"></span>
           </div>
-          <div class="grid md:grid-cols-[280px_1fr] gap-4 items-start">
+          <div class="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-4 items-start">
             <div id="featuredArt" class="text-left"></div>
             <div class="rounded-[18px] bg-white/70 border border-black/5 p-3">
               <div class="text-[11px] font-bold tracking-widest opacity-60 mb-2">LIVE PREVIEW • CHAT</div>
@@ -224,9 +230,9 @@
           </div>
         </div>
 
-        <div id="chatGrid" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3" role="radiogroup" aria-label="Template chat"><button class="text-left group relative" type="button" data-template="apple" role="radio" aria-checked="false"><div class="absolute -top-2 -right-2 z-10 px-2 py-0.5 rounded-full bg-black text-white text-[8px] font-black tracking-widest">FEATURED</div><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all ring-2 ring-black dark:ring-white scale-[1.02]" style="background: rgba(255, 255, 255, 0.72);"><div class="absolute -top-8 -left-8 w-24 h-24 rounded-full bg-[#E8D5FF] blur-[20px] opacity-80"></div><div class="absolute -top-6 right-8 w-20 h-20 rounded-full bg-[#D5E8FF] blur-[18px] opacity-80"></div><div class="absolute bottom-2 left-6 w-16 h-16 rounded-full bg-[#FFD6E8] blur-[16px] opacity-70"></div><div class="absolute top-0 left-0 right-0 h-7 bg-white/80 border-b border-white/60 flex items-center gap-1.5 px-3"><span class="w-2.5 h-2.5 rounded-full bg-[#FF5F57] border border-black/10"></span><span class="w-2.5 h-2.5 rounded-full bg-[#FFBD2E] border border-black/10"></span><span class="w-2.5 h-2.5 rounded-full bg-[#28C940] border border-black/10"></span><span class="ml-auto text-[8px] font-semibold tracking-widest opacity-40">LIQUID GLASS • BLUR 24px</span></div><div class="absolute top-10 left-3 right-3 h-[42%] bg-white/72 backdrop-blur-[8px] rounded-[14px] border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-2"><div class="flex gap-2 items-center"><div class="w-5 h-5 rounded-full bg-black/5 border border-white"></div><div class="h-2 w-16 bg-black/10 rounded-full"></div><div class="ml-auto w-2 h-2 rounded-full bg-[#0A84FF]"></div></div><div class="mt-2 h-2 w-[80%] bg-black/5 rounded-full"></div><div class="mt-1 h-2 w-[60%] bg-black/5 rounded-full"></div></div><div class="absolute bottom-2 left-2 text-[8px] font-bold tracking-[0.18em] px-1.5 py-0.5 rounded-full bg-black text-white">FEATURED • APPLE STYLE</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight underline">APPLE GLASSMORPHISM / LIQUID GLASS</div><div class="text-[10px] opacity-50 mt-0.5">liquid glass, blur 24px, mesh blob, spring</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(232, 213, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(213, 232, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 214, 232);"></span></div></div></button><button class="text-left group relative" type="button" data-template="cyberpunk" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: rgb(10, 10, 15);"><div class="absolute inset-0" style="background-image: linear-gradient(rgba(0,255,240,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,240,0.12) 1px, transparent 1px); background-size: 22px 22px;"></div><div class="absolute inset-0 opacity-40" style="background: linear-gradient(90deg, transparent, #00FFF022, transparent); animation: scan 2s linear infinite;"></div><div class="absolute top-3 left-3 right-12 h-[28%] bg-black border border-[#00FFF0] shadow-[0_0_12px_#00FFF0]" style="clip-path: polygon(0 0, 92% 0, 100% 30%, 100% 100%, 8% 100%, 0 70%);"></div><div class="absolute bottom-3 left-3 text-[9px] font-bold tracking-[0.2em] text-[#00FFF0]" style="font-family: JetBrains Mono;">HUD // 00FFF0</div><div class="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#FFE600] shadow-[0_0_8px_#FFE600]"></div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">CYBERPUNK / NEON FUTURISTIC</div><div class="text-[10px] opacity-50 mt-0.5">HUD angular, glitch, scanline</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 255, 240);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 0, 229);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 230, 0);"></span></div></div></button><button class="text-left group relative" type="button" data-template="y2k" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: linear-gradient(135deg,#eef2ff,#fde2f3);"><div class="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/80 blur-[1px] border border-white shadow-[inset_0_2px_12px_white,0_8px_20px_rgba(0,0,0,0.12)]"></div><div class="absolute top-6 left-6 px-3 py-1.5 rounded-full bg-gradient-to-b from-white to-[#d9dbe3] border border-white text-[10px] font-black tracking-widest shadow-lg">Y2K</div><div class="absolute bottom-3 left-3 right-3 h-2 rounded-full bg-gradient-to-r from-[#C7D2FE] via-[#FF6EC7] to-[#C2FF53] blur-[0.5px]"></div><div class="absolute top-10 left-12 text-[14px]">✦˚₊‧</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">Y2K / RETRO-FUTURISM</div><div class="text-[10px] opacity-50 mt-0.5">bubble chrome 3D, sparkle</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(199, 210, 254);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 110, 199);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(194, 255, 83);"></span></div></div></button><button class="text-left group relative" type="button" data-template="kawaii" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: linear-gradient(135deg, #FFD6E8, #E8D5FF);"><div class="absolute top-3 left-1/2 -translate-x-1/2 flex gap-1"><div class="w-3 h-6 bg-white rounded-full rotate-[-20deg]"></div><div class="w-3 h-6 bg-white rounded-full rotate-[20deg]"></div></div><div class="absolute inset-4 top-8 rounded-[22px] bg-white/85 backdrop-blur shadow-[0_10px_24px_rgba(0,0,0,0.08)] border border-white"></div><div class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px]">ฅ^•ﻌ•^ฅ ♡</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">KAWAII ANIME / PASTEL</div><div class="text-[10px] opacity-50 mt-0.5">rounded 32px, cat ears</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 214, 232);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(232, 213, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(213, 255, 232);"></span></div></div></button><button class="text-left group relative" type="button" data-template="minimalis" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10 bg-white"><div class="absolute inset-0 p-4 flex flex-col gap-2"><div class="h-px bg-black/10"></div><div class="flex gap-2"><div class="w-6 h-6 rounded-full bg-black/5"></div><div class="flex-1 h-3 bg-black/5 rounded"></div></div><div class="h-px bg-black/10"></div><div class="flex gap-2"><div class="w-6 h-6 rounded-full bg-black/5"></div><div class="flex-1 h-3 bg-black/5 rounded"></div></div></div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">MINIMALIS MODERN</div><div class="text-[10px] opacity-50 mt-0.5">text only, 1px line</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 255, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(17, 17, 17);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(245, 245, 245);"></span></div></div></button><button class="text-left group relative" type="button" data-template="vaporwave" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: rgb(26, 11, 46);"><div class="absolute bottom-0 left-0 right-0 h-[55%] bg-gradient-to-t from-[#FF6B9D] via-[#7B61FF] to-transparent opacity-80"></div><div class="absolute bottom-6 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-gradient-to-b from-[#FFEA5C] to-[#FF6B9D] shadow-[0_0_20px_#FF6B9D]"></div><div class="absolute inset-0 opacity-30" style="background-image: linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px); background-size: 100% 14px; transform: perspective(200px) rotateX(60deg); transform-origin: bottom;"></div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">VAPORWAVE / SYNTHWAVE</div><div class="text-[10px] opacity-50 mt-0.5">sunset gradient, VHS</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 107, 157);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(123, 97, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(46, 230, 255);"></span></div></div></button><button class="text-left group relative" type="button" data-template="grunge" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10 bg-[#F5F1E8]"><div class="absolute inset-0 opacity-[0.15]"></div><div class="absolute top-2 left-2 w-[70%] h-6 bg-white -rotate-2 shadow-sm border border-black/10 flex items-center px-2 text-[9px] font-black">TAPE</div><div class="absolute bottom-3 left-3 text-[18px] font-black tracking-tighter" style="font-family: Anton;">GRUNGE!</div><div class="absolute top-6 right-4 w-10 h-10 rounded-full bg-[#FF2A2A] blur-[6px] opacity-60"></div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">GRUNGE / STREET ART</div><div class="text-[10px] opacity-50 mt-0.5">torn paper, tape</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 42, 42);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 230, 0);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(18, 18, 18);"></span></div></div></button><button class="text-left group relative" type="button" data-template="esports" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: rgb(14, 14, 16);"><div class="absolute inset-0 p-2 flex flex-col gap-1"><div class="flex gap-1"><div class="h-1 w-12 bg-[#00FF88]"></div><div class="h-1 w-6 bg-white/30"></div><div class="ml-auto w-3 h-3 border border-white/40"></div></div><div class="mt-2 h-6 bg-white/5 border border-white/10 flex items-center px-2 text-[8px] text-white/70 tracking-widest">KILLFEED // NEON_HUNTER [HEADSHOT]</div><div class="h-6 bg-white/5 border border-white/10 flex items-center px-2 text-[8px] text-white/70 tracking-widest">+100 XP</div></div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">CLEAN ESPORTS / TACTICAL</div><div class="text-[10px] opacity-50 mt-0.5">military HUD, killfeed</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 255, 136);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 150, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(14, 14, 16);"></span></div></div></button><button class="text-left group relative" type="button" data-template="pixel" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10 bg-[#f8f8f0] border-[3px] border-black" style="box-shadow: 4px 4px 0 black;"><div class="absolute inset-0 grid grid-cols-6 grid-rows-4 gap-px p-2"><div class="bg-black/10 bg-[#FF0000] bg-[#0058F8]"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10 bg-[#0058F8]"></div><div class="bg-black/10"></div><div class="bg-black/10 bg-[#FF0000]"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10 bg-[#0058F8]"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10 bg-[#FF0000]"></div><div class="bg-black/10 bg-[#0058F8]"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10 bg-[#0058F8]"></div><div class="bg-black/10 bg-[#FF0000]"></div><div class="bg-black/10"></div><div class="bg-black/10"></div></div><div class="absolute bottom-1 left-1 text-[7px]" style="font-family: &quot;Press Start 2P&quot;;">LVL 8</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">PIXEL ART / 8-BIT RETRO</div><div class="text-[10px] opacity-50 mt-0.5">NES palette, 4px stepped</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 0, 0);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 88, 248);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 168, 0);"></span></div></div></button><button class="text-left group relative" type="button" data-template="cottage" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: rgb(253, 246, 227);"><div class="absolute top-2 left-2 text-[#8A9A7B] text-[18px]">🌿</div><div class="absolute top-8 left-4 right-4 rounded-[12px] border border-[#8A9A7B]/30 bg-white/70 p-2"><div class="h-1 w-8 bg-[#C67B5C]/50 rounded-full mb-1"></div><div class="h-2 w-full bg-[#8A9A7B]/20 rounded"></div></div><div class="absolute bottom-2 right-3 text-[10px]">🍄</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">COTTAGECORE / BOTANICAL</div><div class="text-[10px] opacity-50 mt-0.5">hand-drawn, linen</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(138, 154, 123);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(253, 246, 227);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(198, 123, 92);"></span></div></div></button><button class="text-left group relative" type="button" data-template="comic" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10 bg-[#FFEA00]" style="border-width: 4px; border-color: black;"><div class="absolute inset-0 opacity-30" style="background-image: radial-gradient(black 1.8px, transparent 1.8px); background-size: 10px 10px;"></div><div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-6 bg-[#FF0000] text-white px-3 py-1 border-[3px] border-black font-black text-[12px] tracking-widest" style="font-family: Bangers;">POW!</div><div class="absolute bottom-1 left-1 bg-white border-2 border-black text-[8px] px-1 font-black">BOOM</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">COMIC BOOK / POP ART</div><div class="text-[10px] opacity-50 mt-0.5">halftone, 4px border</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 0, 0);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 87, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 234, 0);"></span></div></div></button></div>
+        <div id="chatGrid" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3" role="radiogroup" aria-label="Template chat"><button class="text-left group relative" type="button" data-template="apple" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all ring-2 ring-black dark:ring-white scale-[1.02]" style="background: rgba(255, 255, 255, 0.72);"><div class="absolute -top-8 -left-8 w-24 h-24 rounded-full bg-[#E8D5FF] blur-[20px] opacity-80"></div><div class="absolute -top-6 right-8 w-20 h-20 rounded-full bg-[#D5E8FF] blur-[18px] opacity-80"></div><div class="absolute bottom-2 left-6 w-16 h-16 rounded-full bg-[#FFD6E8] blur-[16px] opacity-70"></div><div class="absolute top-0 left-0 right-0 h-7 bg-white/80 border-b border-white/60 flex items-center gap-1.5 px-3"><span class="w-2.5 h-2.5 rounded-full bg-[#FF5F57] border border-black/10"></span><span class="w-2.5 h-2.5 rounded-full bg-[#FFBD2E] border border-black/10"></span><span class="w-2.5 h-2.5 rounded-full bg-[#28C940] border border-black/10"></span><span class="ml-auto min-w-0 max-w-[60%] truncate text-[8px] font-semibold tracking-widest opacity-40">LIQUID GLASS • BLUR 24px</span></div><div class="absolute top-10 left-3 right-3 h-[42%] bg-white/72 backdrop-blur-[8px] rounded-[14px] border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-2"><div class="flex gap-2 items-center"><div class="w-5 h-5 rounded-full bg-black/5 border border-white"></div><div class="h-2 w-16 bg-black/10 rounded-full"></div><div class="ml-auto w-2 h-2 rounded-full bg-[#0A84FF]"></div></div><div class="mt-2 h-2 w-[80%] bg-black/5 rounded-full"></div><div class="mt-1 h-2 w-[60%] bg-black/5 rounded-full"></div></div><div class="absolute bottom-2 left-2 whitespace-nowrap text-[8px] font-bold tracking-[0.18em] px-1.5 py-0.5 rounded-full bg-black text-white">FEATURED • APPLE STYLE</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight underline">APPLE GLASSMORPHISM / LIQUID GLASS</div><div class="text-[10px] opacity-50 mt-0.5">liquid glass, blur 24px, mesh blob, spring</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(232, 213, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(213, 232, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 214, 232);"></span></div></div></button><button class="text-left group relative" type="button" data-template="cyberpunk" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: rgb(10, 10, 15);"><div class="absolute inset-0" style="background-image: linear-gradient(rgba(0,255,240,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,240,0.12) 1px, transparent 1px); background-size: 22px 22px;"></div><div class="absolute inset-0 opacity-40" style="background: linear-gradient(90deg, transparent, #00FFF022, transparent); animation: scan 2s linear infinite;"></div><div class="absolute top-3 left-3 right-12 h-[28%] bg-black border border-[#00FFF0] shadow-[0_0_12px_#00FFF0]" style="clip-path: polygon(0 0, 92% 0, 100% 30%, 100% 100%, 8% 100%, 0 70%);"></div><div class="absolute bottom-3 left-3 text-[9px] font-bold tracking-[0.2em] text-[#00FFF0]" style="font-family: JetBrains Mono;">HUD // 00FFF0</div><div class="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#FFE600] shadow-[0_0_8px_#FFE600]"></div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">CYBERPUNK / NEON FUTURISTIC</div><div class="text-[10px] opacity-50 mt-0.5">HUD angular, glitch, scanline</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 255, 240);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 0, 229);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 230, 0);"></span></div></div></button><button class="text-left group relative" type="button" data-template="y2k" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: linear-gradient(135deg,#eef2ff,#fde2f3);"><div class="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/80 blur-[1px] border border-white shadow-[inset_0_2px_12px_white,0_8px_20px_rgba(0,0,0,0.12)]"></div><div class="absolute top-6 left-6 px-3 py-1.5 rounded-full bg-gradient-to-b from-white to-[#d9dbe3] border border-white text-[10px] font-black tracking-widest shadow-lg">Y2K</div><div class="absolute bottom-3 left-3 right-3 h-2 rounded-full bg-gradient-to-r from-[#C7D2FE] via-[#FF6EC7] to-[#C2FF53] blur-[0.5px]"></div><div class="absolute top-10 left-12 text-[14px]">✦˚₊‧</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">Y2K / RETRO-FUTURISM</div><div class="text-[10px] opacity-50 mt-0.5">bubble chrome 3D, sparkle</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(199, 210, 254);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 110, 199);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(194, 255, 83);"></span></div></div></button><button class="text-left group relative" type="button" data-template="kawaii" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: linear-gradient(135deg, #FFD6E8, #E8D5FF);"><div class="absolute top-3 left-1/2 -translate-x-1/2 flex gap-1"><div class="w-3 h-6 bg-white rounded-full rotate-[-20deg]"></div><div class="w-3 h-6 bg-white rounded-full rotate-[20deg]"></div></div><div class="absolute inset-4 top-8 rounded-[22px] bg-white/85 backdrop-blur shadow-[0_10px_24px_rgba(0,0,0,0.08)] border border-white"></div><div class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px]">ฅ^•ﻌ•^ฅ ♡</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">KAWAII ANIME / PASTEL</div><div class="text-[10px] opacity-50 mt-0.5">rounded 32px, cat ears</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 214, 232);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(232, 213, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(213, 255, 232);"></span></div></div></button><button class="text-left group relative" type="button" data-template="minimalis" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10 bg-white"><div class="absolute inset-0 p-4 flex flex-col gap-2"><div class="h-px bg-black/10"></div><div class="flex gap-2"><div class="w-6 h-6 rounded-full bg-black/5"></div><div class="flex-1 h-3 bg-black/5 rounded"></div></div><div class="h-px bg-black/10"></div><div class="flex gap-2"><div class="w-6 h-6 rounded-full bg-black/5"></div><div class="flex-1 h-3 bg-black/5 rounded"></div></div></div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">MINIMALIS MODERN</div><div class="text-[10px] opacity-50 mt-0.5">text only, 1px line</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 255, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(17, 17, 17);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(245, 245, 245);"></span></div></div></button><button class="text-left group relative" type="button" data-template="vaporwave" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: rgb(26, 11, 46);"><div class="absolute bottom-0 left-0 right-0 h-[55%] bg-gradient-to-t from-[#FF6B9D] via-[#7B61FF] to-transparent opacity-80"></div><div class="absolute bottom-6 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-gradient-to-b from-[#FFEA5C] to-[#FF6B9D] shadow-[0_0_20px_#FF6B9D]"></div><div class="absolute inset-0 opacity-30" style="background-image: linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px); background-size: 100% 14px; transform: perspective(200px) rotateX(60deg); transform-origin: bottom;"></div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">VAPORWAVE / SYNTHWAVE</div><div class="text-[10px] opacity-50 mt-0.5">sunset gradient, VHS</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 107, 157);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(123, 97, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(46, 230, 255);"></span></div></div></button><button class="text-left group relative" type="button" data-template="grunge" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10 bg-[#F5F1E8]"><div class="absolute inset-0 opacity-[0.15]"></div><div class="absolute top-2 left-2 w-[70%] h-6 bg-white -rotate-2 shadow-sm border border-black/10 flex items-center px-2 text-[9px] font-black">TAPE</div><div class="absolute bottom-3 left-3 text-[18px] font-black tracking-tighter" style="font-family: Anton;">GRUNGE!</div><div class="absolute top-6 right-4 w-10 h-10 rounded-full bg-[#FF2A2A] blur-[6px] opacity-60"></div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">GRUNGE / STREET ART</div><div class="text-[10px] opacity-50 mt-0.5">torn paper, tape</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 42, 42);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 230, 0);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(18, 18, 18);"></span></div></div></button><button class="text-left group relative" type="button" data-template="esports" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: rgb(14, 14, 16);"><div class="absolute inset-0 p-2 flex flex-col gap-1"><div class="flex gap-1"><div class="h-1 w-12 bg-[#00FF88]"></div><div class="h-1 w-6 bg-white/30"></div><div class="ml-auto w-3 h-3 border border-white/40"></div></div><div class="mt-2 h-6 bg-white/5 border border-white/10 flex items-center px-2 text-[8px] text-white/70 tracking-widest">KILLFEED // NEON_HUNTER [HEADSHOT]</div><div class="h-6 bg-white/5 border border-white/10 flex items-center px-2 text-[8px] text-white/70 tracking-widest">+100 XP</div></div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">CLEAN ESPORTS / TACTICAL</div><div class="text-[10px] opacity-50 mt-0.5">military HUD, killfeed</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 255, 136);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 150, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(14, 14, 16);"></span></div></div></button><button class="text-left group relative" type="button" data-template="pixel" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10 bg-[#f8f8f0] border-[3px] border-black" style="box-shadow: 4px 4px 0 black;"><div class="absolute inset-0 grid grid-cols-6 grid-rows-4 gap-px p-2"><div class="bg-black/10 bg-[#FF0000] bg-[#0058F8]"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10 bg-[#0058F8]"></div><div class="bg-black/10"></div><div class="bg-black/10 bg-[#FF0000]"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10 bg-[#0058F8]"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10 bg-[#FF0000]"></div><div class="bg-black/10 bg-[#0058F8]"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10"></div><div class="bg-black/10 bg-[#0058F8]"></div><div class="bg-black/10 bg-[#FF0000]"></div><div class="bg-black/10"></div><div class="bg-black/10"></div></div><div class="absolute bottom-1 left-1 text-[7px]" style="font-family: &quot;Press Start 2P&quot;;">LVL 8</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">PIXEL ART / 8-BIT RETRO</div><div class="text-[10px] opacity-50 mt-0.5">NES palette, 4px stepped</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 0, 0);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 88, 248);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 168, 0);"></span></div></div></button><button class="text-left group relative" type="button" data-template="cottage" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10" style="background: rgb(253, 246, 227);"><div class="absolute top-2 left-2 text-[#8A9A7B] text-[18px]">🌿</div><div class="absolute top-8 left-4 right-4 rounded-[12px] border border-[#8A9A7B]/30 bg-white/70 p-2"><div class="h-1 w-8 bg-[#C67B5C]/50 rounded-full mb-1"></div><div class="h-2 w-full bg-[#8A9A7B]/20 rounded"></div></div><div class="absolute bottom-2 right-3 text-[10px]">🍄</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">COTTAGECORE / BOTANICAL</div><div class="text-[10px] opacity-50 mt-0.5">hand-drawn, linen</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(138, 154, 123);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(253, 246, 227);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(198, 123, 92);"></span></div></div></button><button class="text-left group relative" type="button" data-template="comic" role="radio" aria-checked="false"><div class="relative w-full aspect-[16/10] rounded-[18px] overflow-hidden border transition-all border-white/60 dark:border-white/10 bg-[#FFEA00]" style="border-width: 4px; border-color: black;"><div class="absolute inset-0 opacity-30" style="background-image: radial-gradient(black 1.8px, transparent 1.8px); background-size: 10px 10px;"></div><div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-6 bg-[#FF0000] text-white px-3 py-1 border-[3px] border-black font-black text-[12px] tracking-widest" style="font-family: Bangers;">POW!</div><div class="absolute bottom-1 left-1 bg-white border-2 border-black text-[8px] px-1 font-black">BOOM</div></div><div class="mt-2 px-1"><div class="text-[11px] font-extrabold tracking-tight leading-tight">COMIC BOOK / POP ART</div><div class="text-[10px] opacity-50 mt-0.5">halftone, 4px border</div><div class="mt-1 flex gap-1"><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 0, 0);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(0, 87, 255);"></span><span class="w-3 h-3 rounded-full border border-black/10" style="background: rgb(255, 234, 0);"></span></div></div></button></div>
 
-        <div class="grid lg:grid-cols-[360px_1fr] gap-4 items-start">
+        <div class="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-4 items-start">
           <div class="glass-strong rounded-[24px] p-5 h-fit lg:sticky lg:top-[72px]">
             <h3 class="font-bold text-[13px] tracking-widest">DETAIL EDITOR • <span id="detailName">—</span></h3>
             <div class="mt-4 space-y-4">
@@ -243,8 +249,16 @@
                 <div class="chips js-chatmode"></div>
               </div>
               <div class="field js-chathold-field">
-                <div class="field-head"><label for="chatHold">Tampil pesan terbaru</label><output id="chatHoldOut">6 detik</output></div>
-                <input type="range" id="chatHold" min="2" max="60" value="6">
+                <div class="field-head"><label for="chatHold">Lama tampil chat terbaru</label><output id="chatHoldOut">6 detik</output></div>
+                <input type="range" id="chatHold" min="2" max="120" value="6">
+              </div>
+              <div class="field">
+                <div class="field-label">Posisi nama penonton</div>
+                <div class="chips js-chatnames"></div>
+              </div>
+              <div class="field">
+                <div class="field-label">Perataan teks</div>
+                <div class="chips js-chatalign"></div>
               </div>
               <div class="field">
                 <div class="field-label">Animasi</div>
@@ -309,11 +323,11 @@
       <div class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
         <div class="space-y-5">
           <div class="flex items-end justify-between gap-3 flex-wrap">
-            <h1 class="text-[26px] font-black tracking-[-0.02em]">ALERT STUDIO</h1>
+            <h1 class="text-[22px] md:text-[26px] font-black tracking-[-0.02em]">ALERT STUDIO</h1>
             <div class="text-[11px] opacity-60">Gift • Follow • Share</div>
           </div>
 
-          <div class="grid md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="md:col-span-2 glass-strong rounded-[24px] p-5 space-y-3">
               <div class="flex items-center justify-between gap-2 flex-wrap">
                 <h2 class="text-[16px] font-bold tracking-tight">Pratinjau</h2>
@@ -337,13 +351,17 @@
             </div>
           </div>
 
-          <div class="grid md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="glass-strong rounded-[24px] p-5">
               <h2 class="text-[16px] font-bold tracking-tight">Tampilan alert</h2>
               <div class="mt-4 space-y-4">
                 <div class="field">
                   <div class="field-head"><label for="duration">Lama tampil</label><output id="durOut">4</output></div>
                   <input type="range" id="duration" min="2" max="10" value="4">
+                </div>
+                <div class="field">
+                  <div class="field-label">Perataan alert</div>
+                  <div class="chips js-alertalign"></div>
                 </div>
                 <div class="field">
                   <div class="field-label">Animasi</div>
@@ -378,7 +396,7 @@
             </div>
           </div>
 
-          <div class="grid md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="glass-strong rounded-[24px] p-5 space-y-4">
               <div>
                 <h2 class="text-[16px] font-bold tracking-tight">Pembaca komentar</h2>
@@ -415,7 +433,7 @@
       <div class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
         <div class="space-y-4">
           <div class="flex flex-wrap items-center justify-between gap-3">
-            <h1 class="text-[26px] font-black">OVERLAY LAB • 1920x1080 Canvas</h1>
+            <h1 class="text-[22px] md:text-[26px] font-black">OVERLAY LAB • 1920x1080 Canvas</h1>
             <div class="flex gap-2">
               <button class="h-8 px-3 rounded-full bg-black text-white text-[11px] font-bold js-reload" type="button">Muat ulang pratinjau</button>
             </div>
@@ -444,7 +462,7 @@
             </div>
           </div>
 
-          <div class="grid lg:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             <div class="glass-strong rounded-[24px] p-5">
               <h3 class="font-bold text-[14px] tracking-tight">Link untuk OBS</h3>
@@ -454,6 +472,8 @@
                 <div data-link="alerts"></div>
                 <div data-link="nowplaying"></div>
                 <div data-link="lyrics"></div>
+              <div data-link="lyricsyt"></div>
+              <div data-link="lyricsam"></div>
                 <div data-link="youtube"></div>
                 <div data-link="runningtext"></div>
               </div>
@@ -471,11 +491,11 @@
       <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
         <div class="space-y-5">
           <div class="flex items-end justify-between gap-3 flex-wrap">
-            <h1 class="text-[26px] font-black tracking-[-0.02em]">SPOTIFY STUDIO</h1>
+            <h1 class="text-[22px] md:text-[26px] font-black tracking-[-0.02em]">SPOTIFY STUDIO</h1>
             <div class="text-[11px] opacity-60">9 template Spotify</div>
           </div>
 
-          <div class="grid md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="md:col-span-2 glass-strong rounded-[24px] p-5">
               <div class="text-[12px] font-bold tracking-widest">PILIH SPOTIFY TEMPLATE</div>
               <div id="spotifyGrid" class="mt-3 grid grid-cols-2 lg:grid-cols-3 gap-2" role="radiogroup" aria-label="Template Spotify"></div>
@@ -511,7 +531,7 @@
             <p class="hint">Ukuran tetap: judul dan penyanyi mengecil supaya muat, dan yang masih tidak muat dipotong dengan …. Sesuai lagu: kotak mengikuti panjang judul.</p>
           </div>
 
-          <div class="grid md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="glass-strong rounded-[24px] p-5 space-y-4">
               <h2 class="text-[16px] font-bold tracking-tight">Spotify</h2>
               <form id="spotifyForm" class="flex gap-2 flex-wrap" autocomplete="off">
@@ -536,7 +556,7 @@
             </div>
           </div>
 
-          <div class="grid md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="glass-strong rounded-[24px] p-5">
               <div class="card-head">
                 <h2>Antrean request</h2>
@@ -574,14 +594,47 @@
             </div>
           </div>
 
-          <div class="grid md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="glass-strong rounded-[24px] p-5 space-y-4">
+              <div>
+                <h2 class="text-[16px] font-bold tracking-tight">Template Custom</h2>
+                <p class="hint mt-1">Pilih "Custom" di daftar template di atas, lalu atur background, warna, dan font di sini. Berlaku untuk Spotify dan YT Music.</p>
+              </div>
+              <div class="flex items-center gap-3 flex-wrap">
+                <div id="npBgPreview" class="w-28 h-16 rounded-[12px] border border-black/10 bg-cover bg-center"></div>
+                <div class="flex flex-col gap-2">
+                  <label class="h-8 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold leading-8 cursor-pointer text-center">Unggah background<input id="npBgFile" type="file" accept="image/png,image/jpeg,image/webp" style="display:none"></label>
+                  <button id="npBgRemove" class="h-8 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold disabled:opacity-40" type="button">Hapus background</button>
+                </div>
+              </div>
+              <div class="grid grid-cols-3 gap-3">
+                <label class="color">Background<input type="color" id="npBgColor" value="#121212"></label>
+                <label class="color">Teks<input type="color" id="npTextColor" value="#ffffff"></label>
+                <label class="color">Aksen<input type="color" id="npAccentColor" value="#1ed760"></label>
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="npFont">Jenis huruf</label></div>
+                <select id="npFont" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none"></select>
+              </div>
+            </div>
+            <div class="glass rounded-[24px] p-5 space-y-3">
+              <div class="text-[12px] font-bold">Pakai di OBS</div>
+              <p class="hint">Link overlay lagu dengan template Custom sudah memuat warna, font, dan background. Setiap perubahan menghasilkan link baru, jadi salin ulang setelah mengedit.</p>
+              <div data-link="nowplaying"></div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="glass-strong rounded-[24px] p-5 space-y-3">
               <div class="flex items-center justify-between">
                 <h2 class="text-[16px] font-bold tracking-tight">Lirik Spotify</h2>
                 <button class="h-7 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold js-reload" type="button">Muat ulang</button>
               </div>
               <p class="hint">Lirik tersinkron dari LRCLIB, tanpa perlu login. Baris yang sedang dinyanyikan disorot dengan kilau. Lagu tanpa lirik tersinkron tidak menampilkan apa-apa. Podcast tidak punya lirik.</p>
+              <p class="hint">Apple Music: buka <a href="/applemusic.html" target="_blank" rel="noopener">halaman Apple Music</a> di browser ini, login, dan biarkan tab itu terbuka selama siaran.</p>
               <div data-link="lyrics"></div>
+              <div data-link="lyricsyt"></div>
+              <div data-link="lyricsam"></div>
               <div class="stage" style="--scale: 0.4">
                 <iframe data-frame="lyrics" title="Pratinjau lirik" tabindex="-1"></iframe>
                 <span class="stage-label">LIRIK</span>
@@ -608,6 +661,20 @@
               </div>
             </div>
           </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="glass-strong rounded-[24px] p-5 space-y-3">
+              <h2 class="text-[16px] font-bold tracking-tight">Pilih lirik lagu</h2>
+              <p class="hint">Kalau lirik otomatis salah atau tidak ditemukan, cari lagu yang benar lalu pilih. Pilihan disimpan untuk lagu itu, jadi lagu yang sama berikutnya memakai lirik yang sama. Lagu harus sedang diputar dulu, dari Spotify atau YT Music.</p>
+              <div id="lyricsNow" class="text-[13px] font-bold">Belum ada lagu yang diputar</div>
+              <div class="flex gap-2">
+                <input id="lyricsQuery" class="flex-1 min-w-0 rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none" placeholder="Judul dan artis" aria-label="Cari lirik" autocomplete="off">
+                <button id="lyricsSearch" class="h-9 px-4 rounded-full bg-black text-white text-[11px] font-bold" type="button">Cari</button>
+              </div>
+              <ol id="lyricsResults" class="queue mt-3"></ol>
+              <button id="lyricsAuto" class="btn ghost small" type="button">Kembali ke lirik otomatis</button>
+            </div>
+          </div>
         </div>
       </main>
     </section>
@@ -617,11 +684,11 @@
       <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
         <div class="space-y-5">
           <div class="flex items-end justify-between gap-3 flex-wrap">
-            <h1 class="text-[26px] font-black tracking-[-0.02em]">YT MUSIC STUDIO</h1>
+            <h1 class="text-[22px] md:text-[26px] font-black tracking-[-0.02em]">YT MUSIC STUDIO</h1>
             <div class="text-[11px] opacity-60">9 template YT Music</div>
           </div>
 
-          <div class="grid md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="md:col-span-2 glass-strong rounded-[24px] p-5">
               <div class="text-[12px] font-bold tracking-widest">PILIH YT MUSIC TEMPLATE</div>
               <div id="ytGrid" class="mt-3 grid grid-cols-2 lg:grid-cols-3 gap-2" role="radiogroup" aria-label="Template YT Music"></div>
@@ -657,7 +724,7 @@
             <p class="hint">Ukuran tetap: judul dan penyanyi mengecil supaya muat, dan yang masih tidak muat dipotong dengan …. Sesuai lagu: kotak mengikuti panjang judul.</p>
           </div>
 
-          <div class="grid md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="glass-strong rounded-[24px] p-5 space-y-4">
               <h2 class="text-[16px] font-bold tracking-tight">YT Music</h2>
               <div class="yt-tabs" role="radiogroup" aria-label="Cara memutar lagu">
@@ -672,7 +739,7 @@
               <p id="ytOrderHint" class="hint"></p>
               <ol id="ytExtensionSteps" class="hint space-y-1" hidden>
                 <li>1. Buka <code>chrome://extensions</code>, aktifkan Mode developer, lalu pilih Load unpacked dan pilih folder <code>extension</code>.</li>
-                <li>2. Buka panel ini di <code>127.0.0.1:3000</code> sekali, supaya kunci tersimpan di extension.</li>
+                <li>2. Buka panel ini sekali di alamat server yang dipakai (misalnya <code>streamover.khincreator.com</code>), supaya kunci dan alamat server tersimpan di extension.</li>
                 <li>3. Buka music.youtube.com di Chrome dan biarkan tab itu terbuka.</li>
               </ol>
               <div id="ytPlayerRow" class="lib-row">
@@ -806,7 +873,7 @@
       <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
         <div class="space-y-5">
           <div class="flex items-end justify-between gap-3 flex-wrap">
-            <h1 class="text-[26px] font-black tracking-[-0.02em]">RUNNING TEXT STUDIO</h1>
+            <h1 class="text-[22px] md:text-[26px] font-black tracking-[-0.02em]">RUNNING TEXT STUDIO</h1>
             <div class="text-[11px] opacity-60">5 template • kata tampil bergantian</div>
           </div>
 
@@ -828,7 +895,7 @@
             </div>
           </div>
 
-          <div class="grid md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="md:col-span-2 glass-strong rounded-[24px] p-5">
               <div class="text-[12px] font-bold tracking-widest">PILIH TEMPLATE</div>
               <div id="runningGrid" class="mt-3 grid grid-cols-2 lg:grid-cols-3 gap-2" role="radiogroup" aria-label="Template running text"></div>
@@ -840,7 +907,7 @@
             </div>
           </div>
 
-          <div class="grid md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="glass-strong rounded-[24px] p-5 space-y-3">
               <div class="flex items-center justify-between">
                 <h2 class="text-[16px] font-bold tracking-tight">Pratinjau</h2>
@@ -892,6 +959,201 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ============ SOUNDBOARD ============ -->
+    <section data-view="soundboard" class="min-w-0" hidden>
+      <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
+        <div class="space-y-5">
+          <div class="flex items-end justify-between gap-3 flex-wrap">
+            <h1 class="text-[22px] md:text-[26px] font-black tracking-[-0.02em]">SOUNDBOARD</h1>
+            <div class="text-[11px] opacity-60">10 slot • MP3, WAV, atau OGG • maks 5 MB</div>
+          </div>
+
+          <div class="glass-strong rounded-[24px] p-5">
+            <div id="soundGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3"></div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="glass rounded-[24px] p-5 space-y-4">
+              <div class="text-[12px] font-bold">Pengaturan</div>
+              <div class="field">
+                <div class="field-head"><label for="soundVolume">Volume</label><output id="soundVolumeOut">100%</output></div>
+                <input type="range" id="soundVolume" min="0" max="100" value="100">
+              </div>
+              <button id="soundStop" class="h-9 px-4 rounded-full bg-white border border-black/10 text-[11px] font-bold" type="button">Hentikan semua</button>
+            </div>
+            <div class="glass rounded-[24px] p-5 space-y-3">
+              <div class="text-[12px] font-bold">Pakai di OBS</div>
+              <p class="hint">Tambahkan sebagai Browser Source. Suara diputar oleh overlay ini, jadi audionya ikut tertangkap OBS. Overlay tidak tampil di layar.</p>
+              <div data-link="soundboard"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ============ AUTO CAPTION ============ -->
+    <section data-view="caption" class="min-w-0" hidden>
+      <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
+        <div class="space-y-5">
+          <div class="flex items-end justify-between gap-3 flex-wrap">
+            <h1 class="text-[22px] md:text-[26px] font-black tracking-[-0.02em]">AUTO CAPTION</h1>
+            <div class="text-[11px] opacity-60">Suara dari mikrofon jadi teks di overlay • Chrome atau Edge</div>
+          </div>
+
+          <p id="capUnsupported" class="text-[12px] text-red-600" role="alert" hidden>Browser ini tidak mendukung pengenalan suara. Buka panel ini di Google Chrome atau Microsoft Edge.</p>
+
+          <div class="glass-strong rounded-[24px] p-5 space-y-4">
+            <div class="flex items-center gap-2 flex-wrap">
+              <button id="capToggle" class="h-10 px-5 rounded-full bg-black text-white text-[12px] font-bold disabled:opacity-40" type="button">Mulai caption</button>
+              <button id="capClear" class="h-10 px-5 rounded-full bg-white border border-black/10 text-[12px] font-bold" type="button">Bersihkan layar</button>
+              <span id="capStatus" class="text-[12px] opacity-60" role="status" aria-live="polite">Belum jalan</span>
+            </div>
+            <div class="rounded-[16px] bg-black text-white p-4 min-h-[88px]">
+              <div class="text-[10px] tracking-widest opacity-60">TERDENGAR</div>
+              <div id="capPreview" class="mt-1 text-[18px] font-bold leading-snug"></div>
+            </div>
+            <div class="lib-row">
+              <input id="capTestText" type="text" maxlength="200" placeholder="Ketik teks untuk tes overlay tanpa mikrofon" aria-label="Teks tes caption">
+              <button id="capTestSend" class="btn small" type="button">Kirim tes</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="glass rounded-[24px] p-5 space-y-4">
+              <div class="text-[12px] font-bold">Pengaturan</div>
+              <div class="field">
+                <div class="field-head"><label for="capMic">Mikrofon</label><button id="capMicRefresh" class="btn ghost small" type="button">Muat ulang daftar</button></div>
+                <select id="capMic" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none"></select>
+                <div class="h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden" aria-hidden="true"><div id="capLevel" class="h-full w-0 bg-[#00C853] transition-[width] duration-75"></div></div>
+                <p id="capMicHint" class="hint">Nama mikrofon muncul setelah akses mikrofon diizinkan. Bar hijau bergerak saat mikrofon yang dipilih menangkap suara.</p>
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="capLang">Bahasa yang diucapkan</label></div>
+                <select id="capLang" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none"></select>
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="capSize">Ukuran teks</label><output id="capSizeOut">48</output></div>
+                <input type="range" id="capSize" min="20" max="120" value="48">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="capHold">Lama tampil setelah selesai bicara (detik)</label><output id="capHoldOut">4</output></div>
+                <input type="range" id="capHold" min="1" max="30" value="4">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="capFont">Jenis huruf</label></div>
+                <select id="capFont" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none"></select>
+              </div>
+              <label class="color">Warna teks<input type="color" id="capColor" value="#ffffff"></label>
+              <label class="flex items-center gap-2 text-[13px]"><input type="checkbox" id="capBox" checked> Kotak gelap di belakang teks</label>
+            </div>
+            <div class="glass rounded-[24px] p-5 space-y-3">
+              <div class="text-[12px] font-bold">Pakai di OBS</div>
+              <p class="hint">Tambahkan sebagai Browser Source (1920×1080). Caption tampil di bagian bawah layar.</p>
+              <p class="hint">Pengenalan suara berjalan di tab panel ini, bukan di OBS. Biarkan tab ini tetap terbuka selama live, dan izinkan akses mikrofon saat diminta. Suara dikirim ke layanan pengenalan suara milik Google atau Microsoft, jadi perlu internet.</p>
+              <div data-link="captions"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ============ PAPAN SKOR ============ -->
+    <section data-view="board" class="min-w-0" hidden>
+      <main class="p-4 md:p-6 max-w-[1280px] mx-auto space-y-6">
+        <div class="flex items-end justify-between gap-3 flex-wrap">
+          <h1 class="text-[22px] md:text-[26px] font-black tracking-[-0.02em]">PAPAN SKOR</h1>
+          <div class="text-[11px] opacity-60">Top gifter: peringkat berdasarkan diamond. Top tap: peringkat berdasarkan tap layar.</div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="glass-strong rounded-[24px] p-5 space-y-3">
+            <div class="text-[12px] font-bold">Top gifter</div>
+            <div class="stage" style="--scale: 0.4"><iframe data-frame="gifters" data-demo="1" title="Pratinjau top gifter" tabindex="-1"></iframe><span class="stage-label">GIFTER</span></div>
+            <div data-link="gifters"></div>
+          </div>
+          <div class="glass-strong rounded-[24px] p-5 space-y-3">
+            <div class="text-[12px] font-bold">Top tap</div>
+            <div class="stage" style="--scale: 0.4"><iframe data-frame="tappers" data-demo="1" title="Pratinjau top tap" tabindex="-1"></iframe><span class="stage-label">TAP</span></div>
+            <div data-link="tappers"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="glass-strong rounded-[24px] p-5 space-y-4">
+            <div class="text-[12px] font-bold">Tampilan</div>
+            <div class="field">
+              <div class="field-label">Tema</div>
+              <div class="chips js-boardtheme"></div>
+            </div>
+            <div class="field">
+              <div class="field-label">Posisi di layar</div>
+              <div class="chips js-boardpos"></div>
+            </div>
+            <div class="field">
+              <div class="field-head"><label for="boardN">Jumlah peringkat</label><output id="boardNOut">5</output></div>
+              <input type="range" id="boardN" min="1" max="10" value="5">
+            </div>
+            <div class="field">
+              <div class="field-head"><label for="boardSize">Ukuran teks</label><output id="boardSizeOut">30px</output></div>
+              <input type="range" id="boardSize" min="12" max="80" value="30">
+            </div>
+            <label class="color">Warna teks<input type="color" id="boardColor" value="#ffffff"></label>
+            <label class="color">Warna aksen<input type="color" id="boardAccent" value="#6ee7ff"></label>
+            <label class="color">Warna latar<input type="color" id="boardBg" value="#000000"></label>
+            <div class="field">
+              <div class="field-label">Jenis huruf daftar</div>
+              <select id="boardFont" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none"></select>
+            </div>
+            <div class="field">
+              <div class="field-label">Jenis huruf judul</div>
+              <select id="boardTitleFont" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none"></select>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <label class="color">Warna judul<input type="color" id="boardTitleColor" value="#6ee7ff"></label>
+              <button id="boardTitleColorAuto" class="btn ghost small" type="button">Pakai warna tema</button>
+            </div>
+            <p class="hint">Tema Minimal tidak punya latar, jadi warna dan transparansi latar tidak berlaku di sana.</p>
+            <div class="field">
+              <div class="field-head"><label for="boardBga">Transparansi latar</label><output id="boardBgaOut">60%</output></div>
+              <input type="range" id="boardBga" min="0" max="100" value="60">
+            </div>
+          </div>
+
+          <div class="glass rounded-[24px] p-5 space-y-4">
+            <div class="text-[12px] font-bold">Judul &amp; perspektif</div>
+            <div class="field">
+              <label for="boardTitleGift" class="field-label">Judul top gifter</label>
+              <input id="boardTitleGift" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none" maxlength="40" placeholder="Top Gifter">
+            </div>
+            <div class="field">
+              <label for="boardTitleTap" class="field-label">Judul top tap</label>
+              <input id="boardTitleTap" class="w-full rounded-[12px] border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-[13px] outline-none" maxlength="40" placeholder="Top Tap">
+            </div>
+            <div class="field">
+              <div class="field-head"><span class="field-label">Perspektif papan</span><button class="btn ghost small js-persp-reset" type="button" data-persp="boards">Reset</button></div>
+              <div class="field">
+                <div class="field-head"><label for="rx-boards">Miring kiri-kanan</label><output class="js-persp-out" data-axis="rx">0°</output></div>
+                <input type="range" id="rx-boards" class="js-persp" data-persp="boards" data-axis="rx" min="-60" max="60" value="0">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="ry-boards">Miring atas-bawah</label><output class="js-persp-out" data-axis="ry">0°</output></div>
+                <input type="range" id="ry-boards" class="js-persp" data-persp="boards" data-axis="ry" min="-60" max="60" value="0">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="depth-boards">Kedalaman perspektif</label><output class="js-persp-out" data-axis="depth">1200 px</output></div>
+                <input type="range" id="depth-boards" class="js-persp" data-persp="boards" data-axis="depth" min="300" max="3000" step="50" value="1200">
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2 pt-2">
+              <button id="boardReset" class="h-9 px-4 rounded-full bg-white border border-black/10 text-[11px] font-bold" type="button">Mulai dari nol</button>
+              <button id="boardTest" class="h-9 px-4 rounded-full bg-white border border-black/10 text-[11px] font-bold" type="button">Kirim contoh ke overlay</button>
+            </div>
+            <p class="hint">Skor dihitung sejak live dimulai, dan mulai dari nol setiap kali live baru tersambung. Pratinjau di atas selalu menampilkan contoh. Tombol contoh hanya mengirim data ke overlay, tidak mengubah skor asli.</p>
           </div>
         </div>
       </main>

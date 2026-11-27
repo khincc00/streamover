@@ -100,6 +100,8 @@
     import { applyPerspective, perspectiveFromParams } from '/shared/perspective.js';
 
     const params = new URLSearchParams(location.search);
+    // Which music source to show: Spotify by default, or ?source=youtube or ?source=applemusic.
+    const source = ['youtube', 'applemusic'].includes(params.get('source')) ? params.get('source') : 'spotify';
     const root = document.documentElement.style;
     // Size in px for the current line. Anything out of range falls back to the default.
     const size = Math.min(160, Math.max(24, Number(params.get('size')) || 56));
@@ -123,9 +125,9 @@
     // Tilt from the panel, the same as the other overlays (rx, ry, pd). Flat when there is no tilt.
     applyPerspective(view, perspectiveFromParams(params));
 
-    let track = null; // { uri, playing, progressMs, at } from the latest nowplaying message. at is when it arrived.
-    let lyrics = null; // { uri, lines } from the latest lyrics message. lines is null while LRCLIB is still answering.
-    let rendered = ''; // uri of the song whose lines are on screen
+    let track = null; // { key, playing, progressMs, at } from the latest nowplaying message. at is when it arrived.
+    let lyrics = null; // { key, lines } from the latest lyrics message. lines is null while LRCLIB is still answering.
+    let rendered = ''; // key of the song whose lines are on screen
     let active = -2; // index of the highlighted line, -2 before anything has been placed
     let jump = false; // the next placement skips the scroll animation, for a new song
 
@@ -155,7 +157,7 @@
         el.append(span);
         return el;
       }));
-      rendered = lyrics.uri;
+      rendered = lyrics.key;
       active = -2;
       jump = true;
     }
@@ -183,7 +185,7 @@
     // Shows the lines for the song that is playing. Lyrics for another song are never shown.
     function render() {
       if (!track) return showStatus('');
-      if (!lyrics || lyrics.uri !== track.uri) return showStatus('Mencari lirik…');
+      if (!lyrics || lyrics.key !== track.key) return showStatus('Mencari lirik…');
       if (lyrics.lines === null) return showStatus('Mencari lirik…');
       if (lyrics.lines.length === 0) return showStatus('Lirik tidak tersedia untuk lagu ini');
       if (rendered !== lyrics.uri) build();
@@ -193,7 +195,7 @@
     }
 
     function update() {
-      if (!track || !lyrics || rendered !== track.uri || !lyrics.lines?.length) return;
+      if (!track || !lyrics || rendered !== track.key || !lyrics.lines?.length) return;
       const pos = positionSeconds(performance.now());
       const all = lyrics.lines;
       let index = -1;
@@ -209,13 +211,13 @@
     requestAnimationFrame(frame);
 
     connectHub((msg) => {
-      if (msg.source !== 'spotify') return;
+      if (msg.source !== source) return;
       if (msg.type === 'nowplaying') {
         const np = msg.nowPlaying;
-        track = np ? { uri: np.uri, playing: np.playing, progressMs: np.progressMs || 0, at: performance.now() } : null;
+        track = np ? { key: np.key || '', playing: np.playing, progressMs: np.progressMs || 0, at: performance.now() } : null;
         render();
       } else if (msg.type === 'lyrics') {
-        lyrics = { uri: msg.uri, lines: msg.lines };
+        lyrics = { key: msg.key, lines: msg.lines };
         render();
       }
     });

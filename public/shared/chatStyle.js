@@ -19,7 +19,16 @@ export const CHAT_GRADIENTS = [
   { id: 'night', label: 'Malam', from: '#312e81', to: '#0f172a' },
 ];
 
+// Perataan teks dan posisi baris. 'justify' membuat teks rata kiri-kanan dan baris memenuhi lebar.
+export const CHAT_ALIGNS = [
+  { id: 'left', label: 'Kiri' },
+  { id: 'center', label: 'Tengah' },
+  { id: 'right', label: 'Kanan' },
+  { id: 'justify', label: 'Rata kiri-kanan' },
+];
+
 export const DEFAULT_CHAT_STYLE = {
+  align: 'left',
   anim: 'up',
   dur: 250,
   custom: false, // false: warna mengikuti template
@@ -39,6 +48,7 @@ export function normalizeStyle(raw = {}) {
   }
 
   if (!CHAT_ANIMATIONS.some((a) => a.id === style.anim)) style.anim = DEFAULT_CHAT_STYLE.anim;
+  if (!CHAT_ALIGNS.some((a) => a.id === style.align)) style.align = DEFAULT_CHAT_STYLE.align;
   const dur = Math.round(Number(style.dur) / CHAT_DURATION.step) * CHAT_DURATION.step;
   style.dur = Number.isFinite(dur) ? Math.min(CHAT_DURATION.max, Math.max(CHAT_DURATION.min, dur)) : DEFAULT_CHAT_STYLE.dur;
   for (const key of ['accent', 'text', 'bg']) {
@@ -53,6 +63,7 @@ export function normalizeStyle(raw = {}) {
 export function styleFromParams(params) {
   const hex = (value) => (/^[0-9a-f]{6}$/i.test(value || '') ? `#${value}` : undefined);
   return normalizeStyle({
+    align: params.get('align') || undefined,
     anim: params.get('anim') || undefined,
     dur: params.get('dur') || undefined,
     custom: params.get('custom') === '1',
@@ -85,4 +96,7 @@ export function applyStyle(element, style) {
   for (const [name, value] of Object.entries(styleVars(style))) {
     element.style.setProperty(name, value);
   }
+  // Alignment is a class, not a variable, because it changes layout rules in chat-templates.css and alerts.html.
+  for (const cls of [...element.classList]) if (cls.startsWith('align-')) element.classList.remove(cls);
+  element.classList.add(`align-${style.align}`);
 }

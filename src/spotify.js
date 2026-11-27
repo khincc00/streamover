@@ -27,6 +27,8 @@ function toNowPlaying(data) {
   return {
     playing: Boolean(data.is_playing),
     uri: item.uri || '',
+    // Identifies the song for lyrics. Overlays match the lyrics to a song by this key.
+    key: item.uri ? `sp:${item.uri}` : '',
     kind: isEpisode ? 'episode' : 'track',
     title: item.name || '',
     artist: isEpisode ? item.show?.name || '' : (item.artists || []).map((a) => a.name).join(', '),
@@ -246,7 +248,13 @@ export class SpotifySession {
     if (!res.ok) throw new Error(`Pencarian Spotify gagal (HTTP ${res.status})`);
     const track = (await res.json()).tracks?.items?.[0];
     if (!track) return null;
-    return { uri: track.uri, name: track.name, artist: (track.artists || []).map((a) => a.name).join(', ') };
+    return {
+      uri: track.uri,
+      name: track.name,
+      artist: (track.artists || []).map((a) => a.name).join(', '),
+      album: track.album?.name || '',
+      durationMs: Number(track.duration_ms) || 0,
+    };
   }
 
   // Adds a track to the account's Spotify queue. Needs Premium and an active Spotify device.

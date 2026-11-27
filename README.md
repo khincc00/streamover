@@ -30,7 +30,11 @@ Catatan: mode development Spotify membatasi 5 pengguna per Client ID, dan pemili
 
 Overlay: `http://127.0.0.1:3000/overlay/nowplaying.html` (sama dengan `?source=spotify`)
 
+Template **Custom** (di Spotify Studio, dipakai juga untuk YT Music): unggah background sendiri (PNG, JPG, atau WebP, maks 3 MB), lalu atur warna latar, teks, dan aksen, serta jenis huruf. Background disimpan per akun di server, dan hanya bisa dihapus lewat panel.
+
 Lirik: `http://127.0.0.1:3000/overlay/lyrics.html`. Lirik tersinkron diambil dari [LRCLIB](https://lrclib.net) setiap lagu berganti, tanpa login dan tanpa cookie Spotify. Lagu yang tidak punya lirik tersinkron di LRCLIB hanya menampilkan pesan kosong, dan podcast tidak punya lirik. Untuk menggeser waktu lirik, tambahkan `&offset=<ms>` (positif = lirik muncul lebih lambat, negatif = lebih cepat). Ukuran baris aktif bisa diubah dengan `&size=<px>` (bawaan 56).
+
+Lirik YT Music: `http://127.0.0.1:3000/overlay/lyrics.html?source=youtube`. Judul YouTube dibersihkan dulu (keterangan seperti "(Official Video)" dibuang). Kalau LRCLIB tidak menemukan lirik dan akun Spotify sudah terhubung, judul dicari lewat Spotify untuk dicocokkan ulang. Kalau masih salah, pilih lirik yang benar di kartu **Pilih lirik lagu** di Spotify Studio. Pilihan itu disimpan per lagu. Untuk mode extension, posisi lagu dikirim oleh extension, jadi extension perlu di-reload di `chrome://extensions` setelah update ini.
 
 Permintaan lagu dari chat (`!req judul lagu`) masuk ke daftar, maksimal 5 permintaan dengan satu permintaan per penonton. Lagu dihapus dari daftar saat mulai diputar. Permintaan hanya masuk ke daftar kecuali opsi **Masukkan otomatis ke antrean Spotify** dinyalakan. Opsi itu butuh:
 - Akun Spotify yang Premium, dan Spotify sedang aktif di salah satu perangkat.
@@ -41,9 +45,24 @@ Permintaan lagu dari chat (`!req judul lagu`) masuk ke daftar, maksimal 5 permin
 YT Music punya halaman sendiri, **YT Music Studio**, terpisah dari Spotify. Ada dua cara memutar lagu, dan bisa dipilih di kartu **YT Music**:
 
 - **Player YouTube** (bawaan). Lagu diputar di dock bawah panel dengan player YouTube. Audionya keluar dari browser yang membuka panel. Tiap lagu di playlist perlu link YouTube. Kalau mau disiarkan, tangkap audio browser di OBS.
-- **Tab YT Music (extension)**. Lagu dicari dan diputar di tab `music.youtube.com` yang terbuka di Chrome. Cukup isi judul dan artis. Pasang extension dari folder `extension/` lewat `chrome://extensions` (Mode developer, Load unpacked). Buka panel di `http://127.0.0.1:3000` sekali agar kunci tersimpan, lalu biarkan tab YT Music terbuka. Kontrolnya bergantung pada struktur halaman YT Music, jadi bisa berhenti kalau YouTube mengubah halamannya. Extension ini mengirim ke `127.0.0.1:3000`, jadi mode ini hanya untuk server yang jalan di komputer sendiri. Di server publik seperti streamover.khincreator.com, pakai **Player YouTube**.
+- **Tab YT Music (extension)**. Lagu dicari dan diputar di tab `music.youtube.com` yang terbuka di Chrome. Cukup isi judul dan artis. Pasang extension dari folder `extension/` lewat `chrome://extensions` (Mode developer, Load unpacked). Buka panel di `http://127.0.0.1:3000` sekali agar kunci tersimpan, lalu biarkan tab YT Music terbuka. Kontrolnya bergantung pada struktur halaman YT Music, jadi bisa berhenti kalau YouTube mengubah halamannya. Extension mengirim ke server utama `https://streamover.khincreator.com` secara bawaan. Buka panel di alamat itu sekali (atau tempel link overlay dari panel di halaman **Options** extension), supaya alamat dan kunci tersimpan. Kalau server dijalankan di komputer sendiri, buka panel di `127.0.0.1:3000` dan extension akan mengikuti alamat itu. Setelah update extension, muat ulang extension di `chrome://extensions`.
 
 Request dari chat (`!req judul lagu`) dicari di YouTube, dan import playlist juga memakai YouTube API. Hubungkan key di halaman **Settings** panel, atau isi `YOUTUBE_API_KEY` di `.env`. Video yang dibatasi umur atau diblokir di wilayah siaran tidak dipilih; wilayahnya Indonesia, atau isi `YOUTUBE_REGION` (kode negara) di `.env`. Tanpa key, request tetap masuk ke daftar, tapi tidak bisa diputar otomatis. Lagu dari playlist tidak memerlukan key.
+
+## Apple Music (opsional)
+
+Apple Music membutuhkan akun **Apple Developer** berbayar dan kunci MusicKit. Tanpa itu, fitur ini mati dan server tetap jalan seperti biasa.
+
+1. Di https://developer.apple.com, buat **MusicKit key** (Certificates, Identifiers & Profiles → Keys). Simpan file `.p8`, lalu catat **Key ID** dan **Team ID**.
+2. Isi di `.env`: `APPLE_TEAM_ID`, `APPLE_KEY_ID`, dan `APPLE_PRIVATE_KEY_FILE` (path ke file `.p8`). Kunci itu tidak pernah dikirim ke panel.
+3. Login ke panel, lalu buka `/applemusic.html` di browser yang sama. Login ke Apple Music, dan putar lagu di tab itu. Biarkan tab terbuka selama siaran.
+4. Lirik Apple Music: `http://127.0.0.1:3000/overlay/lyrics.html?source=applemusic`, atau dari kartu lirik di Spotify Studio.
+
+Catatan: Apple Music tidak punya API resmi untuk lagu yang sedang diputar, jadi data lagu datang dari halaman di browser, mirip mode extension YT Music. Lirik tetap dari LRCLIB. Cara ini belum diuji dengan akun Apple Music sungguhan.
+
+## Soundboard
+
+Menu **Soundboard** punya 10 slot. Tiap slot bisa diberi nama, diisi suara sendiri (MP3, WAV, atau OGG, maksimal 5 MB), dimainkan, lalu dihapus. Isi file dicek sebelum disimpan, jadi file yang bukan audio ditolak. Suara dimainkan oleh overlay soundboard di OBS (link ada di halaman Soundboard), jadi audionya ikut tertangkap OBS. Volume dan tombol **Hentikan semua** juga ada di halaman itu.
 
 ## Pakai di OBS
 

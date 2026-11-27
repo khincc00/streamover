@@ -1,8 +1,14 @@
-// Forwards reports from the YouTube Music tab to the Streamover server on this computer, and passes the
-// commands the panel sends back (play a song, pause, next, previous) to that same tab.
-// The overlay key saved in the options page tells the server which account the song belongs to.
+// Forwards reports from the YouTube Music tab to the Streamover server, and passes the commands the panel
+// sends back (play a song, pause, next, previous) to that same tab.
+// The server address and overlay key come from the options page, or from the panel that is open.
+// Without a saved address, the main server is used: https://streamover.khincreator.com.
 // Requests from the extension are not blocked by the page's CORS rules.
-const SERVER = 'http://127.0.0.1:3000/api/ytmusic';
+const DEFAULT_SERVER = 'https://streamover.khincreator.com';
+
+async function apiBase() {
+  const { serverUrl } = await chrome.storage.local.get('serverUrl');
+  return `${serverUrl || DEFAULT_SERVER}/api/ytmusic`;
+}
 
 chrome.runtime.onMessage.addListener((message, sender) => {
   if (message?.type !== 'nowplaying') return;
@@ -11,6 +17,7 @@ chrome.runtime.onMessage.addListener((message, sender) => {
     .then(async ({ overlayKey }) => {
       // Options not filled in yet: nothing to send to.
       if (!overlayKey) return;
+      const SERVER = await apiBase();
       const key = `key=${encodeURIComponent(overlayKey)}`;
       await fetch(`${SERVER}/report?${key}`, {
         method: 'POST',

@@ -406,7 +406,7 @@ input[type="range"] { width: 100%; accent-color: var(--ink); margin: 0; }
 .lib-grid { display: grid; gap: 16px; }
 @media (min-width: 768px) { .lib-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); } }
 .lib-col { display: grid; gap: 10px; align-content: start; min-width: 0; }
-.lib-row { display: flex; gap: 8px; align-items: center; }
+.lib-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .lib-row input {
   flex: 1; min-width: 0; height: 40px; padding: 0 14px;
   border: 1px solid var(--line); border-radius: 14px; background: var(--surface-strong);

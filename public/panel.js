@@ -2,7 +2,7 @@ import { connectHub } from '/shared/ws.js';
 import { startYouTubePlayer } from '/shared/ytPlayer.js';
 import { chatRow } from '/shared/chatRow.js';
 import { CHAT_TEMPLATES, DEFAULT_CHAT_TEMPLATE, isChatTemplate } from '/shared/chatTemplates.js';
-import { CHAT_ANIMATIONS, CHAT_GRADIENTS, DEFAULT_CHAT_STYLE, applyStyle, normalizeStyle } from '/shared/chatStyle.js';
+import { CHAT_ALIGNS, CHAT_ANIMATIONS, CHAT_GRADIENTS, DEFAULT_CHAT_STYLE, applyStyle, normalizeStyle } from '/shared/chatStyle.js';
 import { NOWPLAYING_TEMPLATES, DEFAULT_NOWPLAYING_TEMPLATE, isNowPlayingTemplate } from '/shared/nowplayingTemplates.js';
 import { DEFAULT_PERSPECTIVE, PERSPECTIVE_LIMITS } from '/shared/perspective.js';
 import { RUNNING_TEXT_TEMPLATES, DEFAULT_RUNNING_TEXT_TEMPLATE, isRunningTextTemplate, RUNNING_TEXT_FONTS, DEFAULT_RUNNING_TEXT_FONT, isRunningTextFont, runningTextFontStyle } from '/shared/runningTextTemplates.js';
@@ -12,6 +12,8 @@ const $ = (id) => document.getElementById(id);
 const PREVIEW_WIDTH = 1920;
 const FEED_MAX = 60;
 const SETTINGS_KEY = 'streamover.settings';
+// Warna bawaan template custom, dipakai kalau nilai yang tersimpan tidak valid.
+const DEFAULT_SETTINGS_COLORS = { npBgColor: '#121212', npTextColor: '#ffffff', npAccentColor: '#1ed760' };
 
 // Spotify dan YT Music punya overlay sendiri. Keduanya memakai nowplaying.html, dan ?source= memilih sumbernya.
 const OVERLAYS = {
@@ -19,13 +21,19 @@ const OVERLAYS = {
   alerts: { label: 'Alert', file: 'alerts.html' },
   nowplaying: { label: 'Spotify', file: 'nowplaying.html', source: 'spotify' },
   youtube: { label: 'YT Music', file: 'nowplaying.html', source: 'youtube' },
-  lyrics: { label: 'Lirik Spotify', file: 'lyrics.html' },
+  lyrics: { label: 'Lirik Spotify', file: 'lyrics.html', source: 'spotify' },
+  lyricsyt: { label: 'Lirik YT Music', file: 'lyrics.html', source: 'youtube' },
+  lyricsam: { label: 'Lirik Apple Music', file: 'lyrics.html', source: 'applemusic' },
   tts: { label: 'Pembaca komentar', file: 'tts.html' },
+  soundboard: { label: 'Soundboard', file: 'soundboard.html' },
+  gifters: { label: 'Top gifter', file: 'leaderboard.html', board: 'gifters' },
+  tappers: { label: 'Top tap', file: 'leaderboard.html', board: 'tappers' },
+  captions: { label: 'Auto caption', file: 'captions.html' },
   runningtext: { label: 'Running text', file: 'running-text.html' },
 };
 
 // Halaman sesuai menu sidebar: Dashboard, Template Studio, Spotify Studio, YT Music Studio, Alert, Running text, Overlay Lab, Settings.
-const VIEW_NAMES = ['home', 'musik', 'ytmusic', 'running', 'settings'];
+const VIEW_NAMES = ['home', 'musik', 'ytmusic', 'running', 'soundboard', 'caption', 'board', 'settings'];
 // Template chat, alert, dan Overlay Lab ada di satu halaman dengan tab. Link lama (#/chat, #/alert, #/lab) tetap membuka tab yang sama.
 const STUDIO_TABS = { studio: 'chat', chat: 'chat', alert: 'alert', lab: 'lab' };
 
@@ -55,6 +63,9 @@ const settings = {
   max: 15,
   chatMode: 'history', // 'history': daftar chat, 'latest': satu pesan terbaru saja
   chatHold: 6, // detik pesan terbaru tampil di mode 'latest'
+  chatNames: 'side', // posisi nama penonton: 'side' di samping komentar, 'top' di atas komentar
+  chatAlign: 'left', // perataan chat: 'left', 'center', 'right', atau 'justify' (rata kiri-kanan)
+  alertAlign: 'center', // perataan alert: sama seperti chat
   duration: 4,
   template: DEFAULT_CHAT_TEMPLATE,
   spotifyTemplate: DEFAULT_NOWPLAYING_TEMPLATE,
@@ -64,11 +75,23 @@ const settings = {
   npWidth: 560, // width in px for fixed size
   lyricsFont: 'default', // jenis huruf lirik: id dari RUNNING_TEXT_FONTS, 'default' memakai huruf sistem
   lyricsColor: '#ffffff', // warna teks lirik
+  npBgColor: '#121212', // template custom: warna background
+  npTextColor: '#ffffff', // template custom: warna teks
+  npAccentColor: '#1ed760', // template custom: warna status (Sedang diputar / Dijeda)
+  npFont: 'default', // template custom: jenis huruf, id dari RUNNING_TEXT_FONTS
+  npBgVer: 0, // template custom: versi background, berubah setiap upload agar overlay memuat ulang
   ttsChat: false, // baca komentar chat
   ttsAlert: false, // baca alert gift, follow, dan share
   ttsPrefix: false, // kalau aktif, hanya komentar yang diawali !tts yang dibaca
   ttsRate: 1, // kecepatan bicara, 0.5 sampai 2
   ttsVoice: '', // nama suara. Kosong berarti otomatis, suara bahasa Indonesia kalau ada
+  capLang: 'id-ID', // bahasa yang diucapkan streamer, untuk auto caption
+  capMic: '', // deviceId mikrofon untuk auto caption. Kosong berarti mikrofon default
+  capSize: 48, // ukuran teks caption dalam px
+  capFont: 'default', // jenis huruf caption, id dari RUNNING_TEXT_FONTS
+  capColor: '#ffffff', // warna teks caption
+  capHold: 4, // detik caption tetap tampil setelah kalimat selesai
+  capBox: true, // kotak gelap di belakang teks caption
   username: '',
   ...DEFAULT_CHAT_STYLE,
   ...readJson(SETTINGS_KEY),
@@ -76,7 +99,8 @@ const settings = {
 
 // Perspektif per overlay. Saved values are clamped so a bad saved value can't break the overlay.
 // Running text punya perspektif sendiri di tiap overlay, jadi tidak ada di sini.
-const PERSP_KEYS = ['chat', 'alerts', 'nowplaying', 'youtube', 'lyrics'];
+// Top gifter dan top tap memakai satu perspektif bersama, 'boards'.
+const PERSP_KEYS = ['chat', 'alerts', 'nowplaying', 'youtube', 'lyrics', 'boards'];
 const PERSP_TARGETS = [...PERSP_KEYS, 'runningtext'];
 
 // Makes sure every setting has a valid value, whether it came from this browser or the server.
@@ -85,22 +109,86 @@ const CHAT_MODES = [
   { id: 'latest', label: '1 pesan terbaru' },
 ];
 
+// Bahasa untuk auto caption. Browser hanya mengenali satu bahasa dalam satu waktu.
+const CAPTION_LANGS = [
+  { id: 'id-ID', label: 'Bahasa Indonesia' },
+  { id: 'en-US', label: 'English (US)' },
+  { id: 'en-GB', label: 'English (UK)' },
+  { id: 'jv-ID', label: 'Basa Jawa' },
+  { id: 'su-ID', label: 'Basa Sunda' },
+  { id: 'ms-MY', label: 'Bahasa Melayu' },
+  { id: 'ja-JP', label: '日本語' },
+  { id: 'ko-KR', label: '한국어' },
+];
+
+// Papan skor (top gifter dan top tap): tampilan yang sama untuk keduanya, dan judul masing-masing.
+const BOARD_THEMES = [
+  { id: 'glass', label: 'Kaca' },
+  { id: 'neon', label: 'Neon' },
+  { id: 'gold', label: 'Emas' },
+  { id: 'minimal', label: 'Minimal' },
+  { id: 'custom', label: 'Kustom' },
+];
+const BOARD_POSITIONS = [
+  { id: 'tl', label: 'Kiri atas' },
+  { id: 'tr', label: 'Kanan atas' },
+  { id: 'bl', label: 'Kiri bawah' },
+  { id: 'br', label: 'Kanan bawah' },
+];
+// titleColor '' means the theme chooses the title colour. Fonts are ids from RUNNING_TEXT_FONTS.
+const BOARD_DEFAULTS = { theme: 'glass', pos: 'tl', n: 5, size: 30, color: '#ffffff', accent: '#6ee7ff', bg: '#000000', bga: 60, font: 'default', titleFont: 'default', titleColor: '', titleGift: '', titleTap: '' };
+
+function normalizeBoard(saved = {}) {
+  const b = { ...BOARD_DEFAULTS, ...(saved && typeof saved === 'object' ? saved : {}) };
+  return {
+    theme: BOARD_THEMES.some((t) => t.id === b.theme) ? b.theme : BOARD_DEFAULTS.theme,
+    pos: BOARD_POSITIONS.some((p) => p.id === b.pos) ? b.pos : BOARD_DEFAULTS.pos,
+    n: clampTo(Math.round(Number(b.n)) || 5, { min: 1, max: 10 }),
+    size: clampTo(Math.round(Number(b.size)) || 30, { min: 12, max: 80 }),
+    color: /^#[0-9a-f]{6}$/i.test(b.color) ? b.color : BOARD_DEFAULTS.color,
+    accent: /^#[0-9a-f]{6}$/i.test(b.accent) ? b.accent : BOARD_DEFAULTS.accent,
+    bg: /^#[0-9a-f]{6}$/i.test(b.bg) ? b.bg : BOARD_DEFAULTS.bg,
+    bga: clampTo(Number.isFinite(Number(b.bga)) ? Math.round(Number(b.bga)) : 60, { min: 0, max: 100 }),
+    font: isRunningTextFont(b.font) ? b.font : BOARD_DEFAULTS.font,
+    titleFont: isRunningTextFont(b.titleFont) ? b.titleFont : BOARD_DEFAULTS.titleFont,
+    titleColor: /^#[0-9a-f]{6}$/i.test(b.titleColor) ? b.titleColor : '',
+    titleGift: typeof b.titleGift === 'string' ? b.titleGift.slice(0, 40) : '',
+    titleTap: typeof b.titleTap === 'string' ? b.titleTap.slice(0, 40) : '',
+  };
+}
+
 function sanitizeSettings() {
+  settings.board = normalizeBoard(settings.board);
   if (!isChatTemplate(settings.template)) settings.template = DEFAULT_CHAT_TEMPLATE;
   if (!isNowPlayingTemplate(settings.spotifyTemplate)) settings.spotifyTemplate = DEFAULT_NOWPLAYING_TEMPLATE;
   if (!isNowPlayingTemplate(settings.youtubeTemplate)) settings.youtubeTemplate = DEFAULT_NOWPLAYING_TEMPLATE;
   if (!['content', 'fixed'].includes(settings.npFit)) settings.npFit = 'content';
   if (!['left', 'center', 'right'].includes(settings.npAlign)) settings.npAlign = 'left';
   if (!isRunningTextFont(settings.lyricsFont)) settings.lyricsFont = 'default';
+  for (const key of ['npBgColor', 'npTextColor', 'npAccentColor']) {
+    if (!/^#[0-9a-f]{6}$/i.test(settings[key])) settings[key] = DEFAULT_SETTINGS_COLORS[key];
+  }
+  if (!isRunningTextFont(settings.npFont)) settings.npFont = 'default';
+  settings.npBgVer = Number(settings.npBgVer) || 0;
   if (!/^#[0-9a-f]{6}$/i.test(settings.lyricsColor)) settings.lyricsColor = '#ffffff';
   settings.ttsChat = Boolean(settings.ttsChat);
   settings.ttsAlert = Boolean(settings.ttsAlert);
   settings.ttsPrefix = Boolean(settings.ttsPrefix);
   settings.ttsRate = clampTo(Number(settings.ttsRate) || 1, { min: 0.5, max: 2 });
   settings.ttsVoice = typeof settings.ttsVoice === 'string' ? settings.ttsVoice.slice(0, 100) : '';
+  if (!CAPTION_LANGS.some((l) => l.id === settings.capLang)) settings.capLang = 'id-ID';
+  settings.capMic = typeof settings.capMic === 'string' ? settings.capMic.slice(0, 200) : '';
+  settings.capSize = clampTo(Number(settings.capSize) || 48, { min: 20, max: 120 });
+  if (!isRunningTextFont(settings.capFont)) settings.capFont = 'default';
+  if (!/^#[0-9a-f]{6}$/i.test(settings.capColor)) settings.capColor = '#ffffff';
+  settings.capHold = clampTo(Number(settings.capHold) || 4, { min: 1, max: 30 });
+  settings.capBox = settings.capBox !== false;
   settings.npWidth = clampTo(Number(settings.npWidth) || 560, { min: 300, max: 1000 });
   if (!CHAT_MODES.some((m) => m.id === settings.chatMode)) settings.chatMode = 'history';
-  settings.chatHold = clampTo(Number(settings.chatHold) || 6, { min: 2, max: 60 });
+  settings.chatHold = clampTo(Number(settings.chatHold) || 6, { min: 2, max: 120 });
+  if (!['side', 'top'].includes(settings.chatNames)) settings.chatNames = 'side';
+  if (!CHAT_ALIGNS.some((a) => a.id === settings.chatAlign)) settings.chatAlign = 'left';
+  if (!CHAT_ALIGNS.some((a) => a.id === settings.alertAlign)) settings.alertAlign = 'center';
   sanitizeRunningTexts();
   Object.assign(settings, normalizeStyle(settings));
   settings.persp = normalizePersp(settings.persp);
@@ -171,8 +259,9 @@ function perspOf(key) {
   return key === 'runningtext' ? selectedRunningText().persp : settings.persp[key];
 }
 
+// The chat's style. Its alignment is chatAlign; the alert overlay has its own alertAlign.
 function chatStyle() {
-  return normalizeStyle(settings);
+  return normalizeStyle({ ...settings, align: settings.chatAlign });
 }
 
 const SAMPLE_CHAT = [
@@ -307,14 +396,45 @@ function overlayUrl(key, item = selectedRunningText()) {
     params.set('max', settings.max);
     params.set('mode', settings.chatMode);
     params.set('hold', settings.chatHold * 1000);
+    params.set('names', settings.chatNames);
+    params.set('align', settings.chatAlign);
     addStyleParams(params);
   }
   if (key === 'alerts') {
     params.set('duration', settings.duration * 1000);
+    params.set('align', settings.alertAlign);
     addStyleParams(params);
+  }
+  if (key === 'gifters' || key === 'tappers') {
+    const b = settings.board;
+    params.set('board', key);
+    params.set('theme', b.theme);
+    params.set('pos', b.pos);
+    params.set('n', b.n);
+    params.set('size', b.size);
+    params.set('color', b.color.slice(1));
+    params.set('accent', b.accent.slice(1));
+    params.set('bg', b.bg.slice(1));
+    params.set('bga', b.bga);
+    params.set('font', b.font);
+    params.set('titleFont', b.titleFont);
+    if (b.titleColor) params.set('titleColor', b.titleColor.slice(1));
+    const title = key === 'tappers' ? b.titleTap : b.titleGift;
+    if (title) params.set('title', title);
   }
   if (key === 'nowplaying') params.set('template', settings.spotifyTemplate);
   if (key === 'youtube') params.set('template', settings.youtubeTemplate);
+  // Template custom: warna, font, dan background dari pengaturan Custom di Spotify Studio.
+  if ((key === 'nowplaying' && settings.spotifyTemplate === 'custom') || (key === 'youtube' && settings.youtubeTemplate === 'custom')) {
+    params.set('bgc', settings.npBgColor.slice(1));
+    params.set('tc', settings.npTextColor.slice(1));
+    params.set('ac', settings.npAccentColor.slice(1));
+    params.set('font', settings.npFont);
+    if (settings.npBgVer) {
+      params.set('bgimg', '1');
+      params.set('bgv', settings.npBgVer);
+    }
+  }
   if (key === 'nowplaying' || key === 'youtube') {
     params.set('fit', settings.npFit);
     params.set('align', settings.npAlign);
@@ -329,7 +449,9 @@ function overlayUrl(key, item = selectedRunningText()) {
     params.set('size', item.size);
     params.set('color', item.color);
   }
-  if (key === 'lyrics') {
+  // Lirik YT Music memakai font, warna, dan perspektif yang sama dengan lirik Spotify.
+  const styleKey = ['lyricsyt', 'lyricsam'].includes(key) ? 'lyrics' : key;
+  if (styleKey === 'lyrics') {
     params.set('font', settings.lyricsFont);
     params.set('color', settings.lyricsColor.slice(1));
   }
@@ -340,9 +462,18 @@ function overlayUrl(key, item = selectedRunningText()) {
     params.set('rate', settings.ttsRate);
     if (settings.ttsVoice) params.set('voice', settings.ttsVoice);
   }
-  // Pembaca komentar tidak tampil di layar, jadi tidak ada perspektif.
-  if (key !== 'tts') {
-    const persp = key === 'runningtext' ? item.persp : settings.persp[key];
+  if (key === 'captions') {
+    params.set('size', settings.capSize);
+    params.set('font', settings.capFont);
+    params.set('color', settings.capColor.slice(1));
+    params.set('hold', settings.capHold * 1000);
+    params.set('box', settings.capBox ? '1' : '0');
+  }
+  // Pembaca komentar dan soundboard tidak tampil di layar, jadi tidak ada perspektif.
+  // Caption selalu datar di bawah layar supaya mudah dibaca.
+  if (!['tts', 'soundboard', 'captions'].includes(key)) {
+    const perspKey = OVERLAYS[key].board ? 'boards' : styleKey;
+    const persp = key === 'runningtext' ? item.persp : settings.persp[perspKey];
     params.set('rx', persp.rx);
     params.set('ry', persp.ry);
     params.set('pd', persp.depth);
@@ -417,6 +548,7 @@ function route() {
     else link.removeAttribute('aria-current');
   }
   refreshPreview();
+  if (view === 'soundboard') loadSoundboard().catch((err) => toast(err.message));
 }
 
 // ---- Status ----
@@ -1203,7 +1335,8 @@ function refreshPreview() {
   for (const frame of document.querySelectorAll('[data-view]:not([hidden]) [data-frame]')) {
     // Pratinjau di tab yang tidak tampil tidak perlu dimuat. Tab itu dimuat saat dibuka.
     if (frame.closest('[data-subview][hidden]')) continue;
-    frame.src = overlayUrl(frame.dataset.frame);
+    // data-demo: the preview shows sample rows, so the look can be checked before a live starts.
+    frame.src = overlayUrl(frame.dataset.frame) + (frame.dataset.demo ? '&demo=1' : '');
   }
 }
 
@@ -1240,7 +1373,7 @@ function markChatCards() {
 // Contoh chat di Template Studio memakai template dan pengaturan yang sedang dipilih.
 function renderSample() {
   const sample = $('chatSample');
-  sample.className = `chat tpl-${settings.template}`;
+  sample.className = `chat tpl-${settings.template}${settings.chatNames === 'top' ? ' names-top' : ''}`;
   applyStyle(sample, chatStyle());
   sample.replaceChildren(...SAMPLE_CHAT.map((line) => chatRow(line)));
 }
@@ -1559,6 +1692,679 @@ function bindTts() {
   });
 }
 
+// ---- Pilih lirik lagu: cari di LRCLIB dan simpan pilihan untuk lagu itu ----
+
+// The last song each source reported. The hub sends these to the panel as nowplaying messages.
+const latestTrack = { spotify: null, youtube: null, applemusic: null };
+
+// The song the picker works on: the one playing now, in the order YT Music, Apple Music, Spotify.
+function lyricsTrack() {
+  const order = [latestTrack.youtube, latestTrack.applemusic, latestTrack.spotify];
+  return order.find((t) => t?.playing) || order.find(Boolean) || null;
+}
+
+function renderLyricsNow() {
+  const track = lyricsTrack();
+  $('lyricsNow').textContent = track?.key ? `Sedang diputar: ${track.title} — ${track.artist}` : 'Belum ada lagu yang diputar';
+  // The search box follows the song. A new song fills it again and clears the old results.
+  const input = $('lyricsQuery');
+  if (track?.key && input.dataset.key !== track.key) {
+    input.dataset.key = track.key;
+    input.value = `${track.title} ${track.artist}`.trim();
+    $('lyricsResults').replaceChildren();
+  }
+}
+
+function renderLyricsResults(results) {
+  const list = $('lyricsResults');
+  list.replaceChildren();
+  if (results.length === 0) {
+    const empty = document.createElement('li');
+    empty.className = 'empty';
+    empty.textContent = 'Tidak ada lirik tersinkron yang cocok.';
+    list.append(empty);
+    return;
+  }
+  for (const r of results) {
+    const li = document.createElement('li');
+    const info = document.createElement('span');
+    const length = `${Math.floor(r.duration / 60)}:${String(r.duration % 60).padStart(2, '0')}`;
+    info.textContent = `${r.title} — ${r.artist}${r.album ? ` · ${r.album}` : ''} · ${length}`;
+    const pick = document.createElement('button');
+    pick.className = 'btn small';
+    pick.type = 'button';
+    pick.textContent = 'Pakai';
+    pick.addEventListener('click', () => chooseLyrics(r.id));
+    li.append(info, pick);
+    list.append(li);
+  }
+}
+
+async function searchLyricsFor() {
+  const query = $('lyricsQuery').value.trim();
+  if (!query) return toast('Isi judul atau artis dulu');
+  try {
+    const { results } = await api(`/api/lyrics/search?q=${encodeURIComponent(query)}`);
+    renderLyricsResults(results);
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
+// id null removes the pick, so the song goes back to automatic lyrics.
+async function chooseLyrics(id) {
+  const track = lyricsTrack();
+  if (!track?.key) return toast('Putar lagu dulu, lalu pilih liriknya');
+  try {
+    await api('/api/lyrics/override', { key: track.key, id });
+    toast(id === null ? 'Kembali ke lirik otomatis' : 'Lirik dipilih untuk lagu ini');
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
+function bindLyricsPicker() {
+  $('lyricsSearch').addEventListener('click', searchLyricsFor);
+  $('lyricsQuery').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') searchLyricsFor();
+  });
+  $('lyricsAuto').addEventListener('click', () => chooseLyrics(null));
+  renderLyricsNow();
+}
+
+// ---- Soundboard: 10 slot. Tiap slot berisi suara yang diunggah sendiri dan dimainkan di overlay OBS ----
+
+const SOUND_MAX_MB = 5;
+let soundSlots = [];
+
+// Sends a request to the server and throws the server's message when it fails.
+async function soundRequest(path, options = {}) {
+  const res = await fetch(path, { credentials: 'same-origin', ...options });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+async function loadSoundboard() {
+  const { slots } = await soundRequest('/api/soundboard');
+  soundSlots = slots;
+  $('soundGrid').replaceChildren(...slots.map((slot) => soundCard(slot)));
+}
+
+function soundCard(slot) {
+  const n = slot.slot + 1;
+  const card = document.createElement('div');
+  card.className = 'rounded-[18px] border border-black/10 dark:border-white/10 p-3 space-y-2';
+
+  const head = document.createElement('div');
+  head.className = 'text-[10px] font-bold tracking-widest opacity-60';
+  head.textContent = `SLOT ${n}`;
+
+  const name = document.createElement('input');
+  name.className = 'w-full rounded-[10px] border border-black/10 dark:border-white/10 bg-transparent px-2 py-1.5 text-[13px] outline-none';
+  name.value = slot.name;
+  name.placeholder = `Suara ${n}`;
+  name.maxLength = 40;
+  name.setAttribute('aria-label', `Nama slot ${n}`);
+  name.dataset.action = 'name';
+  name.dataset.slot = slot.slot;
+
+  const buttons = document.createElement('div');
+  buttons.className = 'flex gap-2 flex-wrap';
+
+  const play = document.createElement('button');
+  play.className = 'h-8 px-3 rounded-full bg-black text-white text-[11px] font-bold disabled:opacity-40';
+  play.type = 'button';
+  play.textContent = 'Mainkan';
+  play.disabled = !slot.hasFile;
+  play.dataset.action = 'play';
+  play.dataset.slot = slot.slot;
+
+  // The label wraps a hidden file input, so the whole label opens the file picker.
+  const upload = document.createElement('label');
+  upload.className = 'h-8 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold leading-8 cursor-pointer';
+  upload.textContent = slot.hasFile ? 'Ganti' : 'Unggah';
+  const file = document.createElement('input');
+  file.type = 'file';
+  file.accept = 'audio/mpeg,audio/wav,audio/ogg,.mp3,.wav,.ogg';
+  file.style.display = 'none';
+  file.dataset.action = 'upload';
+  file.dataset.slot = slot.slot;
+  upload.append(file);
+
+  const remove = document.createElement('button');
+  remove.className = 'h-8 px-3 rounded-full bg-white border border-black/10 text-[11px] font-bold disabled:opacity-40';
+  remove.type = 'button';
+  remove.textContent = 'Hapus';
+  remove.disabled = !slot.hasFile;
+  remove.dataset.action = 'remove';
+  remove.dataset.slot = slot.slot;
+
+  buttons.append(play, upload, remove);
+  const status = document.createElement('div');
+  status.className = 'text-[11px] opacity-60';
+  status.textContent = slot.hasFile ? 'Ada suara' : 'Kosong';
+  card.append(head, name, buttons, status);
+  return card;
+}
+
+function soundVolume() {
+  return Number($('soundVolume').value) / 100;
+}
+
+// ---- Papan skor: top gifter dan top tap. Satu halaman, dua overlay ----
+
+function renderBoardChips() {
+  const groups = [
+    ['.js-boardtheme', BOARD_THEMES, 'theme'],
+    ['.js-boardpos', BOARD_POSITIONS, 'pos'],
+  ];
+  for (const [selector, options, key] of groups) {
+    for (const wrap of document.querySelectorAll(selector)) {
+      wrap.replaceChildren();
+      for (const option of options) {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.type = 'button';
+        chip.setAttribute('role', 'radio');
+        chip.setAttribute('aria-checked', String(settings.board[key] === option.id));
+        chip.textContent = option.label;
+        chip.addEventListener('click', () => {
+          settings.board[key] = option.id;
+          renderBoardControls();
+          changedBoard();
+        });
+        wrap.append(chip);
+      }
+    }
+  }
+}
+
+// Writes the values of the board controls back to the settings (they may have been set from the saved settings).
+function renderBoardControls() {
+  renderBoardChips();
+  const b = settings.board;
+  $('boardN').value = b.n;
+  $('boardNOut').textContent = b.n;
+  $('boardSize').value = b.size;
+  $('boardSizeOut').textContent = `${b.size}px`;
+  $('boardColor').value = b.color;
+  $('boardAccent').value = b.accent;
+  $('boardBg').value = b.bg;
+  $('boardBga').value = b.bga;
+  $('boardBgaOut').textContent = `${b.bga}%`;
+  $('boardFont').value = b.font;
+  $('boardTitleFont').value = b.titleFont;
+  $('boardTitleColor').value = b.titleColor || b.accent;
+  $('boardTitleColorAuto').disabled = !b.titleColor;
+  $('boardTitleGift').value = b.titleGift;
+  $('boardTitleTap').value = b.titleTap;
+}
+
+function changedBoard() {
+  saveSettings();
+  renderLinks();
+  refreshPreviewSoon();
+}
+
+function bindBoard() {
+  // The board's fonts. 'default' is the system font here, since a board has no template of its own.
+  for (const id of ['boardFont', 'boardTitleFont']) {
+    for (const f of RUNNING_TEXT_FONTS) $(id).append(new Option(f.id === 'default' ? 'Huruf sistem' : f.label, f.id));
+  }
+  renderBoardControls();
+  const onInput = (id, key, transform, outId, out) => {
+    $(id).addEventListener('input', () => {
+      settings.board[key] = transform($(id).value);
+      if (outId) $(outId).textContent = out(settings.board[key]);
+      changedBoard();
+    });
+  };
+  onInput('boardN', 'n', Number, 'boardNOut', (v) => v);
+  onInput('boardSize', 'size', Number, 'boardSizeOut', (v) => `${v}px`);
+  onInput('boardColor', 'color', (v) => v, null);
+  onInput('boardAccent', 'accent', (v) => v, null);
+  onInput('boardBg', 'bg', (v) => v, null);
+  onInput('boardBga', 'bga', Number, 'boardBgaOut', (v) => `${v}%`);
+  onInput('boardTitleColor', 'titleColor', (v) => v, null);
+  onInput('boardTitleGift', 'titleGift', (v) => v.trim(), null);
+  // Font pickers: a change re-reads the same settings, so the links and previews use the new font.
+  for (const [id, key] of [['boardFont', 'font'], ['boardTitleFont', 'titleFont']]) {
+    $(id).addEventListener('change', () => {
+      settings.board[key] = $(id).value;
+      changedBoard();
+    });
+  }
+  $('boardTitleColorAuto').addEventListener('click', () => {
+    settings.board.titleColor = '';
+    renderBoardControls();
+    changedBoard();
+  });
+  onInput('boardTitleTap', 'titleTap', (v) => v.trim(), null);
+
+  $('boardReset').addEventListener('click', async () => {
+    try {
+      await api('/api/board/reset', {});
+      toast('Papan skor dimulai dari nol');
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+  $('boardTest').addEventListener('click', async () => {
+    try {
+      await api('/api/board/sample', {});
+      toast('Contoh dikirim ke overlay. Skor asli tidak berubah.');
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+}
+
+function bindSoundboard() {
+  const grid = $('soundGrid');
+  grid.addEventListener('click', async (event) => {
+    const button = event.target.closest('button[data-action]');
+    if (!button) return;
+    const slot = Number(button.dataset.slot);
+    try {
+      if (button.dataset.action === 'play') {
+        await soundRequest('/api/soundboard/play', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slot, volume: soundVolume() }),
+        });
+      } else if (button.dataset.action === 'remove') {
+        await soundRequest(`/api/soundboard/${slot}/file`, { method: 'DELETE' });
+        await loadSoundboard();
+        toast('Suara dihapus');
+      }
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  grid.addEventListener('change', async (event) => {
+    const input = event.target;
+    const slot = Number(input.dataset.slot);
+    try {
+      if (input.dataset.action === 'upload') {
+        const picked = input.files?.[0];
+        input.value = '';
+        if (!picked) return;
+        if (picked.size > SOUND_MAX_MB * 1024 * 1024) return toast(`File terlalu besar, maksimal ${SOUND_MAX_MB} MB`);
+        // The file goes up as the raw body. The server checks the contents before it keeps the file.
+        await soundRequest(`/api/soundboard/${slot}/file`, {
+          method: 'POST',
+          headers: { 'Content-Type': picked.type || 'application/octet-stream' },
+          body: picked,
+        });
+        await loadSoundboard();
+        toast('Suara diunggah');
+      } else if (input.dataset.action === 'name') {
+        await soundRequest(`/api/soundboard/${slot}/name`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: input.value.trim() }),
+        });
+        await loadSoundboard();
+      }
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  $('soundVolume').addEventListener('input', () => {
+    $('soundVolumeOut').textContent = `${$('soundVolume').value}%`;
+  });
+  $('soundStop').addEventListener('click', () => {
+    api('/api/soundboard/stop', {}).catch((err) => toast(err.message));
+  });
+}
+
+// ---- Auto caption: pengenalan suara berjalan di tab panel ini, lalu teksnya dikirim ke overlay caption ----
+
+const SpeechRecognitionApi = window.SpeechRecognition || window.webkitSpeechRecognition;
+const CAPTION_SEND_MS = 150;
+let recognition = null;
+let captionOn = false; // the streamer pressed start and has not pressed stop
+let captionSentAt = 0;
+let captionLastInterim = '';
+let captionTimer = null;
+
+// Requests can arrive out of order, so each caption carries the time it was sent and the overlay keeps the newest.
+function sendCaption(text, final) {
+  api('/api/caption', { text, final, seq: Date.now() }).catch(() => {});
+}
+
+// Unfinished text changes many times a second. At most one update goes out every CAPTION_SEND_MS,
+// and a finished sentence always goes out right away.
+function queueCaption(text, final) {
+  $('capPreview').textContent = text;
+  clearTimeout(captionTimer);
+  if (final) {
+    captionLastInterim = '';
+    sendCaption(text, true);
+    return;
+  }
+  if (text === captionLastInterim) return;
+  const wait = CAPTION_SEND_MS - (Date.now() - captionSentAt);
+  if (wait > 0) {
+    captionTimer = setTimeout(() => queueCaption(text, false), wait);
+    return;
+  }
+  captionSentAt = Date.now();
+  captionLastInterim = text;
+  sendCaption(text, false);
+}
+
+function renderCaptionState(text) {
+  $('capToggle').textContent = captionOn ? 'Hentikan caption' : 'Mulai caption';
+  $('capStatus').textContent = text;
+}
+
+const CAPTION_ERRORS = {
+  'not-allowed': 'Akses mikrofon ditolak. Izinkan mikrofon untuk situs ini di pengaturan browser.',
+  'service-not-allowed': 'Browser tidak mengizinkan pengenalan suara di halaman ini.',
+  'audio-capture': 'Mikrofon tidak ditemukan.',
+  'language-not-supported': 'Bahasa ini tidak didukung browser.',
+};
+
+function createRecognition() {
+  const rec = new SpeechRecognitionApi();
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.maxAlternatives = 1;
+
+  rec.onstart = () => renderCaptionState('Mendengarkan…');
+  rec.onresult = (event) => {
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const result = event.results[i];
+      const text = result[0].transcript.trim();
+      if (!text) continue;
+      if (result.isFinal) queueCaption(text, true);
+      else interim += `${interim ? ' ' : ''}${text}`;
+    }
+    if (interim) queueCaption(interim, false);
+  };
+  rec.onerror = (event) => {
+    // Silence and our own stop are normal. The browser ends the session and onend restarts it.
+    if (['no-speech', 'aborted'].includes(event.error)) return;
+    if (event.error === 'network') {
+      renderCaptionState('Koneksi ke layanan suara terputus, mencoba lagi…');
+      return;
+    }
+    captionOn = false;
+    closeMic();
+    renderCaptionState(CAPTION_ERRORS[event.error] || `Gagal: ${event.error}`);
+  };
+  // Chrome ends recognition after a pause or about a minute. While caption is on, it starts again.
+  rec.onend = () => {
+    if (!captionOn) {
+      renderCaptionState('Berhenti');
+      return;
+    }
+    setTimeout(() => {
+      if (captionOn) listen();
+    }, 250);
+  };
+  return rec;
+}
+
+// ---- Mikrofon untuk caption: dipilih dari daftar, dan bar level menunjukkan mikrofon itu menangkap suara ----
+
+let micStream = null;
+let micMeter = null; // { context, frame } while the level bar is running
+
+// Opens the chosen microphone. Without a choice, or when the chosen one is gone, the default is used.
+async function openMic() {
+  closeMic();
+  const audio = settings.capMic ? { deviceId: { exact: settings.capMic } } : true;
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio });
+  } catch (err) {
+    if (!settings.capMic || err.name !== 'OverconstrainedError') throw err;
+    toast('Mikrofon yang dipilih tidak ada, memakai mikrofon default');
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  }
+  startMeter(micStream);
+  // Device names are only readable after access is granted, so the list is filled again now.
+  loadMics().catch(() => {});
+  return micStream.getAudioTracks()[0];
+}
+
+function closeMic() {
+  if (micMeter) {
+    cancelAnimationFrame(micMeter.frame);
+    micMeter.context.close().catch(() => {});
+    micMeter = null;
+  }
+  micStream?.getTracks().forEach((track) => track.stop());
+  micStream = null;
+  $('capLevel').style.width = '0';
+}
+
+function startMeter(stream) {
+  const context = new AudioContext();
+  const analyser = context.createAnalyser();
+  analyser.fftSize = 512;
+  context.createMediaStreamSource(stream).connect(analyser);
+  const data = new Uint8Array(analyser.fftSize);
+  micMeter = { context, frame: 0 };
+  const tick = () => {
+    analyser.getByteTimeDomainData(data);
+    let peak = 0;
+    for (const v of data) peak = Math.max(peak, Math.abs(v - 128));
+    $('capLevel').style.width = `${Math.min(100, (peak / 128) * 160)}%`;
+    micMeter.frame = requestAnimationFrame(tick);
+  };
+  tick();
+}
+
+async function loadMics() {
+  const select = $('capMic');
+  const devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput' && d.deviceId !== 'default');
+  const options = [new Option('Default sistem', '')];
+  devices.forEach((d, i) => options.push(new Option(d.label || `Mikrofon ${i + 1}`, d.deviceId)));
+  select.replaceChildren(...options);
+  // A saved microphone that isn't plugged in stays chosen, so it comes back when it is plugged in again.
+  if (settings.capMic && !devices.some((d) => d.deviceId === settings.capMic)) {
+    select.append(new Option('Mikrofon tersimpan (tidak tersambung)', settings.capMic));
+  }
+  select.value = settings.capMic;
+}
+
+// Recognition is given the chosen microphone's track. Chrome then listens to that microphone
+// instead of the default one.
+function listen() {
+  const track = micStream?.getAudioTracks()[0];
+  recognition.lang = settings.capLang;
+  try {
+    if (track && track.readyState === 'live') recognition.start(track);
+    else recognition.start();
+  } catch {
+    // Already running.
+  }
+}
+
+async function startCaption() {
+  recognition ||= createRecognition();
+  captionOn = true;
+  renderCaptionState('Meminta akses mikrofon…');
+  try {
+    await openMic();
+  } catch {
+    captionOn = false;
+    renderCaptionState(CAPTION_ERRORS['not-allowed']);
+    return;
+  }
+  if (captionOn) listen();
+}
+
+function stopCaption() {
+  captionOn = false;
+  recognition?.stop();
+  closeMic();
+  renderCaptionState('Berhenti');
+}
+
+function bindCaption() {
+  const supported = Boolean(SpeechRecognitionApi);
+  $('capUnsupported').hidden = supported;
+  $('capToggle').disabled = !supported;
+  $('capToggle').addEventListener('click', () => (captionOn ? stopCaption() : startCaption()));
+
+  $('capClear').addEventListener('click', () => {
+    $('capPreview').textContent = '';
+    clearTimeout(captionTimer);
+    sendCaption('', true);
+  });
+
+  const sendTest = () => {
+    const text = $('capTestText').value.trim();
+    if (!text) return;
+    queueCaption(text, true);
+  };
+  $('capTestSend').addEventListener('click', sendTest);
+  $('capTestText').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') sendTest();
+  });
+
+  const mic = $('capMic');
+  if (navigator.mediaDevices?.enumerateDevices) {
+    loadMics().catch(() => {});
+    navigator.mediaDevices.addEventListener('devicechange', () => loadMics().catch(() => {}));
+  }
+  mic.addEventListener('change', async () => {
+    settings.capMic = mic.value;
+    saveSettings();
+    if (!captionOn) return;
+    // Switch while running: open the new microphone, then restart recognition so it listens to it.
+    try {
+      await openMic();
+    } catch {
+      toast('Mikrofon itu tidak bisa dibuka');
+    }
+    recognition?.stop();
+  });
+  // Asking for access once makes the browser reveal the microphone names.
+  $('capMicRefresh').addEventListener('click', async () => {
+    try {
+      if (!micStream) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+      }
+      await loadMics();
+    } catch {
+      toast('Akses mikrofon ditolak');
+    }
+  });
+
+  const lang = $('capLang');
+  for (const l of CAPTION_LANGS) lang.append(new Option(l.label, l.id));
+  lang.value = settings.capLang;
+  lang.addEventListener('change', () => {
+    settings.capLang = lang.value;
+    saveSettings();
+    // The new language is used when recognition starts again, which onend does by itself.
+    if (captionOn) recognition?.stop();
+  });
+
+  bindSetting('capSize', 'capSize', 'capSizeOut');
+  bindSetting('capHold', 'capHold', 'capHoldOut');
+
+  const font = $('capFont');
+  for (const f of RUNNING_TEXT_FONTS) font.append(new Option(f.label, f.id));
+  font.value = settings.capFont;
+  font.addEventListener('change', () => {
+    settings.capFont = font.value;
+    saveSettings();
+    renderLinks();
+  });
+
+  const color = $('capColor');
+  color.value = settings.capColor;
+  color.addEventListener('input', () => {
+    settings.capColor = color.value;
+    saveSettings();
+    renderLinks();
+  });
+
+  const box = $('capBox');
+  box.checked = settings.capBox;
+  box.addEventListener('change', () => {
+    settings.capBox = box.checked;
+    saveSettings();
+    renderLinks();
+  });
+}
+
+// ---- Template custom: background, warna, dan font sendiri untuk overlay lagu (Spotify dan YT Music) ----
+
+function renderNpCustom() {
+  $('npBgColor').value = settings.npBgColor;
+  $('npTextColor').value = settings.npTextColor;
+  $('npAccentColor').value = settings.npAccentColor;
+  $('npFont').value = settings.npFont;
+  const preview = $('npBgPreview');
+  preview.style.backgroundColor = settings.npBgColor;
+  preview.style.backgroundImage = settings.npBgVer ? `url("/api/nowplaying/bg?v=${settings.npBgVer}")` : 'none';
+  $('npBgRemove').disabled = !settings.npBgVer;
+}
+
+function changedNpCustom() {
+  saveSettings();
+  renderNpCustom();
+  renderLinks();
+  refreshPreviewSoon();
+}
+
+function bindNpCustom() {
+  const font = $('npFont');
+  for (const f of RUNNING_TEXT_FONTS) font.append(new Option(f.label, f.id));
+  for (const [id, key] of [['npBgColor', 'npBgColor'], ['npTextColor', 'npTextColor'], ['npAccentColor', 'npAccentColor']]) {
+    $(id).addEventListener('input', () => {
+      settings[key] = $(id).value;
+      changedNpCustom();
+    });
+  }
+  font.addEventListener('change', () => {
+    settings.npFont = font.value;
+    changedNpCustom();
+  });
+
+  $('npBgFile').addEventListener('change', async (event) => {
+    const picked = event.target.files?.[0];
+    event.target.value = '';
+    if (!picked) return;
+    if (picked.size > 3 * 1024 * 1024) return toast('Background terlalu besar, maksimal 3 MB');
+    try {
+      await soundRequest('/api/nowplaying/bg', {
+        method: 'POST',
+        headers: { 'Content-Type': picked.type || 'application/octet-stream' },
+        body: picked,
+      });
+      // A new version makes the overlay load the new picture.
+      settings.npBgVer = Date.now();
+      changedNpCustom();
+      toast('Background diunggah');
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+  $('npBgRemove').addEventListener('click', async () => {
+    try {
+      await soundRequest('/api/nowplaying/bg', { method: 'DELETE' });
+      settings.npBgVer = 0;
+      changedNpCustom();
+      toast('Background dihapus');
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+  renderNpCustom();
+}
+
 // ---- Template Spotify ----
 
 // Kartu template Spotify dibuat dari daftar yang sama dengan overlay, dengan kelas np-* yang sama.
@@ -1687,6 +2493,61 @@ function renderChatMode() {
   }
 }
 
+// Perataan untuk chat dan alert. Setiap halaman punya pilihannya sendiri.
+function renderAlign() {
+  for (const [selector, key] of [['.js-chatalign', 'chatAlign'], ['.js-alertalign', 'alertAlign']]) {
+    for (const wrap of document.querySelectorAll(selector)) {
+      wrap.replaceChildren();
+      for (const option of CHAT_ALIGNS) {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.type = 'button';
+        chip.setAttribute('role', 'radio');
+        chip.setAttribute('aria-checked', String(settings[key] === option.id));
+        chip.textContent = option.label;
+        chip.addEventListener('click', () => {
+          settings[key] = option.id;
+          renderAlign();
+          saveSettings();
+          renderLinks();
+          renderSample();
+          refreshPreviewSoon();
+        });
+        wrap.append(chip);
+      }
+    }
+  }
+}
+
+// Posisi nama penonton: di samping komentar, atau di atas.
+const CHAT_NAME_POSITIONS = [
+  { id: 'side', label: 'Di samping' },
+  { id: 'top', label: 'Di atas' },
+];
+
+function renderChatNames() {
+  for (const wrap of document.querySelectorAll('.js-chatnames')) {
+    wrap.replaceChildren();
+    for (const option of CHAT_NAME_POSITIONS) {
+      const chip = document.createElement('button');
+      chip.className = 'chip';
+      chip.type = 'button';
+      chip.setAttribute('role', 'radio');
+      chip.setAttribute('aria-checked', String(settings.chatNames === option.id));
+      chip.textContent = option.label;
+      chip.addEventListener('click', () => {
+        settings.chatNames = option.id;
+        renderChatNames();
+        saveSettings();
+        renderLinks();
+        renderSample();
+        refreshPreviewSoon();
+      });
+      wrap.append(chip);
+    }
+  }
+}
+
 // Kartu gradasi: contoh chat di atas latar gradasi, supaya hasilnya terlihat sebelum dipilih.
 function renderGradients() {
   for (const wrap of document.querySelectorAll('.js-gradients')) {
@@ -1711,7 +2572,7 @@ function renderGradients() {
       thumb.className = 'tpl-thumb grad-thumb';
       if (gradient.from) thumb.style.background = `linear-gradient(135deg, ${gradient.from}, ${gradient.to})`;
       const sample = document.createElement('div');
-      sample.className = `chat tpl-${settings.template}`;
+      sample.className = `chat tpl-${settings.template}${settings.chatNames === 'top' ? ' names-top' : ''}`;
       // The card shows the gradient behind the sample, so the sample itself uses no gradient.
       applyStyle(sample, { ...chatStyle(), gradient: 'none' });
       sample.append(chatRow(SAMPLE_CHAT[1]));
@@ -1964,6 +2825,9 @@ connectHub((msg) => {
       return;
     case 'spotify':
       return renderSpotify(msg);
+    case 'nowplaying':
+      latestTrack[msg.source] = msg.nowPlaying;
+      return renderLyricsNow();
     case 'youtube':
       return renderYouTube(msg);
     case 'player':
@@ -2028,6 +2892,8 @@ bindSetting('size', 'size', 'sizeOut');
 bindSetting('max', 'max', 'maxOut');
 bindSetting('chatHold', 'chatHold', 'chatHoldOut');
 renderChatMode();
+renderChatNames();
+renderAlign();
 bindSetting('duration', 'duration', 'durOut');
 bindRunningText();
 bindAnimDur();
@@ -2035,7 +2901,12 @@ bindPerspective();
 bindLibrary();
 bindNpOptions();
 bindLyricsStyle();
+bindNpCustom();
+bindLyricsPicker();
 bindTts();
+bindSoundboard();
+bindBoard();
+bindCaption();
 
 renderAnims();
 renderGradients();

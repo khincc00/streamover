@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Overlay Lagu</title>
   <link rel="stylesheet" href="/overlay/nowplaying-templates.css">
+  <!-- The fonts for the custom template. RUNNING_TEXT_FONTS_URL must match the other pages. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mr+Dafoe:wght@400&family=Pacifico:wght@400&family=Lobster:wght@400&family=Dancing+Script:wght@700&family=Bebas+Neue:wght@400&family=Anton:wght@400&family=Bangers:wght@400&family=Righteous:wght@400&family=Playfair+Display:wght@800&family=Montserrat:wght@800&display=swap">
   <style>
     html, body {
       margin: 0;
@@ -65,6 +68,7 @@
     import { connectHub } from '/shared/ws.js';
     import { DEFAULT_NOWPLAYING_TEMPLATE, isNowPlayingTemplate } from '/shared/nowplayingTemplates.js';
     import { applyPerspective, perspectiveFromParams } from '/shared/perspective.js';
+    import { isRunningTextFont, runningTextFontStyle } from '/shared/runningTextTemplates.js';
 
     const params = new URLSearchParams(location.search);
     const template = isNowPlayingTemplate(params.get('template')) ? params.get('template') : DEFAULT_NOWPLAYING_TEMPLATE;
@@ -84,6 +88,24 @@
 
     stage.classList.add(`align-${align}`);
     box.className = `np np-${template}`;
+    // Template custom: background, warna, dan font dari panel. Nilai yang tidak valid memakai bawaan.
+    function applyCustom() {
+      const hex = (value) => (/^[0-9a-f]{6}$/i.test(value || '') ? `#${value}` : '');
+      box.style.setProperty('--np-bg', hex(params.get('bgc')) || '#121212');
+      box.style.setProperty('--np-text', hex(params.get('tc')) || '#ffffff');
+      box.style.setProperty('--np-accent', hex(params.get('ac')) || '#1ed760');
+      if (params.get('bgimg') === '1') {
+        // The overlay key goes along, so the image loads without a login. The version makes a new upload show at once.
+        const query = new URLSearchParams();
+        if (params.get('key')) query.set('key', params.get('key'));
+        query.set('v', params.get('bgv') || '0');
+        box.style.setProperty('--np-bg-image', `linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.25)), url("/api/nowplaying/bg?${query}")`);
+      }
+      // 'default' keeps the system font, so the style is null and nothing changes.
+      const font = isRunningTextFont(params.get('font')) ? runningTextFontStyle(params.get('font')) : null;
+      if (font) box.style.setProperty('--np-font', font.fontFamily);
+    }
+    if (template === 'custom') applyCustom();
     box.classList.add(fixed ? 'fit-fixed' : 'fit-content', `text-${align}`);
     box.style.setProperty('--np-width', `${width}px`);
     applyPerspective(box, perspectiveFromParams(params));

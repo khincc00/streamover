@@ -10,7 +10,7 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["http://127.0.0.1:3000/*"],
+      "matches": ["https://streamover.khincreator.com/*", "http://127.0.0.1:3000/*"],
       "js": ["panel-bridge.js"],
       "run_at": "document_idle"
     }
@@ -23,5 +23,5 @@
     "page": "options.html",
     "open_in_tab": true
   },
-  "host_permissions": ["http://127.0.0.1:3000/*"]
+  "host_permissions": ["https://streamover.khincreator.com/*", "http://127.0.0.1:3000/*"]
 }

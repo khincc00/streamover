@@ -1,4 +1,4 @@
-// Saves the overlay key. Accepts either the whole overlay link from the panel or the key alone.
+// Saves the overlay key and the server address. Accepts either the whole overlay link from the panel or the key alone.
 const input = document.getElementById('link');
 const status = document.getElementById('status');
 
@@ -11,6 +11,15 @@ function keyFrom(text) {
   } catch {
     // Not a link, so the text is taken as the key itself.
     return value;
+  }
+}
+
+// The address in a pasted link tells the extension which server to send to. A bare key keeps the saved address.
+function serverFrom(text) {
+  try {
+    return new URL(text.trim()).origin;
+  } catch {
+    return '';
   }
 }
 
@@ -29,7 +38,8 @@ document.getElementById('save').addEventListener('click', async () => {
     show('Tidak menemukan kunci. Pastikan link berisi bagian key=...', 'error');
     return;
   }
-  await chrome.storage.local.set({ overlayKey });
+  const serverUrl = serverFrom(input.value);
+  await chrome.storage.local.set({ overlayKey, ...(serverUrl && { serverUrl }) });
   input.value = '';
   show('Tersimpan. Muat ulang tab music.youtube.com, lalu putar lagu.', 'ok');
 });

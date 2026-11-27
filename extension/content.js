@@ -19,7 +19,8 @@ function readTrack() {
   const artist = media?.artist || textOf('ytmusic-player-bar .subtitle').split('•')[0].trim();
   const image = media?.artwork?.at(-1)?.src || document.querySelector('ytmusic-player-bar img')?.src || '';
   const playing = navigator.mediaSession?.playbackState === 'playing' || Boolean(video && !video.paused);
-  return { title, artist, image, playing };
+  // Seconds into the song and its length, for the lyrics overlay.
+  return { title, artist, image, playing, currentTime: video?.currentTime || 0, duration: video?.duration || 0 };
 }
 
 setInterval(() => {

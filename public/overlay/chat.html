@@ -40,6 +40,8 @@
 
     const list = document.getElementById('list');
     list.classList.add(`tpl-${template}`);
+    // Where the viewer's name sits: 'side' (beside the comment, the default) or 'top' (above it).
+    if (params.get('names') === 'top') list.classList.add('names-top');
     applyStyle(list, styleFromParams(params));
     applyPerspective(list, perspectiveFromParams(params));
 

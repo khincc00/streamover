@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -8,12 +9,14 @@ import { LiveSession } from './src/liveSession.js';
 import { createHub } from './src/hub.js';
 import { SAMPLES } from './src/samples.js';
 import { SpotifySession } from './src/spotify.js';
-import { lyricsFor } from './src/lyrics.js';
+import { lyricsFor, lyricsById, searchLyrics } from './src/lyrics.js';
 import { YouTubeMusicBridge } from './src/ytmusic.js';
+import { appleConfigFromEnv, developerTokenSource, appleKeyFor } from './src/applemusic.js';
 import { UserStore } from './src/users.js';
 import { FeedBuffer } from './src/feed.js';
 import { RequestQueue, parseRequest } from './src/queue.js';
 import { MusicLibrary } from './src/library.js';
+import { Leaderboard, BOARDS, SAMPLE_BOARDS } from './src/leaderboard.js';
 import { searchVideo, searchVideos, checkEmbeddable, parseVideoId, parsePlaylistId, fetchPlaylistItems, fetchEmbeddableIds } from './src/youtube.js';
 import { SESSION_COOKIE, sessionTokenFrom, tooManyAttempts } from './src/auth.js';
 
@@ -25,11 +28,17 @@ const HOST = process.env.HOST || '127.0.0.1';
 const PUBLIC_URL = (process.env.PUBLIC_URL || `http://127.0.0.1:${PORT}`).replace(/\/$/, '');
 // Needed only to find chat requests on YouTube. Playlist songs use links, so they don't need it.
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || '';
+// Apple Music needs a developer key from an Apple Developer account. Without it, the feature stays off.
+const appleConfig = appleConfigFromEnv();
+const appleToken = appleConfig ? developerTokenSource(appleConfig) : null;
 const PANEL_SETTING_KEYS = [
-  'size', 'max', 'chatMode', 'chatHold', 'duration', 'template', 'spotifyTemplate', 'youtubeTemplate', 'anim', 'dur',
+  'size', 'max', 'chatMode', 'chatHold', 'chatNames', 'duration', 'template', 'spotifyTemplate', 'youtubeTemplate', 'anim', 'dur',
   'custom', 'accent', 'text', 'bg', 'gradient', 'persp', 'username',
   'runningTexts', 'runningSelected', 'npFit', 'npAlign', 'npWidth', 'lyricsFont', 'lyricsColor',
-  'ttsChat', 'ttsAlert', 'ttsPrefix', 'ttsRate', 'ttsVoice',
+  'npBgColor', 'npTextColor', 'npAccentColor', 'npFont', 'npBgVer',
+  'ttsChat', 'ttsAlert', 'ttsPrefix', 'ttsRate', 'ttsVoice', 'chatAlign', 'alertAlign',
+  'capLang', 'capMic', 'capSize', 'capFont', 'capColor', 'capHold', 'capBox',
+  'board',
 ];
 
 // The events kept in each account's activity history.
@@ -164,7 +173,9 @@ function saveMusicSettings(ctx) {
 
 // source is 'spotify' or 'youtube'. Each overlay asks for one of them by its ?source= link.
 function nowPlayingMessage(ctx, source) {
-  const nowPlaying = source === 'youtube' ? ctx.youtube.nowPlaying() : ctx.spotify.status().nowPlaying;
+  const nowPlaying = source === 'youtube' ? ctx.youtube.nowPlaying()
+    : source === 'applemusic' ? ctx.applemusic.nowPlaying()
+      : ctx.spotify.status().nowPlaying;
   return { type: 'nowplaying', source, nowPlaying };
 }
 
@@ -172,34 +183,68 @@ function broadcastNowPlaying(ctx, source) {
   const message = nowPlayingMessage(ctx, source);
   hub.broadcast(ctx.userId, message);
   removePlayedRequests(ctx, source, message.nowPlaying);
-  if (source === 'spotify') trackLyrics(ctx, message.nowPlaying);
+  trackLyrics(ctx, source, message.nowPlaying);
 }
 
-// The lyrics for the Spotify song that is playing. The overlay gets the lines once per song,
-// and keeps its place from the progress in the nowplaying messages.
-function lyricsMessage(ctx) {
-  return { type: 'lyrics', source: 'spotify', uri: ctx.lyrics.uri, lines: ctx.lyrics.lines };
+// The lyrics for the song playing in one source ('spotify' or 'youtube'). The overlay gets the lines once per song,
+// and keeps its place from the progress in the nowplaying messages. key says which song the lines belong to.
+function lyricsMessage(ctx, source) {
+  const { key, lines } = ctx.lyrics[source];
+  return { type: 'lyrics', source, key, lines };
 }
 
 // A new song asks LRCLIB once. Polls for the same song do nothing, so a missing lyric isn't retried every few seconds.
-function trackLyrics(ctx, nowPlaying) {
-  const uri = nowPlaying?.uri || '';
-  if (!uri || uri === ctx.lyrics.uri) return;
-  ctx.lyrics = { uri, lines: null };
-  hub.broadcast(ctx.userId, lyricsMessage(ctx));
+// A pick made by hand in the panel wins over the automatic search.
+function trackLyrics(ctx, source, track) {
+  const key = track?.key || '';
+  if (!key || key === ctx.lyrics[source].key) return;
+  ctx.lyrics[source] = { key, lines: null };
+  hub.broadcast(ctx.userId, lyricsMessage(ctx, source));
 
   const finish = (lines) => {
     // The song may have changed while LRCLIB was answering. Then this answer is already out of date.
-    if (ctx.lyrics.uri !== uri) return;
-    ctx.lyrics.lines = lines;
-    hub.broadcast(ctx.userId, lyricsMessage(ctx));
+    if (ctx.lyrics[source].key !== key) return;
+    ctx.lyrics[source].lines = lines;
+    hub.broadcast(ctx.userId, lyricsMessage(ctx, source));
   };
   // Podcast episodes have no synced lyrics on LRCLIB, so they are not looked up.
-  if (nowPlaying.kind !== 'track') return finish([]);
-  lyricsFor(nowPlaying).then(finish, (err) => {
+  if (track.kind !== 'track') return finish([]);
+
+  const override = ctx.lyricOverrides[key];
+  // Spotify can help find a YouTube song, if the account is connected.
+  const lookup = source !== 'spotify' && ctx.spotify.status().connected
+    ? (t) => ctx.spotify.searchTrack(`${t.title} ${t.artist}`)
+    : null;
+  const work = override ? lyricsById(override.id) : lyricsFor(key, track, lookup);
+  work.then(finish, (err) => {
     console.warn(`[lirik] ${err.message}`);
     finish([]);
   });
+}
+
+// Reads the saved lyric picks of one account. A missing or broken file means no picks.
+function readLyricOverrides(file) {
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function saveLyricOverrides(ctx) {
+  const tmp = `${ctx.lyricsFile}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(ctx.lyricOverrides, null, 2));
+  fs.renameSync(tmp, ctx.lyricsFile);
+}
+
+// After a pick changes, the song playing now (if it is that song) gets its lyrics again.
+function refreshLyrics(ctx, key) {
+  for (const source of ['spotify', 'youtube', 'applemusic']) {
+    const track = nowPlayingMessage(ctx, source).nowPlaying;
+    if (track?.key !== key || ctx.lyrics[source].key !== key) continue;
+    ctx.lyrics[source] = { key: '', lines: null };
+    trackLyrics(ctx, source, track);
+  }
 }
 
 // When a new song starts, the requests for it leave the list. The same song playing on and on
@@ -287,20 +332,36 @@ function contextFor(userId) {
     playOrder: music.playOrder, // 'playlist' (in order) or 'shuffle'
     youtubeCommands: [], // extension mode: commands waiting for the YT Music tab
     lastTrackKey: {},
-    lyrics: { uri: '', lines: null }, // Spotify song the lyrics are for. lines: null while loading, [] when none exist
+    // Per source: the song (key) the lyrics are for. lines is null while loading, [] when none exist.
+    lyrics: { spotify: { key: '', lines: null }, youtube: { key: '', lines: null }, applemusic: { key: '', lines: null } },
+    lyricsFile: path.join(dir, 'lyrics.json'),
+    lyricOverrides: readLyricOverrides(path.join(dir, 'lyrics.json')), // song key -> { id } of the LRCLIB lyrics picked by hand
+    soundFile: path.join(dir, 'soundboard.json'),
+    soundDir: path.join(dir, 'soundboard'),
+    soundboard: readSoundboard(path.join(dir, 'soundboard.json')), // the 10 slots: { name, file }
+    npDir: path.join(dir, 'nowplaying'),
+    npFile: path.join(dir, 'nowplaying.json'),
+    npBg: readNowPlayingBg(path.join(dir, 'nowplaying.json')), // background of the custom song template: { file }
     youtubeKey: readYouTubeKey(dir), // connected in the panel; empty means use .env
     player: { current: null, history: [], cursor: null, bag: null }, // what the player page is playing, and its playlist position
     feed: new FeedBuffer(path.join(dir, 'feed.json')),
     queue: new RequestQueue(path.join(dir, 'queue.json')),
     library: new MusicLibrary(path.join(dir, 'library.json')),
   };
+  // Top gifter and top tap for this live. Each new live starts from zero.
+  ctx.board = new Leaderboard((message) => send(message));
   ctx.live = new LiveSession({
     onEvent: (event) => {
       if (FEED_TYPES.has(event.type)) ctx.feed.add(event);
       if (event.type === 'chat') handleChat(ctx, event);
-      send(event);
+      if (event.type === 'gift' || event.type === 'like') ctx.board.add(event);
+      // Taps are only counted on the board. Sending each one would flood the overlays.
+      if (event.type !== 'like') send(event);
     },
-    onStatus: (status) => send({ type: 'status', ...status }),
+    onStatus: (status) => {
+      if (status.state === 'connecting') ctx.board.reset();
+      send({ type: 'status', ...status });
+    },
   });
   ctx.spotify = new SpotifySession({
     redirectUri: `${PUBLIC_URL}/api/spotify/callback`,
@@ -320,6 +381,12 @@ function contextFor(userId) {
     },
   });
   ctx.youtube.start();
+  // Apple Music reports from the Apple Music page in the browser (public/applemusic.html), like the YT Music extension.
+  ctx.applemusic = new YouTubeMusicBridge({
+    keyFor: appleKeyFor,
+    onChange: () => broadcastNowPlaying(ctx, 'applemusic'),
+  });
+  ctx.applemusic.start();
 
   contexts.set(userId, ctx);
   return ctx;
@@ -331,6 +398,15 @@ app.use('/api', (req, res, next) => {
   req.user = store.userForSession(sessionTokenFrom(req));
   const pathname = req.originalUrl.split('?')[0];
   if (OPEN_API.has(pathname)) return next();
+
+  // The soundboard overlay in OBS plays the sound files with its overlay key instead of a login.
+  // Only reading is allowed with an overlay key. Uploading and deleting still need the logged-in panel.
+  if (req.method === 'GET' && (pathname.startsWith('/api/soundboard/file/') || pathname === '/api/nowplaying/bg')) {
+    const user = store.byOverlayKey(req.query.key) || req.user;
+    if (!user) return res.status(401).json({ error: 'Perlu kunci overlay' });
+    req.ctx = contextFor(user.id);
+    return next();
+  }
 
   // The player page reports and asks for the next track with its overlay key instead of a login.
   if (['/api/ytmusic/report', '/api/ytmusic/command', '/api/player/ended', '/api/player/blocked'].includes(pathname)) {
@@ -378,7 +454,20 @@ app.post('/api/test/:kind', (req, res) => {
   const sample = make();
   if (FEED_TYPES.has(sample.type)) req.ctx.feed.add(sample);
   if (sample.type === 'chat') handleChat(req.ctx, sample);
-  hub.broadcast(req.user.id, sample);
+  if (sample.type === 'gift' || sample.type === 'like') req.ctx.board.add(sample);
+  if (sample.type !== 'like') hub.broadcast(req.user.id, sample);
+  res.json({ ok: true });
+});
+
+// Starts both boards from zero, for the panel's reset button.
+app.post('/api/board/reset', (req, res) => {
+  req.ctx.board.reset();
+  res.json({ ok: true });
+});
+
+// Shows sample rows on the overlays. The real scores are not changed, so this is safe during a live.
+app.post('/api/board/sample', (req, res) => {
+  for (const name of BOARDS) hub.broadcast(req.ctx.userId, { type: 'leaderboard', board: name, items: SAMPLE_BOARDS[name] });
   res.json({ ok: true });
 });
 
@@ -924,6 +1013,231 @@ app.post('/api/settings', (req, res) => {
   res.json({ ok: true });
 });
 
+// ---- Apple Music: token untuk MusicKit dan laporan lagu dari halaman Apple Music ----
+
+// The Apple Music page asks for a token when it opens. The private key itself never leaves the server.
+app.get('/api/applemusic/token', (req, res) => {
+  if (!appleToken) {
+    return res.status(503).json({ error: 'Apple Music belum disiapkan di server. Isi APPLE_TEAM_ID, APPLE_KEY_ID, dan kunci di .env.' });
+  }
+  res.set('Cache-Control', 'no-store');
+  res.json({ token: appleToken() });
+});
+
+app.post('/api/applemusic/report', (req, res) => {
+  req.ctx.applemusic.report(req.body || {});
+  res.json({ ok: true });
+});
+
+// ---- Lirik: cari dan pilih lirik per lagu ----
+
+app.get('/api/lyrics/search', async (req, res) => {
+  const query = String(req.query.q || '').trim().slice(0, 200);
+  if (!query) return res.json({ results: [] });
+  try {
+    res.json({ results: await searchLyrics(query) });
+  } catch {
+    res.status(502).json({ error: 'Pencarian lirik gagal, coba lagi' });
+  }
+});
+
+// id null removes the pick, so the song goes back to automatic lyrics.
+app.post('/api/lyrics/override', (req, res) => {
+  const key = String(req.body?.key || '').slice(0, 300);
+  const id = req.body?.id ?? null;
+  if (!key) return res.status(400).json({ error: 'Belum ada lagu yang diputar' });
+  if (id === null) {
+    delete req.ctx.lyricOverrides[key];
+  } else if (Number.isInteger(Number(id)) && Number(id) > 0) {
+    req.ctx.lyricOverrides[key] = { id: Number(id) };
+  } else {
+    return res.status(400).json({ error: 'Pilihan lirik tidak valid' });
+  }
+  saveLyricOverrides(req.ctx);
+  refreshLyrics(req.ctx, key);
+  res.json({ ok: true });
+});
+
+// ---- Soundboard: 10 slot, tiap slot berisi suara yang diunggah sendiri ----
+
+const SOUND_SLOTS = 10;
+const SOUND_MAX_BYTES = 5 * 1024 * 1024;
+const SOUND_NAME_MAX = 40;
+
+// The file's contents decide the type, not its Content-Type header, so only real audio is stored.
+function soundKind(buf) {
+  if (buf.length > 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WAVE') return 'wav';
+  if (buf.length > 4 && buf.toString('ascii', 0, 4) === 'OggS') return 'ogg';
+  if (buf.length > 3 && buf.toString('ascii', 0, 3) === 'ID3') return 'mp3';
+  if (buf.length > 2 && buf[0] === 0xff && (buf[1] & 0xe0) === 0xe0) return 'mp3';
+  return '';
+}
+
+function readSoundboard(file) {
+  const empty = () => Array.from({ length: SOUND_SLOTS }, () => ({ name: '', file: '' }));
+  try {
+    const slots = JSON.parse(fs.readFileSync(file, 'utf8'));
+    return Array.isArray(slots) && slots.length === SOUND_SLOTS ? slots : empty();
+  } catch {
+    return empty();
+  }
+}
+
+function saveSoundboard(ctx) {
+  const tmp = `${ctx.soundFile}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(ctx.soundboard, null, 2));
+  fs.renameSync(tmp, ctx.soundFile);
+}
+
+function soundSlot(value) {
+  const slot = Number(value);
+  return Number.isInteger(slot) && slot >= 0 && slot < SOUND_SLOTS ? slot : -1;
+}
+
+app.get('/api/soundboard', (req, res) => {
+  res.json({
+    slots: req.ctx.soundboard.map((slot, index) => ({ slot: index, name: slot.name, hasFile: Boolean(slot.file) })),
+  });
+});
+
+// The raw body is the file itself. The size limit is checked while it is read.
+app.post('/api/soundboard/:slot/file', express.raw({ type: '*/*', limit: SOUND_MAX_BYTES }), (req, res) => {
+  const ctx = req.ctx;
+  const index = soundSlot(req.params.slot);
+  if (index < 0) return res.status(400).json({ error: 'Slot tidak valid' });
+  const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+  const kind = soundKind(body);
+  if (!kind) return res.status(400).json({ error: 'File harus MP3, WAV, atau OGG' });
+
+  fs.mkdirSync(ctx.soundDir, { recursive: true });
+  const old = ctx.soundboard[index].file;
+  const file = `${crypto.randomBytes(12).toString('hex')}.${kind}`;
+  fs.writeFileSync(path.join(ctx.soundDir, file), body);
+  if (old) fs.rm(path.join(ctx.soundDir, old), () => {});
+  ctx.soundboard[index] = { name: ctx.soundboard[index].name || `Suara ${index + 1}`, file };
+  saveSoundboard(ctx);
+  res.json({ ok: true });
+});
+
+app.delete('/api/soundboard/:slot/file', (req, res) => {
+  const ctx = req.ctx;
+  const index = soundSlot(req.params.slot);
+  if (index < 0) return res.status(400).json({ error: 'Slot tidak valid' });
+  const old = ctx.soundboard[index].file;
+  if (old) fs.rm(path.join(ctx.soundDir, old), () => {});
+  ctx.soundboard[index] = { name: ctx.soundboard[index].name, file: '' };
+  saveSoundboard(ctx);
+  res.json({ ok: true });
+});
+
+app.post('/api/soundboard/:slot/name', (req, res) => {
+  const ctx = req.ctx;
+  const index = soundSlot(req.params.slot);
+  if (index < 0) return res.status(400).json({ error: 'Slot tidak valid' });
+  const name = String(req.body?.name ?? '').trim().slice(0, SOUND_NAME_MAX);
+  ctx.soundboard[index] = { name, file: ctx.soundboard[index].file };
+  saveSoundboard(ctx);
+  res.json({ ok: true });
+});
+
+// Sends the sound to the soundboard overlay, which plays it. Volume is 0 to 1.
+app.post('/api/soundboard/play', (req, res) => {
+  const ctx = req.ctx;
+  const index = soundSlot(req.body?.slot);
+  if (index < 0) return res.status(400).json({ error: 'Slot tidak valid' });
+  if (!ctx.soundboard[index].file) return res.status(400).json({ error: 'Slot ini belum ada suaranya' });
+  const volume = Math.min(1, Math.max(0, Number.isFinite(Number(req.body?.volume)) ? Number(req.body.volume) : 1));
+  hub.broadcast(ctx.userId, { type: 'sound', slot: index, volume });
+  res.json({ ok: true });
+});
+
+app.post('/api/soundboard/stop', (req, res) => {
+  hub.broadcast(req.ctx.userId, { type: 'sound-stop' });
+  res.json({ ok: true });
+});
+
+// ---- Auto caption: the panel turns the streamer's voice into text and the caption overlay shows it ----
+
+const CAPTION_MAX = 400;
+
+// `final` is false while the sentence is still being heard, and true once the browser settles on it.
+// An empty text clears the overlay. `seq` lets the overlay drop an update that arrives after a newer one.
+app.post('/api/caption', (req, res) => {
+  const text = String(req.body?.text ?? '').replace(/\s+/g, ' ').trim().slice(-CAPTION_MAX);
+  const seq = Number(req.body?.seq) || 0;
+  hub.broadcast(req.ctx.userId, { type: 'caption', text, final: Boolean(req.body?.final), seq });
+  res.json({ ok: true });
+});
+
+// The overlay fetches the file with its key. Range requests work, so the browser can seek and play it.
+app.get('/api/soundboard/file/:slot', (req, res) => {
+  const ctx = req.ctx;
+  const index = soundSlot(req.params.slot);
+  const file = index >= 0 ? ctx.soundboard[index].file : '';
+  if (!file) return res.status(404).json({ error: 'Suara tidak ditemukan' });
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.sendFile(path.join(ctx.soundDir, file));
+});
+
+// ---- Template custom: background sendiri untuk overlay lagu ----
+
+const NP_BG_MAX_BYTES = 3 * 1024 * 1024;
+const NP_BG_EXT = { png: 'png', jpg: 'jpg', webp: 'webp' };
+
+// Looks at the first bytes, the same as the soundboard, so only real images are kept.
+function imageKind(buf) {
+  if (buf.length > 8 && buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'png';
+  if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'jpg';
+  if (buf.length > 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return 'webp';
+  return '';
+}
+
+function readNowPlayingBg(file) {
+  try {
+    const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
+    return { file: typeof saved.bgFile === 'string' ? saved.bgFile : '' };
+  } catch {
+    return { file: '' };
+  }
+}
+
+function saveNowPlayingBg(ctx) {
+  const tmp = `${ctx.npFile}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify({ bgFile: ctx.npBg.file }, null, 2));
+  fs.renameSync(tmp, ctx.npFile);
+}
+
+app.post('/api/nowplaying/bg', express.raw({ type: '*/*', limit: NP_BG_MAX_BYTES }), (req, res) => {
+  const ctx = req.ctx;
+  const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+  const kind = imageKind(body);
+  if (!kind) return res.status(400).json({ error: 'Background harus PNG, JPG, atau WebP' });
+  fs.mkdirSync(ctx.npDir, { recursive: true });
+  const file = `${crypto.randomBytes(12).toString('hex')}.${NP_BG_EXT[kind]}`;
+  fs.writeFileSync(path.join(ctx.npDir, file), body);
+  if (ctx.npBg.file) fs.rm(path.join(ctx.npDir, ctx.npBg.file), () => {});
+  ctx.npBg = { file };
+  saveNowPlayingBg(ctx);
+  res.json({ ok: true });
+});
+
+app.delete('/api/nowplaying/bg', (req, res) => {
+  const ctx = req.ctx;
+  if (ctx.npBg.file) fs.rm(path.join(ctx.npDir, ctx.npBg.file), () => {});
+  ctx.npBg = { file: '' };
+  saveNowPlayingBg(ctx);
+  res.json({ ok: true });
+});
+
+// Read with the panel login or the overlay key. Revalidated each time, so a new upload shows at once.
+app.get('/api/nowplaying/bg', (req, res) => {
+  const ctx = req.ctx;
+  if (!ctx.npBg.file) return res.status(404).json({ error: 'Belum ada background' });
+  res.set('Cache-Control', 'no-cache');
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.sendFile(path.join(ctx.npDir, ctx.npBg.file));
+});
+
 // ---- Live channel ----
 
 // An overlay key identifies the account for OBS. A logged-in panel identifies it by cookie.
@@ -943,7 +1257,12 @@ const hub = createHub(server, {
       { type: 'status', ...ctx.live.status() },
       nowPlayingMessage(ctx, 'spotify'),
       nowPlayingMessage(ctx, 'youtube'),
-      lyricsMessage(ctx),
+      nowPlayingMessage(ctx, 'applemusic'),
+      lyricsMessage(ctx, 'spotify'),
+      lyricsMessage(ctx, 'youtube'),
+      lyricsMessage(ctx, 'applemusic'),
+      // Empty boards are not sent, so a preview's sample rows aren't replaced by an empty board.
+      ...BOARDS.map((name) => contextFor(userId).board.message(name)).filter((m) => m.items.length),
     ];
   },
 });
@@ -962,6 +1281,7 @@ async function shutdown() {
   for (const ctx of contexts.values()) {
     ctx.spotify.stop();
     ctx.youtube.stop();
+    ctx.applemusic.stop();
     ctx.feed.flush();
     await ctx.live.stop();
   }

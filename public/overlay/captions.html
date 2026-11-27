@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Overlay Caption</title>
+  <!-- RUNNING_TEXT_FONTS_URL harus sama dengan link di index.html dan overlay/running-text.html. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mr+Dafoe:wght@400&family=Pacifico:wght@400&family=Lobster:wght@400&family=Dancing+Script:wght@700&family=Bebas+Neue:wght@400&family=Anton:wght@400&family=Bangers:wght@400&family=Righteous:wght@400&family=Playfair+Display:wght@800&family=Montserrat:wght@800&display=swap">
+  <style>
+    /* Ukuran, warna, huruf, dan kotak latar diatur dari URL (lihat script di bawah). Nilai di sini adalah bawaan. */
+    :root {
+      --size: 48px;
+      --cap-color: #ffffff;
+      --cap-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+      --cap-weight: 800;
+    }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+    }
+    #wrap {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 64px;
+      display: flex;
+      justify-content: center;
+      padding: 0 96px;
+      box-sizing: border-box;
+    }
+    /* At most two lines. Longer text overflows upward and is cut off, so the newest words stay visible. */
+    #box {
+      max-width: 100%;
+      max-height: calc(var(--size) * 1.3 * 2 + 0.5em);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 0.25em 0.6em;
+      border-radius: 0.35em;
+      font-family: var(--cap-family);
+      font-size: var(--size);
+      font-weight: var(--cap-weight);
+      line-height: 1.3;
+      color: var(--cap-color);
+      text-align: center;
+      overflow-wrap: anywhere;
+      transition: opacity 400ms;
+    }
+    #box.shadow { filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.7)); }
+    #box.boxed { background: rgba(0, 0, 0, 0.6); }
+    #box.gone { opacity: 0; }
+    /* Words the browser is still unsure about are dimmer until the sentence is final. */
+    #box.interim #text { opacity: 0.75; }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="box" class="gone"><span id="text"></span></div>
+  </div>
+  <script type="module">
+    import { connectHub } from '/shared/ws.js';
+    import { isRunningTextFont, runningTextFontStyle } from '/shared/runningTextTemplates.js';
+
+    const params = new URLSearchParams(location.search);
+    const root = document.documentElement.style;
+    root.setProperty('--size', `${Math.min(120, Math.max(20, Number(params.get('size')) || 48))}px`);
+    // Font id from the panel. 'default' keeps the system font.
+    const fontStyle = isRunningTextFont(params.get('font')) ? runningTextFontStyle(params.get('font')) : null;
+    if (fontStyle) {
+      root.setProperty('--cap-family', fontStyle.fontFamily);
+      root.setProperty('--cap-weight', fontStyle.fontWeight);
+    }
+    // Text colour as 6 hex digits without '#'. Anything else keeps white.
+    const color = params.get('color') || '';
+    if (/^[0-9a-f]{6}$/i.test(color)) root.setProperty('--cap-color', `#${color}`);
+    // How long a finished sentence stays on screen, in ms.
+    const holdMs = Math.min(30000, Math.max(1000, Number(params.get('hold')) || 4000));
+
+    const box = document.getElementById('box');
+    const text = document.getElementById('text');
+    // A dark box behind the text by default. box=0 shows only the text with a shadow.
+    box.classList.add(params.get('box') === '0' ? 'shadow' : 'boxed');
+
+    let hideTimer = null;
+
+    function show(caption, final) {
+      clearTimeout(hideTimer);
+      if (!caption) {
+        box.classList.add('gone');
+        return;
+      }
+      // textContent (not innerHTML) so spoken text can't inject markup.
+      text.textContent = caption;
+      box.classList.toggle('interim', !final);
+      box.classList.remove('gone');
+      // An unfinished sentence also goes away if the panel stops sending, so it can't stay stuck.
+      hideTimer = setTimeout(() => box.classList.add('gone'), final ? holdMs : holdMs + 4000);
+    }
+
+    let lastSeq = 0;
+    connectHub((msg) => {
+      if (msg.type !== 'caption') return;
+      // Updates can arrive out of order. An older one would bring back words already replaced.
+      const seq = Number(msg.seq) || 0;
+      if (seq < lastSeq) return;
+      lastSeq = seq;
+      show(msg.text, msg.final);
+    });
+  </script>
+</body>
+</html>

@@ -34,7 +34,7 @@ export class LiveSession {
     this.roomId = null;
     this.setState('connecting');
 
-    const relay = [WebcastEvent.CHAT, WebcastEvent.GIFT, WebcastEvent.FOLLOW, WebcastEvent.SHARE, WebcastEvent.ROOM_USER];
+    const relay = [WebcastEvent.CHAT, WebcastEvent.GIFT, WebcastEvent.LIKE, WebcastEvent.FOLLOW, WebcastEvent.SHARE, WebcastEvent.ROOM_USER];
     for (const type of relay) {
       conn.on(type, (data) => {
         if (this.conn !== conn) return;

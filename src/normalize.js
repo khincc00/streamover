@@ -43,6 +43,10 @@ export function normalizeEvent(type, data) {
     case WebcastEvent.SHARE:
       return { type: 'share', user: normalizeUser(data.user) };
 
+    // Every tap on the screen sends a like event. count is how many taps this event adds.
+    case WebcastEvent.LIKE:
+      return { type: 'like', user: normalizeUser(data.user), count: Number(data.likeCount) || 0 };
+
     case WebcastEvent.ROOM_USER:
       return { type: 'viewers', count: Number(data.viewerCount ?? data.totalUser ?? data.total ?? 0) || 0 };
 

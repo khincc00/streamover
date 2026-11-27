@@ -65,6 +65,9 @@ export function startYouTubePlayer({ element, key, onStatus = () => {} }) {
         artist: current?.artist || data.author || '',
         image: current ? `https://i.ytimg.com/vi/${current.videoId}/hqdefault.jpg` : '',
         playing,
+        // Seconds into the song, for the lyrics overlay. Zero until the player is ready.
+        currentTime: ready ? player.getCurrentTime?.() ?? 0 : 0,
+        duration: ready ? player.getDuration?.() ?? 0 : 0,
       }),
     }).catch(() => {});
   }
